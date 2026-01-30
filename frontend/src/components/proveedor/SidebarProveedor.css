@@ -1,0 +1,25 @@
+.sidebar-proveedor {
+  width: 300px;
+  background-color: #c5dde8;
+  min-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-item {
+  padding: 1.5rem 2rem;
+  color: #1a4d5c;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(26, 77, 92, 0.1);
+  transition: background-color 0.3s;
+}
+
+.sidebar-item:hover {
+  background-color: rgba(26, 77, 92, 0.1);
+}
+
+.sidebar-item.active {
+  background-color: #5ba4c5;
+  color: white;
+  font-weight: 600;
+}

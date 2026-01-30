@@ -1,0 +1,50 @@
+.solicitudes-recibidas-container h1 {
+  color: #1a4d5c;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+}
+
+.solicitudes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.solicitud-recibida-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.solicitud-info h3 {
+  color: #1a4d5c;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.solicitud-fecha, .solicitud-servicio {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin: 0.25rem 0;
+}
+
+.btn-abrir-chat {
+  padding: 0.75rem 2rem;
+  background-color: #1a4d5c;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-abrir-chat:hover {
+  background-color: #143d4a;
+  transform: translateY(-2px);
+}

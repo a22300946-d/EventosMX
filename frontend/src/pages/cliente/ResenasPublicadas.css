@@ -1,0 +1,75 @@
+.resenas-container h1 {
+  color: #1a4d5c;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+}
+
+.resenas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.resena-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.resena-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.resena-header h3 {
+  color: #1a4d5c;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.estrellas {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.estrella-llena {
+  color: #ffc107;
+  font-size: 1.2rem;
+}
+
+.estrella-vacia {
+  color: #e0e0e0;
+  font-size: 1.2rem;
+}
+
+.badge-positivo {
+  background-color: #4caf50;
+  color: white;
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.badge-negativo {
+  background-color: #f44336;
+  color: white;
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.advertencia {
+  color: #f44336;
+  font-style: italic;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.resena-comentario {
+  color: #333;
+  line-height: 1.6;
+  margin: 0;
+}

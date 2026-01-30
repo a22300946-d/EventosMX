@@ -1,0 +1,218 @@
+.calendario-container h1 {
+  color: #1a4d5c;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+}
+
+.calendario-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 600px;
+  margin-bottom: 2rem;
+}
+
+.calendario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.calendario-header h2 {
+  color: #1a4d5c;
+  font-size: 1.5rem;
+}
+
+.btn-mes {
+  background-color: #e91e63;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.calendario-semana {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.calendario-dia-semana {
+  text-align: center;
+  font-weight: 600;
+  color: #1a4d5c;
+  padding: 0.5rem;
+}
+
+.calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+}
+
+.calendario-dia {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.calendario-dia:hover {
+  background-color: #e0e0e0;
+}
+
+.calendario-dia.bloqueado {
+  background-color: #e91e63;
+  color: white;
+}
+
+.calendario-dia.vacio {
+  cursor: default;
+  background-color: transparent;
+}
+
+.btn-editar {
+  background-color: #1a4d5c;
+  color: white;
+  padding: 0.85rem 3rem;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-editar:hover {
+  background-color: #143d4a;
+  transform: translateY(-2px);
+}
+
+/* Alerta de modo edición */
+.alerta-edicion {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Día editable */
+.calendario-dia.editable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calendario-dia.editable:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Contenedor de acciones */
+.calendario-acciones {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+/* Botón editar */
+.btn-editar {
+  background-color: #1a4d5c;
+  color: white;
+  padding: 0.85rem 3rem;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.btn-editar:hover:not(:disabled) {
+  background-color: #143d4a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+}
+
+.btn-editar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Botón cancelar */
+.btn-cancelar {
+  background-color: #6c757d;
+  color: white;
+  padding: 0.85rem 2rem;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.btn-cancelar:hover:not(:disabled) {
+  background-color: #5a6268;
+  transform: translateY(-2px);
+}
+
+.btn-cancelar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Botón guardar */
+.btn-guardar {
+  background-color: #143d4a;
+  color: white;
+  padding: 0.85rem 3rem;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.btn-guardar:hover:not(:disabled) {
+  background-color: #1a4d5c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+}
+
+.btn-guardar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Deshabilitar botones de mes en modo edición */
+.btn-mes:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .calendario-acciones {
+    flex-direction: column;
+  }
+
+  .btn-editar,
+  .btn-cancelar,
+  .btn-guardar {
+    width: 100%;
+  }
+}

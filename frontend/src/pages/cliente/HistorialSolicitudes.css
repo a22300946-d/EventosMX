@@ -1,0 +1,65 @@
+.historial-container h1 {
+  color: #1a4d5c;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+}
+
+.solicitudes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.solicitud-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.solicitud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.solicitud-header h3 {
+  color: #1a4d5c;
+  font-size: 1.5rem;
+}
+
+.badge {
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.badge-success {
+  background-color: #4caf50;
+  color: white;
+}
+
+.badge-warning {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.badge-danger {
+  background-color: #f44336;
+  color: white;
+}
+
+.badge-info {
+  background-color: #2196f3;
+  color: white;
+}
+
+.categoria-badge {
+  background-color: #5ba4c5;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}

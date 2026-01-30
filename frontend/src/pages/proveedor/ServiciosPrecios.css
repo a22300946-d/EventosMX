@@ -1,0 +1,144 @@
+.servicios-container h1 {
+  color: #1a4d5c;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+}
+
+.servicios-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+}
+
+.servicio-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.servicio-header h3 {
+  color: #1a4d5c;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.servicio-precio {
+  color: #6c757d;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.btn-editar-servicio {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #1a4d5c;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.btn-editar-servicio:hover {
+  background-color: #143d4a;
+  transform: translateY(-2px);
+}
+
+.servicio-placeholder {
+  border: 2px dashed #6c757d;
+  border-radius: 12px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  background-color: #f8f9fa;
+}
+
+.servicio-placeholder:hover {
+  background-color: #e9ecef;
+  border-color: #1a4d5c;
+}
+
+.servicio-placeholder p {
+  color: #6c757d;
+  text-align: center;
+}
+
+/* Estilos del modal compartidos con Promociones */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  min-width: 500px;
+  max-width: 600px;
+}
+
+.modal-content h2 {
+  color: #1a4d5c;
+  margin-bottom: 1.5rem;
+}
+
+.modal-content .form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.modal-content select.form-input {
+  cursor: pointer;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.btn-cancelar {
+  padding: 0.75rem 1.5rem;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-cancelar:hover {
+  background-color: #5a6268;
+}
+
+.btn-crear {
+  padding: 0.75rem 1.5rem;
+  background-color: #1a4d5c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-crear:hover {
+  background-color: #143d4a;
+}
