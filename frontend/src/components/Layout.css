@@ -17,6 +17,9 @@
 .navbar-content {
   max-width: 1400px;
   margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .logo {
@@ -135,13 +138,6 @@
   opacity: 0.8;
 }
 
-.navbar-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* Menú desplegable */
 .nav-dropdown {
   position: relative;
 }
@@ -176,13 +172,11 @@
   z-index: 1000;
 }
 
-
-
 .nav-dropdown-menu .dropdown-item {
   display: block;
   width: 100%;
   padding: 0.75rem 1.5rem;
-  color: #1a4d5c; /* AZUL CORRECTO */
+  color: #1a4d5c;
   text-decoration: none;
   background: none;
   border: none;
@@ -192,12 +186,10 @@
   font-size: 1rem;
 }
 
-
 .nav-dropdown-menu .dropdown-item:hover {
   background-color: #f8f9fa;
   color: #1a4d5c;
 }
-
 
 .nav-dropdown-menu .dropdown-logout {
   color: #dc3545;
@@ -209,4 +201,98 @@
   color: #dc3545;
 }
 
+/* ========== Diseño Responsivo ========== */
 
+@media (max-width: 768px) {
+  .navbar {
+    padding: 1rem;
+  }
+  
+  .navbar-content {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .logo {
+    font-size: 1.3rem;
+  }
+  
+  .nav-links {
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    align-items: flex-start;
+  }
+  
+  .nav-links a {
+    font-size: 0.95rem;
+  }
+  
+  .nav-dropdown {
+    width: 100%;
+  }
+  
+  .nav-dropdown-trigger {
+    font-size: 0.95rem;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .nav-dropdown-menu {
+    position: static;
+    right: auto;
+    left: 0;
+    width: 100%;
+    margin-top: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .nav-dropdown-menu .dropdown-item {
+    padding: 1rem 1.5rem;
+    font-size: 0.95rem;
+  }
+  
+  .footer {
+    padding: 1.5rem 0.5rem 1rem;
+  }
+  
+  .footer-links {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .footer-bottom {
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 0 1rem;
+    text-align: center;
+  }
+  
+  .footer-brand {
+    font-size: 1.1rem;
+  }
+  
+  .footer-social {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .logo {
+    font-size: 1.2rem;
+  }
+  
+  .nav-links {
+    gap: 0.5rem;
+  }
+  
+  .nav-dropdown-menu .dropdown-item {
+    padding: 0.85rem 1.25rem;
+  }
+}

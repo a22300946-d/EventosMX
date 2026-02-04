@@ -14,6 +14,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .avatar-circle {
@@ -22,6 +23,17 @@
   border-radius: 50%;
   overflow: hidden;
   background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-circle svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .informacion-form {
@@ -94,4 +106,60 @@
   background-color: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
+}
+
+@media (max-width: 1024px) {
+  .informacion-content {
+    gap: 2rem;
+  }
+  
+  .avatar-circle {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mi-informacion-container h1 {
+    font-size: 2rem;
+  }
+  
+  .informacion-content {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .avatar-section {
+    width: 100%;
+    align-items: center;
+  }
+  
+  .avatar-circle {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .informacion-form {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .informacion-form .form-input {
+    padding: 0.75rem 1rem;
+  }
+  
+  .btn-guardar {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+  
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
 }

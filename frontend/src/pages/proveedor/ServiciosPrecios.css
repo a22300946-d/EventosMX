@@ -1,3 +1,13 @@
+* {
+  box-sizing: border-box;
+}
+
+.servicios-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .servicios-container h1 {
   color: #1a4d5c;
   margin-bottom: 2rem;
@@ -6,7 +16,7 @@
 
 .servicios-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(350px, 100%), 1fr));
   gap: 2rem;
 }
 
@@ -15,18 +25,35 @@
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  max-width: 100%;
+}
+
+.servicio-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
 
 .servicio-header h3 {
   color: #1a4d5c;
   margin-bottom: 0.5rem;
   font-size: 1.5rem;
+  word-break: break-word;
+}
+
+.servicio-descripcion {
+  color: #555;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .servicio-precio {
   color: #6c757d;
   font-size: 1.1rem;
   margin-bottom: 1rem;
+  font-weight: 600;
 }
 
 .btn-editar-servicio {
@@ -39,11 +66,18 @@
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.3s;
+  font-weight: 500;
 }
 
-.btn-editar-servicio:hover {
+.btn-editar-servicio:hover:not(:disabled) {
   background-color: #143d4a;
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+}
+
+.btn-editar-servicio:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .servicio-placeholder {
@@ -66,79 +100,350 @@
 .servicio-placeholder p {
   color: #6c757d;
   text-align: center;
+  padding: 0 1rem;
 }
 
-/* Estilos del modal compartidos con Promociones */
-.modal-overlay {
+.servicios-container .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 10000;
+  padding: 1rem;
 }
 
-.modal-content {
+.servicios-container .modal-content {
   background: white;
   padding: 2rem;
-  border-radius: 12px;
-  min-width: 500px;
-  max-width: 600px;
-}
-
-.modal-content h2 {
-  color: #1a4d5c;
-  margin-bottom: 1.5rem;
-}
-
-.modal-content .form-input {
+  border-radius: 16px;
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #ced4da;
+  max-width: 550px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  margin: auto;
+  position: relative;
+}
+
+.servicios-container .modal-content h2 {
+  color: #1a4d5c;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.servicios-container .modal-content .form-input,
+.servicios-container .modal-content select,
+.servicios-container .modal-content textarea {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e0e0e0;
   border-radius: 8px;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
   font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
-.modal-content select.form-input {
+.servicios-container .modal-content textarea {
+  min-height: 100px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.servicios-container .modal-content select.form-input {
   cursor: pointer;
+  background-color: white;
 }
 
-.modal-buttons {
+.servicios-container .modal-content .form-input:focus,
+.servicios-container .modal-content select:focus,
+.servicios-container .modal-content textarea:focus {
+  outline: none;
+  border-color: #1a4d5c;
+  box-shadow: 0 0 0 4px rgba(26, 77, 92, 0.1);
+}
+
+.servicios-container .modal-buttons {
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
   margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e0e0e0;
+  flex-wrap: wrap;
 }
 
-.btn-cancelar {
-  padding: 0.75rem 1.5rem;
+.servicios-container .modal-buttons .btn-cancelar,
+.servicios-container .modal-buttons .btn-crear {
+  padding: 0.875rem 2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.servicios-container .modal-buttons .btn-cancelar {
   background-color: #6c757d;
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
 }
 
-.btn-cancelar:hover {
+.servicios-container .modal-buttons .btn-cancelar:hover {
   background-color: #5a6268;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
 }
 
-.btn-crear {
-  padding: 0.75rem 1.5rem;
+.servicios-container .modal-buttons .btn-crear {
   background-color: #1a4d5c;
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
 }
 
-.btn-crear:hover {
+.servicios-container .modal-buttons .btn-crear:hover {
   background-color: #143d4a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.4);
+}
+
+/* ========== Diseño Responsivo ========== */
+
+@media (max-width: 1024px) {
+  .servicios-container {
+    padding: 1.5rem;
+  }
+
+  .servicios-container h1 {
+    font-size: 2rem;
+  }
+
+  .servicios-list {
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+    gap: 1.5rem;
+  }
+
+  .servicios-container .modal-content {
+    max-width: 90%;
+    padding: 1.75rem;
+  }
+
+  .servicios-container .modal-content h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .servicios-container {
+    padding: 1rem;
+  }
+
+  .servicios-container h1 {
+    font-size: 1.8rem;
+    text-align: center;
+  }
+
+  .servicios-list {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .servicio-card {
+    padding: 1.5rem;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .servicio-header h3 {
+    font-size: 1.3rem;
+  }
+
+  .servicio-precio {
+    font-size: 1rem;
+  }
+
+  .servicios-container .modal-overlay {
+    padding: 1rem;
+  }
+
+  .servicios-container .modal-content {
+    max-width: 95%;
+    max-height: 88vh;
+    padding: 1.5rem;
+  }
+
+  .servicios-container .modal-content h2 {
+    font-size: 1.4rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .servicios-container .modal-content .form-input,
+  .servicios-container .modal-content select,
+  .servicios-container .modal-content textarea {
+    margin-bottom: 1rem;
+  }
+
+  .servicios-container .modal-buttons {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .servicios-container .modal-buttons .btn-cancelar,
+  .servicios-container .modal-buttons .btn-crear {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .servicios-container {
+    padding: 0.75rem;
+  }
+
+  .servicios-container h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .servicios-list {
+    gap: 1rem;
+  }
+
+  .servicio-card {
+    padding: 1rem;
+    border-radius: 8px;
+    max-width: 100%;
+  }
+
+  .servicio-header h3 {
+    font-size: 1.2rem;
+  }
+
+  .servicio-descripcion {
+    font-size: 0.95rem;
+  }
+
+  .servicio-precio {
+    font-size: 0.95rem;
+  }
+
+  .btn-editar-servicio {
+    padding: 0.65rem;
+    font-size: 0.95rem;
+  }
+
+  .servicio-placeholder {
+    min-height: 180px;
+    border-radius: 8px;
+  }
+
+  .servicio-placeholder p {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 425px) {
+  .servicios-container .modal-overlay {
+    padding: 0.75rem;
+    align-items: flex-start;
+    padding-top: 1.5rem;
+  }
+
+  .servicios-container .modal-content {
+    max-width: 100%;
+    max-height: 92vh;
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .servicios-container .modal-content h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .servicios-container .modal-content .form-input,
+  .servicios-container .modal-content select,
+  .servicios-container .modal-content textarea {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.95rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .servicios-container .modal-content textarea {
+    min-height: 80px;
+  }
+
+  .servicios-container .modal-buttons {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  .servicios-container .modal-buttons .btn-cancelar,
+  .servicios-container .modal-buttons .btn-crear {
+    width: 100%;
+    min-width: unset;
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .servicios-container .modal-overlay {
+    padding: 0.5rem;
+    padding-top: 1rem;
+  }
+
+  .servicios-container .modal-content {
+    padding: 1rem;
+    max-height: 94vh;
+  }
+
+  .servicios-container .modal-content h2 {
+    font-size: 1.15rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .servicios-container .modal-content .form-input,
+  .servicios-container .modal-content select,
+  .servicios-container .modal-content textarea {
+    padding: 0.7rem 0.8rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .servicios-container .modal-buttons .btn-cancelar,
+  .servicios-container .modal-buttons .btn-crear {
+    padding: 0.8rem 0.875rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .servicios-container h1 {
+    font-size: 1.3rem;
+  }
+
+  .servicio-card {
+    padding: 0.85rem;
+  }
+
+  .servicio-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .servicio-placeholder {
+    min-height: 160px;
+  }
 }

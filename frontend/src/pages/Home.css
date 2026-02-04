@@ -2,23 +2,28 @@
   width: 100%;
 }
 
-/* Hero Section */
 .hero-section {
   background:
     linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
     url("https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80")
       center/cover;
-  min-height: 500px;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 4rem 2rem;
+  width: 100%;
 }
 
 .hero-content {
   max-width: 1200px;
   width: 100%;
   text-align: center;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .hero-title {
@@ -27,12 +32,14 @@
   font-weight: bold;
   margin-bottom: 3rem;
   line-height: 1.2;
+  text-align: center;
 }
 
 .search-container {
   display: flex;
   gap: 1rem;
   max-width: 900px;
+  width: 100%;
   margin: 0 auto;
   background: white;
   padding: 1rem;
@@ -78,7 +85,6 @@
   box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
 }
 
-/* Categorías */
 .categorias-section {
   max-width: 1400px;
   margin: 0 auto;
@@ -124,7 +130,6 @@
   margin: 0;
 }
 
-/* Proveedores destacados */
 .proveedores-destacados {
   background-color: #c5dde8;
   padding: 4rem 2rem;
@@ -276,7 +281,6 @@
   font-weight: 500;
 }
 
-/* Call to Action */
 .cta-section {
   background-color: #1a4d5c;
   padding: 4rem 2rem;
@@ -334,7 +338,6 @@
   color: #1a4d5c;
 }
 
-/* Footer Info */
 .footer-info {
   background-color: #f8f9fa;
   padding: 3rem 2rem 1rem;
@@ -402,7 +405,6 @@
   border-top: 1px solid #dee2e6;
 }
 
-/* Responsive */
 @media (max-width: 1024px) {
   .categorias-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -452,7 +454,6 @@
   transform: translateY(-4px);
 }
 
-/* Estilos para estrellas dinámicas en home */
 .proveedor-rating-home {
   display: flex;
   align-items: center;
@@ -482,7 +483,6 @@
   margin-left: 0.3rem;
 }
 
-/* Efecto hover para las cards */
 .proveedor-card-home {
   transition: all 0.3s ease;
 }
