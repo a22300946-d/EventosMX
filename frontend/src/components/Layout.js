@@ -9,35 +9,42 @@ function Layout({ children, showNav = true }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
-const dropdownRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const dropdownRef = useRef(null);
 
-const hideAuthButtons =
-  location.pathname === '/login' ||
-  location.pathname === '/login-proveedor' ||
-  location.pathname === '/register' ||
-  location.pathname === '/register-proveedor';
-
+  const hideAuthButtons =
+    location.pathname === '/login' ||
+    location.pathname === '/login-proveedor' ||
+    location.pathname === '/register' ||
+    location.pathname === '/register-proveedor';
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-useEffect(() => {
-  const handleClickOutside = (event) => {
-    if (
-      dropdownRef.current &&
-      !dropdownRef.current.contains(event.target)
-    ) {
-      setShowDropdown(false);
-    }
-  };
+  // Detectar cambio de tamaño de pantalla
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  document.addEventListener('mousedown', handleClickOutside);
-  return () => {
-    document.removeEventListener('mousedown', handleClickOutside);
-  };
-}, []);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="layout">
@@ -46,24 +53,47 @@ useEffect(() => {
           <div className="navbar-content">
             <Link to="/" className="logo">EventosMX</Link>
             
+            {/* ========== NAVBAR CLIENTE ========== */}
             {user && user.rol === 'cliente' && (
               <div className="nav-links">
-                <Link to="/">Explorar Servicios</Link>
-                <Link to="/cliente/eventos">Mis eventos</Link>
+                {/* Mostrar enlaces solo en desktop */}
+                {!isMobile && (
+                  <>
+                    <Link to="/">Explorar Servicios</Link>
+                    <Link to="/cliente/eventos">Mis eventos</Link>
+                  </>
+                )}
                 
-                {/* Menú desplegable Mi cuenta */}
                 <div className="nav-dropdown" ref={dropdownRef}>
-
                   <button
-  className="nav-dropdown-trigger"
-  onClick={() => setShowDropdown(prev => !prev)}
->
-  Mi cuenta <FaChevronDown size={12} />
-</button>
-
+                    className="nav-dropdown-trigger"
+                    onClick={() => setShowDropdown(prev => !prev)}
+                  >
+                    Mi cuenta <FaChevronDown size={12} />
+                  </button>
                   
                   {showDropdown && (
                     <div className="nav-dropdown-menu">
+                      {/* Mostrar enlaces en móvil dentro del menú */}
+                      {isMobile && (
+                        <>
+                          <Link 
+                            to="/" 
+                            className="dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            Explorar Servicios
+                          </Link>
+                          <Link 
+                            to="/cliente/eventos" 
+                            className="dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            Mis eventos
+                          </Link>
+                        </>
+                      )}
+                      
                       <Link 
                         to="/cliente/cuenta/datos" 
                         className="dropdown-item"
@@ -83,26 +113,47 @@ useEffect(() => {
               </div>
             )}
 
+            {/* ========== NAVBAR PROVEEDOR ========== */}
             {user && user.rol === 'proveedor' && (
               <div className="nav-links">
-                <Link to="/proveedor/chat">Chat</Link>
-                <Link to="/proveedor/cuenta/solicitudes">Solicitudes</Link>
+                {/* Mostrar Chat y Solicitudes solo en desktop */}
+                {!isMobile && (
+                  <>
+                    <Link to="/proveedor/chat">Chat</Link>
+                    <Link to="/proveedor/cuenta/solicitudes">Solicitudes</Link>
+                  </>
+                )}
                 
-                {/* Menú desplegable Mi cuenta */}
-                <div 
-                  className="nav-dropdown"
-                  
-                >
+                <div className="nav-dropdown" ref={dropdownRef}>
                   <button
-  className="nav-dropdown-trigger"
-  onClick={() => setShowDropdown(prev => !prev)}
->
-  Mi cuenta <FaChevronDown size={12} />
-</button>
-
+                    className="nav-dropdown-trigger"
+                    onClick={() => setShowDropdown(prev => !prev)}
+                  >
+                    Mi cuenta <FaChevronDown size={12} />
+                  </button>
                   
                   {showDropdown && (
                     <div className="nav-dropdown-menu">
+                      {/* Mostrar Chat y Solicitudes en móvil dentro del menú */}
+                      {isMobile && (
+                        <>
+                          <Link 
+                            to="/proveedor/chat" 
+                            className="dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            Chat
+                          </Link>
+                          <Link 
+                            to="/proveedor/cuenta/solicitudes" 
+                            className="dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            Solicitudes
+                          </Link>
+                        </>
+                      )}
+                      
                       <Link 
                         to="/proveedor/cuenta/informacion" 
                         className="dropdown-item"

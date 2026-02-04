@@ -9,3 +9,28 @@
   background-color: #f8f9fa;
   padding: 3rem;
 }
+
+/* ========== Diseño Responsivo ========== */
+
+@media (max-width: 1024px) {
+  .proveedor-content {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .proveedor-layout {
+    flex-direction: column;
+  }
+  
+  .proveedor-content {
+    padding: 1.5rem 1rem;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .proveedor-content {
+    padding: 1rem 0.75rem;
+  }
+}
