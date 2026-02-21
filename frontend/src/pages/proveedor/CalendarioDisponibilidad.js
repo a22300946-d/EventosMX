@@ -4,165 +4,174 @@ import { proveedorService } from "../../services/proveedorService";
 import "./CalendarioDisponibilidad.css";
 
 function CalendarioDisponibilidad() {
-  const [fechaActual, setFechaActual] = useState(new Date());
-  const [diasBloqueados, setDiasBloqueados] = useState([]);
-  const [diasBloqueadosTemp, setDiasBloqueadosTemp] = useState([]); // ← AGREGAR: Estado temporal para edición
+  const [mesCalendario, setMesCalendario] = useState(new Date());
+  const [fechasBloqueadas, setFechasBloqueadas] = useState([]);
+  const [fechasBloqueadasTemp, setFechasBloqueadasTemp] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [modoEdicion, setModoEdicion] = useState(false); // ← AGREGAR: Estado para modo edición
+  const [modoEdicion, setModoEdicion] = useState(false);
 
   const meses = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
+    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
   ];
 
   const diasSemana = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 
   useEffect(() => {
-    cargarCalendario();
-  }, [fechaActual]);
+    cargarFechasBloqueadas();
+  }, [mesCalendario]);
 
-  const cargarCalendario = async () => {
+  const cargarFechasBloqueadas = async () => {
     try {
       setLoading(true);
-      const year = fechaActual.getFullYear();
-      const month = fechaActual.getMonth() + 1;
+
+      const year = mesCalendario.getFullYear();
+      const month = mesCalendario.getMonth();
+
+      const fechaInicio = new Date(year, month, 1).toISOString().split("T")[0];
+      const fechaFin = new Date(year, month + 12, 0).toISOString().split("T")[0];
 
       const response = await proveedorService.obtenerMiCalendario({
-        fecha_inicio: `${year}-${month.toString().padStart(2, "0")}-01`,
-        fecha_fin: `${year}-${month.toString().padStart(2, "0")}-31`,
+        fecha_inicio: fechaInicio,
+        fecha_fin: fechaFin,
       });
 
-      const bloqueados = response.data.data
-        .filter((dia) => !dia.disponible)
-        .map((dia) => new Date(dia.fecha).getDate());
+      const bloqueadas = response.data.data
+        .filter((fecha) => fecha.disponible === false)
+        .map((fecha) => {
+          let fechaStr = fecha.fecha;
 
-      setDiasBloqueados(bloqueados);
-      setDiasBloqueadosTemp(bloqueados); // ← AGREGAR: Sincronizar temporal
+          if (typeof fechaStr === "string" && fechaStr.includes("T")) {
+            fechaStr = fechaStr.split("T")[0];
+          } else if (fechaStr instanceof Date) {
+            fechaStr = fechaStr.toISOString().split("T")[0];
+          }
+
+          return fechaStr;
+        });
+
+      setFechasBloqueadas(bloqueadas);
+
+      if (!modoEdicion) {
+        setFechasBloqueadasTemp(bloqueadas);
+      }
     } catch (error) {
-      console.error("Error al cargar calendario:", error);
+      setFechasBloqueadas([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const cambiarMes = (incremento) => {
-    const nuevaFecha = new Date(fechaActual);
+  const cambiarMesCalendario = (incremento) => {
+    const nuevaFecha = new Date(mesCalendario);
     nuevaFecha.setMonth(nuevaFecha.getMonth() + incremento);
-    setFechaActual(nuevaFecha);
+    setMesCalendario(nuevaFecha);
   };
 
-  // ← MODIFICAR: Función para toggle en modo edición (sin guardar inmediatamente)
-  const toggleDiaEdicion = (dia) => {
-    if (!modoEdicion) return; // Solo permitir cambios en modo edición
+  const esFechaBloqueada = (fechaStr) => {
+    const fechasAVerificar = modoEdicion ? fechasBloqueadasTemp : fechasBloqueadas;
+    return fechasAVerificar.includes(fechaStr);
+  };
 
-    if (diasBloqueadosTemp.includes(dia)) {
-      setDiasBloqueadosTemp(diasBloqueadosTemp.filter((d) => d !== dia));
+  const esFechaPasada = (year, month, day) => {
+    const fecha = new Date(year, month, day);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    return fecha < hoy;
+  };
+
+  const toggleDiaEdicion = (dia) => {
+    if (!modoEdicion) return;
+
+    const year = mesCalendario.getFullYear();
+    const month = mesCalendario.getMonth();
+    const fechaStr = `${year}-${(month + 1).toString().padStart(2, "0")}-${dia
+      .toString()
+      .padStart(2, "0")}`;
+
+    if (fechasBloqueadasTemp.includes(fechaStr)) {
+      setFechasBloqueadasTemp(fechasBloqueadasTemp.filter((f) => f !== fechaStr));
     } else {
-      setDiasBloqueadosTemp([...diasBloqueadosTemp, dia]);
+      setFechasBloqueadasTemp([...fechasBloqueadasTemp, fechaStr]);
     }
   };
 
-  // ← AGREGAR: Función para activar modo edición
   const handleActivarEdicion = () => {
     setModoEdicion(true);
-    setDiasBloqueadosTemp([...diasBloqueados]); // Copiar estado actual a temporal
+    setFechasBloqueadasTemp([...fechasBloqueadas]);
   };
 
-  // ← AGREGAR: Función para guardar cambios
   const handleGuardarCambios = async () => {
     try {
       setLoading(true);
 
-      const year = fechaActual.getFullYear();
-      const month = fechaActual.getMonth() + 1;
-
-      // Obtener todos los días del mes actual
-      const ultimoDia = new Date(year, month, 0).getDate();
-      const todosLosDias = Array.from({ length: ultimoDia }, (_, i) => i + 1);
-
-      // Determinar qué días se bloquearon y cuáles se liberaron
-      const diasABloquear = diasBloqueadosTemp.filter(
-        (dia) => !diasBloqueados.includes(dia),
-      );
-      const diasALiberar = diasBloqueados.filter(
-        (dia) => !diasBloqueadosTemp.includes(dia),
+      const fechasABloquear = fechasBloqueadasTemp.filter(
+        (fecha) => !fechasBloqueadas.includes(fecha)
       );
 
-      // Bloquear nuevas fechas
-      for (const dia of diasABloquear) {
-        const fecha = `${year}-${month.toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
+      const fechasALiberar = fechasBloqueadas.filter(
+        (fecha) => !fechasBloqueadasTemp.includes(fecha)
+      );
+
+      for (const fecha of fechasABloquear) {
         await proveedorService.bloquearFecha(fecha, "No disponible");
       }
 
-      // Liberar fechas desbloqueadas
-      for (const dia of diasALiberar) {
-        const fecha = `${year}-${month.toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
+      for (const fecha of fechasALiberar) {
         await proveedorService.liberarFecha(fecha);
       }
 
-      // Actualizar estado permanente
-      setDiasBloqueados([...diasBloqueadosTemp]);
+      setFechasBloqueadas([...fechasBloqueadasTemp]);
       setModoEdicion(false);
+
+      alert("Cambios guardados exitosamente");
     } catch (error) {
-      console.error("Error al guardar cambios:", error);
+      alert("Error al guardar los cambios. Por favor, intenta nuevamente.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ← AGREGAR: Función para cancelar edición
   const handleCancelarEdicion = () => {
-    setDiasBloqueadosTemp([...diasBloqueados]); // Restaurar estado original
+    setFechasBloqueadasTemp([...fechasBloqueadas]);
     setModoEdicion(false);
   };
 
   const renderCalendario = () => {
-    const primerDia = new Date(
-      fechaActual.getFullYear(),
-      fechaActual.getMonth(),
-      1,
-    );
-    const ultimoDia = new Date(
-      fechaActual.getFullYear(),
-      fechaActual.getMonth() + 1,
-      0,
-    );
+    const year = mesCalendario.getFullYear();
+    const month = mesCalendario.getMonth();
+
+    const primerDia = new Date(year, month, 1);
+    const ultimoDia = new Date(year, month + 1, 0);
 
     const diasMes = [];
-    const primerDiaSemana =
-      primerDia.getDay() === 0 ? 6 : primerDia.getDay() - 1;
+    const primerDiaSemana = primerDia.getDay() === 0 ? 6 : primerDia.getDay() - 1;
 
-    // Días vacíos antes del primer día
     for (let i = 0; i < primerDiaSemana; i++) {
       diasMes.push(
-        <div key={`empty-${i}`} className="calendario-dia vacio"></div>,
+        <div key={`empty-${i}`} className="calendario-dia vacio"></div>
       );
     }
 
-    // Días del mes - usar diasBloqueadosTemp en modo edición
-    const diasAMostrar = modoEdicion ? diasBloqueadosTemp : diasBloqueados;
-
     for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
-      const bloqueado = diasAMostrar.includes(dia);
+      const fechaStr = `${year}-${(month + 1)
+        .toString()
+        .padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
+
+      const bloqueado = esFechaBloqueada(fechaStr);
+      const pasado = esFechaPasada(year, month, dia);
+
       diasMes.push(
         <div
           key={dia}
-          className={`calendario-dia ${bloqueado ? "bloqueado" : ""} ${modoEdicion ? "editable" : ""}`}
-          onClick={() => toggleDiaEdicion(dia)}
-          style={{ cursor: modoEdicion ? "pointer" : "default" }}
+          className={`calendario-dia ${bloqueado ? "bloqueado" : ""} ${
+            pasado ? "pasado" : ""
+          } ${modoEdicion ? "editable" : ""}`}
+          onClick={() => !pasado && toggleDiaEdicion(dia)}
+          style={{ cursor: modoEdicion && !pasado ? "pointer" : "default" }}
         >
           {dia}
-        </div>,
+        </div>
       );
     }
 
@@ -174,31 +183,21 @@ function CalendarioDisponibilidad() {
       <div className="calendario-container">
         <h1>Mi calendario</h1>
 
-        {/* ← AGREGAR: Indicador de modo edición */}
         {modoEdicion && (
           <div className="alerta-edicion">
-            Modo edición activado - Haz clic en los días para
-            bloquear/desbloquear
+            Modo edición activado - Haz clic en los días para bloquear/desbloquear
           </div>
         )}
 
         <div className="calendario-card">
           <div className="calendario-header">
-            <button
-              onClick={() => cambiarMes(-1)}
-              className="btn-mes"
-              disabled={modoEdicion} // ← AGREGAR: Deshabilitar navegación en modo edición
-            >
+            <button onClick={() => cambiarMesCalendario(-1)} className="btn-mes">
               &lt;
             </button>
             <h2>
-              {meses[fechaActual.getMonth()]} {fechaActual.getFullYear()}
+              {meses[mesCalendario.getMonth()]} {mesCalendario.getFullYear()}
             </h2>
-            <button
-              onClick={() => cambiarMes(1)}
-              className="btn-mes"
-              disabled={modoEdicion} // ← AGREGAR: Deshabilitar navegación en modo edición
-            >
+            <button onClick={() => cambiarMesCalendario(1)} className="btn-mes">
               &gt;
             </button>
           </div>
@@ -211,10 +210,15 @@ function CalendarioDisponibilidad() {
             ))}
           </div>
 
-          <div className="calendario-grid">{renderCalendario()}</div>
+          <div className="calendario-grid">
+            {loading ? (
+              <div className="calendario-loading">Cargando...</div>
+            ) : (
+              renderCalendario()
+            )}
+          </div>
         </div>
 
-        {/* ← MODIFICAR: Botones dinámicos según modo */}
         <div className="calendario-acciones">
           {!modoEdicion ? (
             <button
@@ -231,14 +235,14 @@ function CalendarioDisponibilidad() {
                 onClick={handleCancelarEdicion}
                 disabled={loading}
               >
-                ✕ Cancelar
+                Cancelar
               </button>
               <button
                 className="btn-guardar"
                 onClick={handleGuardarCambios}
                 disabled={loading}
               >
-                {loading ? "Guardando..." : " Guardar"}
+                {loading ? "Guardando..." : "Guardar"}
               </button>
             </>
           )}

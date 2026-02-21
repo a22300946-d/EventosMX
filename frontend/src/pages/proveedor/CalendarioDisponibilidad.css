@@ -359,3 +359,26 @@
     font-size: 0.9rem;
   }
 }
+
+/* Fechas pasadas en gris */
+.calendario-dia.pasado {
+  background-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.calendario-dia.pasado:hover {
+  background-color: #e5e7eb;
+  transform: none;
+}
+
+/* Asegurar que fechas pasadas no sean editables */
+.calendario-dia.pasado.editable {
+  cursor: not-allowed;
+}
+
+.calendario-dia.pasado.editable:hover {
+  transform: none;
+  box-shadow: none;
+}
