@@ -48,28 +48,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (datos, tipo) => {
-    try {
-      const endpoint = tipo === 'cliente' ? '/clientes/registro' : '/proveedores/registro';
-      const response = await api.post(endpoint, datos);
-      
-      const { token } = response.data.data;
-      const userData = {
-        ...response.data.data[tipo],
-        rol: tipo
-      };
+  try {
+    const endpoint = tipo === 'cliente' ? '/clientes/registro' : '/proveedores/registro';
+    const response = await api.post(endpoint, datos);
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Error al registrarse'
-      };
-    }
-  };
+    // ← NO guardamos token ni metemos al usuario a la sesión
+    // Solo retornamos success para mostrar el mensaje de "revisa tu correo"
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Error al registrarse'
+    };
+  }
+};
 
   const logout = () => {
     localStorage.removeItem('token');

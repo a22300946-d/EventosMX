@@ -1,3 +1,6 @@
+const emailService = require('../services/emailService');
+const admin = require('../config/firebase.config');
+
 const Cliente = require('../models/Cliente');
 const { generarToken } = require('../utils/jwt');
 
@@ -31,6 +34,17 @@ const registrarCliente = async (req, res) => {
       telefono,
       ciudad
     });
+
+    // Crear en Firebase
+const firebaseUser = await admin.auth().createUser({
+  email: correo,
+  password: contrasena,
+  displayName: nombre_completo,
+  emailVerified: false
+});
+
+// Enviar verificación
+await emailService.enviarVerificacion({ email: correo, nombre: nombre_completo });
 
     // Generar token
     const token = generarToken({
@@ -103,6 +117,22 @@ const loginCliente = async (req, res) => {
 
     // Resetear intentos fallidos
     await Cliente.resetearIntentosFallidos(cliente.id_cliente);
+
+
+// ← NUEVO: Verificar si el correo fue verificado en Firebase
+try {
+  const firebaseUser = await admin.auth().getUserByEmail(correo);
+  if (!firebaseUser.emailVerified) {
+    return res.status(403).json({
+      success: false,
+      message: 'Debes verificar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.',
+      emailVerified: false
+    });
+  }
+} catch (firebaseError) {
+  console.error('Error al verificar Firebase:', firebaseError);
+}
+
 
     // Generar token
     const token = generarToken({
@@ -198,9 +228,25 @@ const actualizarPerfil = async (req, res) => {
   }
 };
 
+const solicitarRecuperacion = async (req, res) => {
+  const { correo } = req.body;
+  if (!correo) return res.status(400).json({ success: false, message: 'Correo requerido' });
+
+  try {
+    await admin.auth().getUserByEmail(correo); // verifica que existe
+    await emailService.enviarRecuperacion({ email: correo });
+  } catch (e) {
+    // No revelar si existe o no por seguridad
+  }
+
+  res.json({ success: true, message: 'Si el correo existe, recibirás el enlace' });
+};
+
 module.exports = {
   registrarCliente,
   loginCliente,
   obtenerPerfil,
-  actualizarPerfil
+  actualizarPerfil,
+  solicitarRecuperacion
 };
+

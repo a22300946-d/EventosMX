@@ -33,6 +33,8 @@ function EditarDatos() {
     }
   };
 
+  
+
   const cargarDatos = async () => {
     try {
       const response = await clienteService.obtenerPerfil();
