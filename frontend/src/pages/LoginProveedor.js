@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import SplitAuthLayout from '../components/SplitAuthLayout';
+import PasswordInput from "../components/PasswordInput";
 
 function LoginProveedor() {
   const [correo, setCorreo] = useState('');
@@ -52,13 +53,9 @@ function LoginProveedor() {
         </div>
 
         <div className="form-group">
-          <input
-            type="password"
-            className="form-input"
-            placeholder="Contraseña"
+          <PasswordInput
             value={contrasena}
             onChange={(e) => setContrasena(e.target.value)}
-            required
           />
         </div>
 

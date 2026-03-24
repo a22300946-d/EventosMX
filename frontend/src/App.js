@@ -4,6 +4,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleBasedGuestRoute from "./components/RoleBasedGuestRoute";
 
+import VerificarCorreo from "./pages/VerificarCorreo";
+
 // Páginas públicas
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -197,6 +199,11 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Verificación de correo */}
+          <Route 
+            path="/login" 
+            element={<VerificarCorreo />} />
 
           {/* Ruta 404 */}
           <Route path="*" element={<Navigate to="/" />} />
