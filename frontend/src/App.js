@@ -21,6 +21,8 @@ import MisListas from "./pages/cliente/MisListas";
 import Preferencias from "./pages/cliente/Preferencias";
 import ResenasPublicadas from "./pages/cliente/ResenasPublicadas";
 import PerfilProveedor from "./pages/cliente/PerfilProveedor";
+import DetallesLista from "./pages/cliente/DetallesLista";
+import Favoritos from "./pages/cliente/Favoritos";
 
 // Páginas de proveedor
 import MiInformacion from "./pages/proveedor/MiInformacion";
@@ -56,7 +58,7 @@ function App() {
             }
           />
 
-          {/* Rutas de autenticación CLIENTE - SOLO para NO autenticados */}
+          {/* Rutas de autenticación CLIENTE */}
           <Route
             path="/login"
             element={
@@ -74,7 +76,7 @@ function App() {
             }
           />
 
-          {/* Rutas de autenticación PROVEEDOR - SOLO para NO autenticados */}
+          {/* Rutas de autenticación PROVEEDOR */}
           <Route
             path="/login-proveedor"
             element={
@@ -141,6 +143,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/cliente/listas" element={<MisListas />} />
+          <Route path="/cliente/listas/:id" element={<DetallesLista />} />
+          <Route path="/cliente/favoritos" element={<Favoritos />} />
 
           {/* Rutas de Proveedor */}
           <Route
@@ -202,8 +207,9 @@ function App() {
 
           {/* Verificación de correo */}
           <Route 
-            path="/login" 
-            element={<VerificarCorreo />} />
+            path="/verificar-correo" 
+            element={<VerificarCorreo />} 
+          />
 
           {/* Ruta 404 */}
           <Route path="*" element={<Navigate to="/" />} />

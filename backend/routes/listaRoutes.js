@@ -7,28 +7,34 @@ const {
   obtenerListaPorId,
   actualizarLista,
   eliminarLista,
-  agregarProveedor,
-  actualizarEstadoProveedor,
-  actualizarNotasProveedor,
-  eliminarProveedor,
-  duplicarLista
+  agregarProveedorALista,        
+  cambiarEstadoProveedor,        
+  eliminarProveedorDeLista,      
+  obtenerListaFavoritos,
+  agregarProveedorAFavoritos,
+  eliminarProveedorDeFavoritos,
+  verificarProveedorEnFavoritos
 } = require('../controllers/listaController');
 
 // Todas las rutas requieren autenticación de cliente
 router.use(autenticar, verificarRol('cliente'));
 
-// Rutas de listas
+// ========== RUTAS ESPECIALES PARA FAVORITOS (DEBEN IR PRIMERO) ==========
+router.get('/favoritos', obtenerListaFavoritos);
+router.post('/favoritos/proveedores', agregarProveedorAFavoritos);
+router.delete('/favoritos/proveedores/:id', eliminarProveedorDeFavoritos);
+router.get('/favoritos/verificar/:id_proveedor', verificarProveedorEnFavoritos);
+
+// ========== RUTAS DE LISTAS NORMALES ==========
 router.post('/', crearLista);
 router.get('/', obtenerMisListas);
 router.get('/:id', obtenerListaPorId);
 router.put('/:id', actualizarLista);
 router.delete('/:id', eliminarLista);
-router.post('/:id/duplicar', duplicarLista);
 
-// Rutas de proveedores en listas
-router.post('/:id/proveedores', agregarProveedor);
-router.put('/proveedores/:id_lista_proveedor/estado', actualizarEstadoProveedor);
-router.put('/proveedores/:id_lista_proveedor/notas', actualizarNotasProveedor);
-router.delete('/proveedores/:id_lista_proveedor', eliminarProveedor);
+// ========== RUTAS DE PROVEEDORES EN LISTAS ==========
+router.post('/:id/proveedores', agregarProveedorALista);              
+router.put('/proveedores/:id/estado', cambiarEstadoProveedor);        
+router.delete('/proveedores/:id', eliminarProveedorDeLista);          
 
 module.exports = router;

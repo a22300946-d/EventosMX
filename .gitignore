@@ -3,3 +3,6 @@ node_modules/
 .DS_Store
 build/
 dist/
+backend/firebase-credentials.json
+backend/firebase-credentials.json
+backend/firebase-credentials.json

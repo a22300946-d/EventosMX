@@ -11,6 +11,8 @@ function Home() {
   const [ciudades, setCiudades] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [proveedores, setProveedores] = useState([]);
+  const [favoritos, setFavoritos] = useState({}); // {id_proveedor: id_lista_proveedor}
+  const [procesandoFavorito, setProcesandoFavorito] = useState(false);
   const [filtros, setFiltros] = useState({
     nombre_proveedor: "",
     ubicacion: "",
@@ -24,6 +26,30 @@ function Home() {
     cargarCategorias();
     cargarCiudades();
   }, []);
+
+  useEffect(() => {
+    // Cargar favoritos solo si es cliente autenticado
+    if (user && user.rol === "cliente") {
+      cargarFavoritos();
+    }
+  }, [user]);
+
+  const cargarFavoritos = async () => {
+    try {
+      const response = await clienteService.obtenerListaFavoritos();
+      const proveedoresFavoritos = response.data.data.proveedores || [];
+      
+      // Crear objeto con id_proveedor como key y id_lista_proveedor como value
+      const favoritosMap = {};
+      proveedoresFavoritos.forEach((fav) => {
+        favoritosMap[fav.id_proveedor] = fav.id_lista_proveedor;
+      });
+      
+      setFavoritos(favoritosMap);
+    } catch (error) {
+      console.error("Error al cargar favoritos:", error);
+    }
+  };
 
   const cargarCiudades = async () => {
     try {
@@ -101,6 +127,62 @@ function Home() {
     }
   };
 
+  const toggleFavorito = async (e, idProveedor) => {
+    e.stopPropagation();
+
+    // Verificar si está autenticado como cliente
+    if (!user || user.rol !== "cliente") {
+      navigate("/login", {
+        state: {
+          message: "Inicia sesión como cliente para guardar favoritos",
+        },
+      });
+      return;
+    }
+
+    if (procesandoFavorito) return;
+
+    try {
+      setProcesandoFavorito(true);
+
+      const esFavorito = favoritos[idProveedor];
+
+      if (esFavorito) {
+        // Eliminar de favoritos
+        await clienteService.eliminarDeFavoritos(favoritos[idProveedor]);
+        
+        // Actualizar estado local
+        setFavoritos((prev) => {
+          const newFavoritos = { ...prev };
+          delete newFavoritos[idProveedor];
+          return newFavoritos;
+        });
+      } else {
+        // Agregar a favoritos
+        const response = await clienteService.agregarAFavoritos(idProveedor);
+        
+        // Actualizar estado local
+        setFavoritos((prev) => ({
+          ...prev,
+          [idProveedor]: response.data.data.id_lista_proveedor,
+        }));
+      }
+    } catch (error) {
+      console.error("Error al gestionar favorito:", error);
+      if (error.response?.status === 401) {
+        navigate("/login", {
+          state: {
+            message: "Tu sesión ha expirado. Inicia sesión nuevamente",
+          },
+        });
+      } else {
+        alert("Error al actualizar favoritos");
+      }
+    } finally {
+      setProcesandoFavorito(false);
+    }
+  };
+
   const handleBuscar = () => {
     // Construir parámetros de búsqueda
     const params = new URLSearchParams();
@@ -120,7 +202,6 @@ function Home() {
       navigate(`/cliente/explorar?${params.toString()}`);
     } else {
       // Si no está autenticado, ir a explorar público o pedir login
-      // Por ahora, redirigir al login y luego a explorar
       navigate("/login", {
         state: {
           redirectTo: `/cliente/explorar?${params.toString()}`,
@@ -183,7 +264,7 @@ function Home() {
     navigate(`/perfil-proveedor/${idProveedor}`);
   };
 
-  // ← AGREGAR: Mostrar loading mientras verifica autenticación
+  // Mostrar loading mientras verifica autenticación
   if (loading) {
     return (
       <div
@@ -305,6 +386,7 @@ function Home() {
                 const calificacion =
                   parseFloat(proveedor.calificacion_promedio) || 0;
                 const calificacionDe5 = calificacion * 5;
+                const esFavorito = !!favoritos[proveedor.id_proveedor];
 
                 return (
                   <div
@@ -326,13 +408,12 @@ function Home() {
                         }}
                       />
                       <button
-                        className="btn-favorito-home"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log("Agregado a favoritos");
-                        }}
+                        className={`btn-favorito-home ${esFavorito ? "favorito-activo" : ""}`}
+                        onClick={(e) => toggleFavorito(e, proveedor.id_proveedor)}
+                        disabled={procesandoFavorito}
+                        title={esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}
                       >
-                        ♡
+                        {esFavorito ? "♥" : "♡"}
                       </button>
                     </div>
 
@@ -372,7 +453,6 @@ function Home() {
         </section>
 
         {/* Call to Action */}
-
         <section className="cta-section">
           <div className="cta-content">
             <h2>TU EVENTO IDEAL EMPIEZA AQUÍ</h2>

@@ -1349,3 +1349,141 @@ html, body {
   max-width: 100%;
   box-sizing: border-box;
 }
+
+/* Botón Agregar a Lista */
+.btn-agregar-lista {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-agregar-lista:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+}
+
+/* Botón Favorito Activo */
+.btn-favorito-grande.favorito-activo .icono-corazon {
+  color: #ff6b6b;
+}
+
+.btn-favorito-grande:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Modal de Listas */
+.modal-listas {
+  background: white;
+  padding: 2rem;
+  border-radius: 15px;
+  min-width: 400px;
+  max-width: 90%;
+}
+
+.modal-listas h3 {
+  color: #1a4d5c;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+}
+
+.select-lista {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.select-lista:focus {
+  outline: none;
+  border-color: #1a4d5c;
+  box-shadow: 0 0 0 3px rgba(26, 77, 92, 0.1);
+}
+
+.modal-botones-lista {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-cancelar-lista,
+.btn-confirmar-lista {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancelar-lista {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-cancelar-lista:hover {
+  background: #5a6268;
+}
+
+.btn-confirmar-lista {
+  background: #1a4d5c;
+  color: white;
+}
+
+.btn-confirmar-lista:hover:not(:disabled) {
+  background: #0d3843;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+}
+
+.btn-confirmar-lista:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sin-listas {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.sin-listas p {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.btn-crear-lista-modal {
+  background: #1a4d5c;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-crear-lista-modal:hover {
+  background: #0d3843;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(26, 77, 92, 0.3);
+}
+
+@media (max-width: 768px) {
+  .modal-listas {
+    min-width: unset;
+    width: 90%;
+  }
+
+  .modal-botones-lista {
+    flex-direction: column;
+  }
+}
