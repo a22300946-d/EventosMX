@@ -1,58 +1,158 @@
 import api from "./api";
 
 export const clienteService = {
-  // Perfil
-  obtenerPerfil: () => api.get("/clientes/perfil"),
-  actualizarPerfil: (datos) => api.put("/clientes/perfil", datos),
+  // ========== PERFIL ==========
+  obtenerPerfil: async () => {
+    return await api.get("/clientes/perfil");
+  },
 
-  // Servicios
-  buscarServicios: (params) => api.get("/servicios/buscar", { params }),
-  obtenerServicio: (id) => api.get(`/servicios/${id}`),
+  actualizarPerfil: async (datos) => {
+    return await api.put("/clientes/perfil", datos);
+  },
 
-  // Categorías
-  obtenerCategorias: () => api.get("/categorias"),
+  // ========== SERVICIOS ==========
+  buscarServicios: async (params) => {
+    return await api.get("/servicios/buscar", { params });
+  },
 
-  // Lugares
-  obtenerLugares: () => api.get("/lugares"),
+  obtenerServicio: async (id) => {
+    return await api.get(`/servicios/${id}`);
+  },
 
-  // Proveedores
-  buscarProveedores: (params) => api.get("/proveedores/buscar", { params }),
-  obtenerProveedor: (id) => api.get(`/proveedores/publico/${id}`),
+  // ========== CATEGORÍAS ==========
+  obtenerCategorias: async () => {
+    return await api.get("/categorias");
+  },
 
-  // Solicitudes
-  crearSolicitud: (datos) => api.post("/solicitudes", datos),
-  obtenerMisSolicitudes: (params) =>
-    api.get("/solicitudes/mis-solicitudes", { params }),
-  obtenerSolicitud: (id) => api.get(`/solicitudes/${id}`),
-  aceptarSolicitud: (id) => api.put(`/solicitudes/${id}/aceptar`),
-  rechazarSolicitud: (id) => api.put(`/solicitudes/${id}/rechazar`),
-  cancelarSolicitud: (id) => api.delete(`/solicitudes/${id}/cancelar`),
+  // ========== LUGARES ==========
+  obtenerLugares: async () => {
+    return await api.get("/lugares");
+  },
 
-  // Mensajes
-  enviarMensaje: (id_solicitud, contenido) =>
-    api.post(`/mensajes/solicitud/${id_solicitud}`, { contenido }),
-  obtenerMensajes: (id_solicitud) =>
-    api.get(`/mensajes/solicitud/${id_solicitud}`),
-  obtenerConversaciones: () => api.get("/mensajes/conversaciones"),
+  // ========== PROVEEDORES ==========
+  buscarProveedores: async (params) => {
+    return await api.get("/proveedores/buscar", { params });
+  },
 
-  // Listas
-  crearLista: (datos) => api.post("/listas", datos),
-  obtenerMisListas: () => api.get("/listas"),
-  obtenerLista: (id) => api.get(`/listas/${id}`),
-  agregarProveedorALista: (id_lista, datos) =>
-    api.post(`/listas/${id_lista}/proveedores`, datos),
-  actualizarEstadoProveedor: (id_lista_proveedor, datos) =>
-    api.put(`/listas/proveedores/${id_lista_proveedor}/estado`, datos),
-  eliminarProveedorDeLista: (id_lista_proveedor) =>
-    api.delete(`/listas/proveedores/${id_lista_proveedor}`),
+  obtenerProveedor: async (id) => {
+    return await api.get(`/proveedores/publico/${id}`);
+  },
 
-  // Reseñas
-  crearResena: (datos) => api.post("/resenas", datos),
-  obtenerResenasProveedor: (id_proveedor, params) =>
-    api.get(`/resenas/proveedor/${id_proveedor}`, { params }),
+// ========== LISTAS ==========
+crearLista: async (datos) => {
+  return await api.post('/listas', datos);
+},
 
-  // Promociones
-  buscarPromociones: (params) => api.get("/promociones/buscar", { params }),
+obtenerMisListas: async () => {
+  return await api.get('/listas');
+},
 
-  //Lugares
+obtenerListaPorId: async (idLista) => {
+  return await api.get(`/listas/${idLista}`);
+},
+
+actualizarLista: async (idLista, datos) => {
+  return await api.put(`/listas/${idLista}`, datos);
+},
+
+eliminarLista: async (idLista) => {
+  return await api.delete(`/listas/${idLista}`);
+},
+
+ // ========== PROVEEDORES EN LISTAS ==========
+agregarProveedorALista: async (idLista, idProveedor) => {
+  return await api.post(`/listas/${idLista}/proveedores`, {
+    id_proveedor: idProveedor,
+  });
+},
+
+  cambiarEstadoProveedor: async (idListaProveedor, nuevoEstado) => {
+    return await api.put(
+      `/listas/proveedores/${idListaProveedor}/estado`,
+      {
+        estado: nuevoEstado,
+      }
+    );
+  },
+
+  eliminarProveedorDeLista: async (idListaProveedor) => {
+    return await api.delete(`/listas/proveedores/${idListaProveedor}`);
+  },
+
+// ========== FAVORITOS (usando listas) ==========
+  obtenerListaFavoritos: async () => {
+    return await api.get("/listas/favoritos");
+  },
+
+  agregarAFavoritos: async (idProveedor) => {
+    return await api.post("/listas/favoritos/proveedores", {
+      id_proveedor: idProveedor,
+    });
+  },
+
+  eliminarDeFavoritos: async (idListaProveedor) => {
+    return await api.delete(`/listas/favoritos/proveedores/${idListaProveedor}`);
+  },
+
+  verificarSiEsFavorito: async (idProveedor) => {
+    return await api.get(`/listas/favoritos/verificar/${idProveedor}`);
+  },
+
+  // ========== SOLICITUDES ==========
+  obtenerMisSolicitudes: async (params) => {
+    return await api.get("/solicitudes/mis-solicitudes", { params });
+  },
+
+  obtenerSolicitud: async (id) => {
+    return await api.get(`/solicitudes/${id}`);
+  },
+
+  crearSolicitud: async (datos) => {
+    return await api.post("/solicitudes", datos);
+  },
+
+  aceptarSolicitud: async (id) => {
+    return await api.put(`/solicitudes/${id}/aceptar`);
+  },
+
+  rechazarSolicitud: async (id) => {
+    return await api.put(`/solicitudes/${id}/rechazar`);
+  },
+
+  cancelarSolicitud: async (id) => {
+    return await api.delete(`/solicitudes/${id}/cancelar`);
+  },
+
+  // ========== MENSAJES ==========
+  enviarMensaje: async (id_solicitud, contenido) => {
+    return await api.post(`/mensajes/solicitud/${id_solicitud}`, {
+      contenido,
+    });
+  },
+
+  obtenerMensajes: async (id_solicitud) => {
+    return await api.get(`/mensajes/solicitud/${id_solicitud}`);
+  },
+
+  obtenerConversaciones: async () => {
+    return await api.get("/mensajes/conversaciones");
+  },
+
+  // ========== RESEÑAS ==========
+  crearResena: async (datos) => {
+    return await api.post("/resenas", datos);
+  },
+
+  obtenerResenasProveedor: async (id_proveedor, params) => {
+    return await api.get(`/resenas/proveedor/${id_proveedor}`, { params });
+  },
+
+  obtenerMisResenas: async () => {
+    return await api.get("/resenas/mis-resenas");
+  },
+
+  // ========== PROMOCIONES ==========
+  buscarPromociones: async (params) => {
+    return await api.get("/promociones/buscar", { params });
+  },
 };

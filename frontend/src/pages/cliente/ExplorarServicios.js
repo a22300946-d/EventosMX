@@ -23,12 +23,14 @@ function ExplorarServicios() {
   });
 
   const [loading, setLoading] = useState(true);
-
   const [paginaActual, setPaginaActual] = useState(1);
   const proveedoresPorPagina = 6;
 
+  // Estados para favoritos
+  const [favoritos, setFavoritos] = useState({});
+  const [procesandoFavorito, setProcesandoFavorito] = useState({});
+
   useEffect(() => {
-    // Cargar categorías y ciudades solo una vez
     if (categorias.length === 0) {
       cargarCategorias();
     }
@@ -36,7 +38,6 @@ function ExplorarServicios() {
       cargarCiudades();
     }
 
-    // Actualizar filtros desde la URL y buscar
     const nuevosFiltros = {
       nombre_proveedor: searchParams.get("nombre_proveedor") || "",
       tipo_servicio: searchParams.get("tipo_servicio") || "",
@@ -46,10 +47,72 @@ function ExplorarServicios() {
     };
 
     setFiltros(nuevosFiltros);
-
-    // Ejecutar búsqueda con los nuevos filtros directamente
     buscarConFiltros(nuevosFiltros);
   }, [searchParams]);
+
+  // Cargar favoritos al montar el componente
+  useEffect(() => {
+    cargarFavoritos();
+  }, []);
+
+  const cargarFavoritos = async () => {
+    try {
+      const response = await clienteService.obtenerListaFavoritos();
+      const favoritosData = response.data.data.proveedores || [];
+      
+      // Crear un objeto con id_proveedor como clave para fácil acceso
+      const favoritosMap = {};
+      favoritosData.forEach((fav) => {
+        favoritosMap[fav.id_proveedor] = fav.id_lista_proveedor;
+      });
+      
+      setFavoritos(favoritosMap);
+    } catch (error) {
+      console.log("No se pudieron cargar favoritos");
+    }
+  };
+
+  const toggleFavorito = async (e, idProveedor) => {
+    e.stopPropagation();
+
+    // Evitar múltiples clics
+    if (procesandoFavorito[idProveedor]) return;
+
+    try {
+      setProcesandoFavorito((prev) => ({ ...prev, [idProveedor]: true }));
+
+      const esFavorito = favoritos[idProveedor];
+
+      if (esFavorito) {
+        // Eliminar de favoritos
+        await clienteService.eliminarDeFavoritos(favoritos[idProveedor]);
+        
+        setFavoritos((prev) => {
+          const newFavoritos = { ...prev };
+          delete newFavoritos[idProveedor];
+          return newFavoritos;
+        });
+      } else {
+        // Agregar a favoritos
+        const response = await clienteService.agregarAFavoritos(idProveedor);
+        
+        setFavoritos((prev) => ({
+          ...prev,
+          [idProveedor]: response.data.data.id_lista_proveedor,
+        }));
+      }
+    } catch (error) {
+      console.error("Error al gestionar favorito:", error);
+      if (error.response?.status === 401) {
+        alert("⚠️ Debes iniciar sesión para guardar favoritos");
+        navigate("/login");
+      } else {
+        alert("❌ Error al actualizar favoritos");
+      }
+    } finally {
+      setProcesandoFavorito((prev) => ({ ...prev, [idProveedor]: false }));
+    }
+  };
 
   const buscarConFiltros = async (filtrosParaBuscar) => {
     try {
@@ -58,18 +121,12 @@ function ExplorarServicios() {
       const filtrosAPI = {};
       let hayFiltrosActivos = false;
 
-      if (
-        filtrosParaBuscar.nombre_proveedor &&
-        filtrosParaBuscar.nombre_proveedor.trim() !== ""
-      ) {
+      if (filtrosParaBuscar.nombre_proveedor && filtrosParaBuscar.nombre_proveedor.trim() !== "") {
         filtrosAPI.nombre_proveedor = filtrosParaBuscar.nombre_proveedor;
         hayFiltrosActivos = true;
       }
 
-      if (
-        filtrosParaBuscar.tipo_servicio &&
-        filtrosParaBuscar.tipo_servicio.trim() !== ""
-      ) {
+      if (filtrosParaBuscar.tipo_servicio && filtrosParaBuscar.tipo_servicio.trim() !== "") {
         filtrosAPI.tipo_servicio = filtrosParaBuscar.tipo_servicio;
         hayFiltrosActivos = true;
       }
@@ -79,7 +136,6 @@ function ExplorarServicios() {
         hayFiltrosActivos = true;
       }
 
-      // Si no hay filtros, cargar todos los proveedores
       if (!hayFiltrosActivos && !filtrosParaBuscar.precio_max) {
         filtrosAPI.limite = 100;
       }
@@ -87,22 +143,16 @@ function ExplorarServicios() {
       const response = await clienteService.buscarProveedores(filtrosAPI);
       const proveedoresData = response.data.data || [];
 
-      // Filtrar exactamente por tipo_servicio
       let proveedoresFiltradosPorTipo = proveedoresData;
-      if (
-        filtrosParaBuscar.tipo_servicio &&
-        filtrosParaBuscar.tipo_servicio.trim() !== ""
-      ) {
+      if (filtrosParaBuscar.tipo_servicio && filtrosParaBuscar.tipo_servicio.trim() !== "") {
         proveedoresFiltradosPorTipo = proveedoresData.filter((proveedor) => {
           return (
             proveedor.tipo_servicio &&
-            proveedor.tipo_servicio.toLowerCase() ===
-              filtrosParaBuscar.tipo_servicio.toLowerCase()
+            proveedor.tipo_servicio.toLowerCase() === filtrosParaBuscar.tipo_servicio.toLowerCase()
           );
         });
       }
 
-      // Para cada proveedor, obtener su precio mínimo
       const proveedoresConPrecio = await Promise.all(
         proveedoresFiltradosPorTipo.map(async (proveedor) => {
           try {
@@ -134,10 +184,7 @@ function ExplorarServicios() {
               precio_minimo: precioMinimo,
             };
           } catch (error) {
-            console.error(
-              `Error al cargar servicios del proveedor ${proveedor.id_proveedor}:`,
-              error,
-            );
+            console.error(`Error al cargar servicios del proveedor ${proveedor.id_proveedor}:`, error);
             return {
               ...proveedor,
               precio_minimo: null,
@@ -146,7 +193,6 @@ function ExplorarServicios() {
         }),
       );
 
-      // Filtrar por precio máximo
       let proveedoresFiltrados = proveedoresConPrecio;
 
       if (filtrosParaBuscar.precio_max && filtrosParaBuscar.precio_max > 0) {
@@ -168,7 +214,6 @@ function ExplorarServicios() {
     }
   };
 
-  // Mantén la función original que usa el estado
   const buscarProveedores = () => {
     buscarConFiltros(filtros);
   };
@@ -200,7 +245,6 @@ function ExplorarServicios() {
   };
 
   const handleBuscar = () => {
-    // Limpiar la URL y actualizar con los filtros actuales
     const params = new URLSearchParams();
 
     if (filtros.nombre_proveedor && filtros.nombre_proveedor.trim() !== "") {
@@ -220,11 +264,9 @@ function ExplorarServicios() {
     }
 
     if (filtros.precio_max && filtros.precio_max > 0) {
-      // ← AGREGAR ESTO
       params.append("precio_max", filtros.precio_max);
     }
 
-    // Actualizar la URL (esto disparará el useEffect que busca proveedores)
     navigate(`/cliente/explorar?${params.toString()}`, { replace: true });
   };
 
@@ -249,7 +291,6 @@ function ExplorarServicios() {
     navigate(`/perfil-proveedor/${idProveedor}`);
   };
 
-  // Función para renderizar estrellas dinámicas
   const renderEstrellas = (calificacion) => {
     const estrellas = [];
     const calificacionEstrellas = parseFloat(calificacion || 0) * 5;
@@ -267,13 +308,11 @@ function ExplorarServicios() {
     return estrellas;
   };
 
-  // Calcular proveedores para la página actual
   const indiceUltimo = paginaActual * proveedoresPorPagina;
   const indicePrimero = indiceUltimo - proveedoresPorPagina;
   const proveedoresActuales = proveedores.slice(indicePrimero, indiceUltimo);
   const totalPaginas = Math.ceil(proveedores.length / proveedoresPorPagina);
 
-  // Funciones de navegación
   const irPaginaAnterior = () => {
     if (paginaActual > 1) {
       setPaginaActual(paginaActual - 1);
@@ -337,19 +376,7 @@ function ExplorarServicios() {
               Buscar
             </button>
 
-            <button
-              onClick={handleLimpiarFiltros}
-              className="btn-limpiar"
-              style={{
-                padding: "0.75rem 1.5rem",
-                backgroundColor: "#6c757d",
-                color: "white",
-                border: "none",
-                borderRadius: "25px",
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-              }}
-            >
+            <button onClick={handleLimpiarFiltros} className="btn-limpiar">
               Limpiar
             </button>
           </div>
@@ -370,20 +397,12 @@ function ExplorarServicios() {
                   }`}
                   onClick={() => handleCategoriaClick(categoria)}
                 >
-                  <div className="categoria-icon">
-                    {categoria.icono || "📋"}
-                  </div>
+                  <div className="categoria-icon">{categoria.icono || "📋"}</div>
                   <h3>{categoria.nombre_categoria}</h3>
                 </div>
               ))
             ) : (
-              <p
-                style={{
-                  gridColumn: "1 / -1",
-                  textAlign: "center",
-                  color: "#6c757d",
-                }}
-              >
+              <p style={{ gridColumn: "1 / -1", textAlign: "center", color: "#6c757d" }}>
                 No hay categorías disponibles por el momento.
               </p>
             )}
@@ -394,9 +413,7 @@ function ExplorarServicios() {
         <section className="proveedores-section">
           <div className="section-header">
             <h2>
-              {filtros.nombre_proveedor ||
-              filtros.tipo_servicio ||
-              filtros.ciudad
+              {filtros.nombre_proveedor || filtros.tipo_servicio || filtros.ciudad
                 ? "Resultados de búsqueda"
                 : "Proveedores Mejor Calificados"}
             </h2>
@@ -413,13 +430,7 @@ function ExplorarServicios() {
                 >
                   ←
                 </button>
-                <span
-                  style={{
-                    margin: "0 1rem",
-                    color: "#1a4d5c",
-                    fontWeight: "500",
-                  }}
-                >
+                <span style={{ margin: "0 1rem", color: "#1a4d5c", fontWeight: "500" }}>
                   {paginaActual} / {totalPaginas}
                 </span>
                 <button
@@ -428,8 +439,7 @@ function ExplorarServicios() {
                   disabled={paginaActual === totalPaginas}
                   style={{
                     opacity: paginaActual === totalPaginas ? 0.5 : 1,
-                    cursor:
-                      paginaActual === totalPaginas ? "not-allowed" : "pointer",
+                    cursor: paginaActual === totalPaginas ? "not-allowed" : "pointer",
                   }}
                 >
                   →
@@ -445,27 +455,16 @@ function ExplorarServicios() {
               <p style={{ fontSize: "1.2rem", color: "#6c757d" }}>
                 No se encontraron proveedores con estos filtros.
               </p>
-              <button
-                onClick={handleLimpiarFiltros}
-                style={{
-                  marginTop: "1rem",
-                  padding: "0.75rem 2rem",
-                  backgroundColor: "#1a4d5c",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "25px",
-                  cursor: "pointer",
-                }}
-              >
+              <button onClick={handleLimpiarFiltros} className="btn-ver-todos">
                 Ver todos los proveedores
               </button>
             </div>
           ) : (
             <div className="proveedores-grid">
               {proveedoresActuales.map((proveedor) => {
-                const calificacion =
-                  parseFloat(proveedor.calificacion_promedio) || 0;
+                const calificacion = parseFloat(proveedor.calificacion_promedio) || 0;
                 const calificacionDe5 = calificacion * 5;
+                const esFavorito = !!favoritos[proveedor.id_proveedor];
 
                 return (
                   <div
@@ -487,42 +486,33 @@ function ExplorarServicios() {
                         }}
                       />
                       <button
-                        className="btn-favorito"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log("Agregado a favoritos");
-                        }}
+                        className={`btn-favorito ${esFavorito ? "favorito-activo" : ""}`}
+                        onClick={(e) => toggleFavorito(e, proveedor.id_proveedor)}
+                        disabled={procesandoFavorito[proveedor.id_proveedor]}
+                        title={esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}
                       >
-                        ♡
+                        {esFavorito ? "♥" : "♡"}
                       </button>
                     </div>
 
                     <div className="proveedor-info">
                       <div className="proveedor-rating">
                         {renderEstrellas(calificacion)}
-                        <span className="rating-numero">
-                          {calificacionDe5.toFixed(1)}/5
-                        </span>
+                        <span className="rating-numero">{calificacionDe5.toFixed(1)}/5</span>
                       </div>
 
                       <h3>{proveedor.nombre_negocio}</h3>
 
-                      {proveedor.precio_minimo !== null &&
-                      proveedor.precio_minimo > 0 ? (
+                      {proveedor.precio_minimo !== null && proveedor.precio_minimo > 0 ? (
                         <p className="proveedor-precio">
-                          Desde $
-                          {proveedor.precio_minimo.toLocaleString("es-MX")}
+                          Desde ${proveedor.precio_minimo.toLocaleString("es-MX")}
                         </p>
                       ) : (
-                        <p className="proveedor-sin-precio">
-                          Sin servicios disponibles
-                        </p>
+                        <p className="proveedor-sin-precio">Sin servicios disponibles</p>
                       )}
 
                       <div className="proveedor-footer">
-                        <span className="categoria-badge">
-                          {proveedor.tipo_servicio}
-                        </span>
+                        <span className="categoria-badge">{proveedor.tipo_servicio}</span>
                       </div>
                     </div>
                   </div>

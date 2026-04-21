@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
 import Layout from "../../components/Layout";
 import api from "../../services/api";
+import { clienteService } from "../../services/clienteService";
 import "./PerfilProveedor.css";
 
 function PerfilProveedor() {
@@ -39,6 +40,17 @@ function PerfilProveedor() {
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
   const [mesCalendario, setMesCalendario] = useState(new Date());
 
+  // Estados para listas
+  const [mostrarModalListas, setMostrarModalListas] = useState(false);
+  const [listasDisponibles, setListasDisponibles] = useState([]);
+  const [listaSeleccionada, setListaSeleccionada] = useState("");
+  const [agregandoALista, setAgregandoALista] = useState(false);
+
+  // Estados para favoritos
+  const [esFavorito, setEsFavorito] = useState(false);
+  const [idFavorito, setIdFavorito] = useState(null);
+  const [procesandoFavorito, setProcesandoFavorito] = useState(false);
+
   // Constantes para el calendario
   const meses = [
     "Enero",
@@ -59,6 +71,7 @@ function PerfilProveedor() {
   // Effect para cargar datos iniciales
   useEffect(() => {
     cargarDatosProveedor();
+    verificarSiEsFavorito();
   }, [id]);
 
   // ========== FUNCIONES DE CARGA DE DATOS ==========
@@ -114,6 +127,7 @@ function PerfilProveedor() {
         setResenas([]);
       }
     } catch (error) {
+      console.error("Error al cargar datos:", error);
     } finally {
       setLoading(false);
     }
@@ -124,10 +138,10 @@ function PerfilProveedor() {
       const hoy = new Date();
       const fechaInicio = hoy.toISOString().split("T")[0];
 
-      // Obtener fechas para los próximos 12 meses
       const fechaFin = new Date();
       fechaFin.setMonth(fechaFin.getMonth() + 12);
       const fechaFinStr = fechaFin.toISOString().split("T")[0];
+
       const response = await api.get(
         `/calendario/proveedor/${idProveedor}/disponibilidad`,
         {
@@ -138,22 +152,15 @@ function PerfilProveedor() {
         },
       );
 
-      // Filtrar solo las fechas NO disponibles y normalizar formato
       const bloqueadas = response.data.data
-        .filter((fecha) => {
-          return fecha.disponible === false;
-        })
+        .filter((fecha) => fecha.disponible === false)
         .map((fecha) => {
-          // Normalizar formato: extraer solo YYYY-MM-DD
           let fechaStr = fecha.fecha;
-
-          // Si viene como objeto Date o con timestamp, extraer solo la fecha
           if (typeof fechaStr === "string" && fechaStr.includes("T")) {
             fechaStr = fechaStr.split("T")[0];
           } else if (fechaStr instanceof Date) {
             fechaStr = fechaStr.toISOString().split("T")[0];
           }
-
           return fechaStr;
         });
 
@@ -163,6 +170,114 @@ function PerfilProveedor() {
     }
   };
 
+  // ========== FUNCIONES DE FAVORITOS ==========
+
+  // En la función verificarSiEsFavorito:
+  const verificarSiEsFavorito = async () => {
+    try {
+      const response = await clienteService.verificarSiEsFavorito(id);
+
+      if (response.data.data.es_favorito) {
+        setEsFavorito(true);
+        setIdFavorito(response.data.data.id_lista_proveedor);
+      } else {
+        setEsFavorito(false);
+        setIdFavorito(null);
+      }
+    } catch (error) {
+      console.log("No se pudo verificar favoritos");
+    }
+  };
+
+  // En la función toggleFavorito:
+  const toggleFavorito = async () => {
+    try {
+      setProcesandoFavorito(true);
+
+      if (esFavorito) {
+        // Eliminar de favoritos
+        await clienteService.eliminarDeFavoritos(idFavorito);
+        setEsFavorito(false);
+        setIdFavorito(null);
+      } else {
+        // Agregar a favoritos
+        const response = await clienteService.agregarAFavoritos(parseInt(id));
+        setEsFavorito(true);
+        setIdFavorito(response.data.data.id_lista_proveedor);
+      }
+    } catch (error) {
+      console.error("Error al gestionar favorito:", error);
+      if (error.response?.status === 401) {
+        alert("⚠️ Debes iniciar sesión para guardar favoritos");
+        navigate("/login");
+      } else {
+        alert(" Error al actualizar favoritos");
+      }
+    } finally {
+      setProcesandoFavorito(false);
+    }
+  };
+
+  // ========== FUNCIONES DE LISTAS ==========
+
+  const cargarListasCliente = async () => {
+    try {
+      const response = await clienteService.obtenerMisListas();
+      setListasDisponibles(response.data.data || []);
+      setMostrarModalListas(true);
+    } catch (error) {
+      console.error("Error al cargar listas:", error);
+      if (error.response?.status === 401) {
+        alert("⚠️ Debes iniciar sesión para agregar a listas");
+        navigate("/login");
+      } else {
+        alert(" Error al cargar tus listas");
+      }
+    }
+  };
+
+ // Función para agregar a lista
+const agregarALista = async () => {
+  if (!listaSeleccionada) {
+    alert("⚠️ Selecciona una lista");
+    return;
+  }
+
+  try {
+    setAgregandoALista(true);
+    
+    console.log('Agregando a lista:', {
+      id_lista: listaSeleccionada,
+      id_proveedor: proveedor.id_proveedor
+    }); // Debug
+
+    // Llamar al servicio con los parámetros correctos
+    await clienteService.agregarProveedorALista(
+      parseInt(listaSeleccionada),
+      parseInt(proveedor.id_proveedor)
+    );
+
+    alert("✅ Proveedor agregado a la lista");
+    setMostrarModalListas(false);
+    setListaSeleccionada("");
+  } catch (error) {
+    console.error("Error al agregar a lista:", error);
+    console.error("Detalles del error:", error.response?.data); // Debug adicional
+    
+    if (error.response?.status === 409) {
+      alert("⚠️ Este proveedor ya está en esa lista");
+    } else if (error.response?.status === 401) {
+      alert("⚠️ Debes iniciar sesión para agregar a listas");
+      navigate("/login");
+    } else if (error.response?.status === 400) {
+      alert(`⚠️ ${error.response.data.message || 'Datos inválidos'}`);
+    } else {
+      alert("❌ Error al agregar a la lista");
+    }
+  } finally {
+    setAgregandoALista(false);
+  }
+};
   // ========== FUNCIONES DE CALENDARIO ==========
 
   const cambiarMesCalendario = (incremento) => {
@@ -186,16 +301,16 @@ function PerfilProveedor() {
     const year = mesCalendario.getFullYear();
     const month = mesCalendario.getMonth();
 
-    // Verificar si es fecha pasada
     if (esFechaPasada(year, month, dia)) {
       return;
     }
 
     const fechaStr = `${year}-${(month + 1).toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
 
-    // Verificar si está bloqueada
     if (esFechaBloqueada(fechaStr)) {
-      alert(" Esta fecha no está disponible. Por favor selecciona otra fecha.");
+      alert(
+        "⚠️ Esta fecha no está disponible. Por favor selecciona otra fecha.",
+      );
       return;
     }
 
@@ -218,14 +333,12 @@ function PerfilProveedor() {
     const primerDiaSemana =
       primerDia.getDay() === 0 ? 6 : primerDia.getDay() - 1;
 
-    // Días vacíos antes del primer día
     for (let i = 0; i < primerDiaSemana; i++) {
       diasMes.push(
         <div key={`empty-${i}`} className="calendario-dia-modal vacio"></div>,
       );
     }
 
-    // Días del mes
     for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
       const fechaStr = `${year}-${(month + 1).toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
       const bloqueado = esFechaBloqueada(fechaStr);
@@ -290,7 +403,6 @@ function PerfilProveedor() {
 
   const handleCambioFormulario = (e) => {
     const { name, value } = e.target;
-
     setFormularioSolicitud((prev) => ({
       ...prev,
       [name]: value,
@@ -298,35 +410,31 @@ function PerfilProveedor() {
   };
 
   const handleEnviarSolicitud = async () => {
-    // Validar campos obligatorios
     if (!formularioSolicitud.fecha_evento || !formularioSolicitud.tipo_evento) {
       alert(
-        " Por favor completa los campos obligatorios: Fecha del evento y Tipo de evento",
+        "⚠️ Por favor completa los campos obligatorios: Fecha del evento y Tipo de evento",
       );
       return;
     }
 
-    // Validar que haya al menos un servicio seleccionado
     if (serviciosSeleccionados.length === 0) {
-      alert(" Por favor selecciona al menos un servicio para tu evento");
+      alert("⚠️ Por favor selecciona al menos un servicio para tu evento");
       return;
     }
 
-    // Validar que la fecha no esté bloqueada
     if (esFechaBloqueada(formularioSolicitud.fecha_evento)) {
       alert(
-        " La fecha seleccionada no está disponible. Por favor elige otra fecha.",
+        "⚠️ La fecha seleccionada no está disponible. Por favor elige otra fecha.",
       );
       return;
     }
 
-    // Validar que la fecha sea futura
     const fechaEvento = new Date(formularioSolicitud.fecha_evento);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
     if (fechaEvento < hoy) {
-      alert(" La fecha del evento debe ser futura");
+      alert("⚠️ La fecha del evento debe ser futura");
       return;
     }
 
@@ -351,19 +459,21 @@ function PerfilProveedor() {
       await api.post("/solicitudes", datos);
 
       alert(
-        " ¡Solicitud enviada exitosamente! El proveedor te responderá pronto.",
+        "✅ ¡Solicitud enviada exitosamente! El proveedor te responderá pronto.",
       );
       handleCerrarModalCotizacion();
     } catch (error) {
       console.error("Error al enviar solicitud:", error);
 
       if (error.response?.status === 401) {
-        alert(" Debes iniciar sesión para solicitar una cotización");
+        alert("⚠️ Debes iniciar sesión para solicitar una cotización");
         navigate("/login");
       } else if (error.response?.data?.message) {
-        alert(` ${error.response.data.message}`);
+        alert(`❌ ${error.response.data.message}`);
       } else {
-        alert(" Error al enviar la solicitud. Por favor, intenta nuevamente.");
+        alert(
+          "❌ Error al enviar la solicitud. Por favor, intenta nuevamente.",
+        );
       }
     } finally {
       setEnviandoSolicitud(false);
@@ -464,8 +574,17 @@ function PerfilProveedor() {
             <div className="perfil-info-principal">
               <div className="perfil-titulo">
                 <h1>{proveedor.nombre_negocio}</h1>
-                <button className="btn-favorito-grande">
-                  <span className="icono-corazon">♡</span>
+                <button
+                  className={`btn-favorito-grande ${esFavorito ? "favorito-activo" : ""}`}
+                  onClick={toggleFavorito}
+                  disabled={procesandoFavorito}
+                  title={
+                    esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"
+                  }
+                >
+                  <span className="icono-corazon">
+                    {esFavorito ? "♥" : "♡"}
+                  </span>
                 </button>
               </div>
 
@@ -509,7 +628,12 @@ function PerfilProveedor() {
                 >
                   Solicitar Cotización
                 </button>
-                <button className="btn-secundario">Enviar Mensaje</button>
+                <button
+                  className="btn-agregar-lista"
+                  onClick={cargarListasCliente}
+                >
+                  + Agregar a lista
+                </button>
               </div>
             </div>
           </div>
@@ -723,7 +847,6 @@ function PerfilProveedor() {
                             {badge.text}
                           </span>
                         </div>
-
                         <p className="resena-comentario">{resena.comentario}</p>
                       </div>
                     );
@@ -755,7 +878,7 @@ function PerfilProveedor() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h2> Solicitar Cotización</h2>
+              <h2>📋 Solicitar Cotización</h2>
               <button
                 className="btn-cerrar-modal"
                 onClick={handleCerrarModalCotizacion}
@@ -940,7 +1063,8 @@ function PerfilProveedor() {
                   <p className="servicios-seleccionados-count">
                     {serviciosSeleccionados.length} servicio
                     {serviciosSeleccionados.length !== 1 ? "s" : ""}{" "}
-                    seleccionado{serviciosSeleccionados.length !== 1 ? "s" : ""}
+                    seleccionado
+                    {serviciosSeleccionados.length !== 1 ? "s" : ""}
                   </p>
                 )}
               </div>
@@ -1013,9 +1137,68 @@ function PerfilProveedor() {
                 onClick={handleEnviarSolicitud}
                 disabled={enviandoSolicitud}
               >
-                {enviandoSolicitud ? "Enviando..." : " Enviar Solicitud"}
+                {enviandoSolicitud ? "Enviando..." : "📨 Enviar Solicitud"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para seleccionar lista */}
+      {mostrarModalListas && (
+        <div
+          className="modal-overlay"
+          onClick={() => setMostrarModalListas(false)}
+        >
+          <div className="modal-listas" onClick={(e) => e.stopPropagation()}>
+            <h3>Agregar a lista</h3>
+
+            {listasDisponibles.length === 0 ? (
+              <div className="sin-listas">
+                <p>No tienes listas creadas aún</p>
+                <button
+                  className="btn-crear-lista-modal"
+                  onClick={() => {
+                    setMostrarModalListas(false);
+                    navigate("/cliente/listas");
+                  }}
+                >
+                  Crear mi primera lista
+                </button>
+              </div>
+            ) : (
+              <>
+                <select
+                  className="select-lista"
+                  value={listaSeleccionada}
+                  onChange={(e) => setListaSeleccionada(e.target.value)}
+                >
+                  <option value="">Selecciona una lista...</option>
+                  {listasDisponibles.map((lista) => (
+                    <option key={lista.id_lista} value={lista.id_lista}>
+                      {lista.nombre_lista} ({lista.total_proveedores}{" "}
+                      proveedores)
+                    </option>
+                  ))}
+                </select>
+
+                <div className="modal-botones-lista">
+                  <button
+                    className="btn-cancelar-lista"
+                    onClick={() => setMostrarModalListas(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="btn-confirmar-lista"
+                    onClick={agregarALista}
+                    disabled={agregandoALista || !listaSeleccionada}
+                  >
+                    {agregandoALista ? "Agregando..." : "Agregar"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -268,7 +268,101 @@ class Lista {
     } finally {
       client.release();
     }
+
+    
   }
+
+
+// Obtener o crear la lista de Favoritos
+static async obtenerOCrearListaFavoritos(id_cliente) {
+  // Intentar obtener la lista de favoritos
+  let query = `
+    SELECT id_lista, nombre_lista, descripcion, fecha_creacion
+    FROM Lista
+    WHERE id_cliente = $1 AND nombre_lista = 'Favoritos'
+    LIMIT 1
+  `;
+  
+  let resultado = await pool.query(query, [id_cliente]);
+  
+  // Si no existe, crearla
+  if (resultado.rows.length === 0) {
+    query = `
+      INSERT INTO Lista (id_cliente, nombre_lista, descripcion)
+      VALUES ($1, 'Favoritos', 'Mis proveedores favoritos')
+      RETURNING id_lista, nombre_lista, descripcion, fecha_creacion
+    `;
+    
+    resultado = await pool.query(query, [id_cliente]);
+  }
+  
+  return resultado.rows[0];
 }
+
+// Verificar si un proveedor está en favoritos
+static async verificarProveedorEnFavoritos(id_cliente, id_proveedor) {
+  const query = `
+    SELECT lp.id_lista_proveedor
+    FROM Lista l
+    INNER JOIN ListaProveedor lp ON l.id_lista = lp.id_lista
+    WHERE l.id_cliente = $1 
+      AND l.nombre_lista = 'Favoritos'
+      AND lp.id_proveedor = $2
+  `;
+  
+  const resultado = await pool.query(query, [id_cliente, id_proveedor]);
+  return resultado.rows[0];
+}
+
+// Eliminar proveedor de una lista
+static async eliminarProveedorDeLista(id_lista_proveedor, id_cliente) {
+  // Verificar que el registro pertenece a una lista del cliente
+  const verificacion = await pool.query(`
+    SELECT lp.id_lista_proveedor
+    FROM ListaProveedor lp
+    INNER JOIN Lista l ON lp.id_lista = l.id_lista
+    WHERE lp.id_lista_proveedor = $1 AND l.id_cliente = $2
+  `, [id_lista_proveedor, id_cliente]);
+
+  if (verificacion.rows.length === 0) {
+    return null;
+  }
+
+  const query = `
+    DELETE FROM ListaProveedor
+    WHERE id_lista_proveedor = $1
+    RETURNING *
+  `;
+  
+  const resultado = await pool.query(query, [id_lista_proveedor]);
+  return resultado.rows[0];
+}
+
+// Actualizar lista
+static async actualizar(id_lista, id_cliente, datos) {
+  const { nombre_lista, descripcion } = datos;
+
+  const query = `
+    UPDATE Lista
+    SET 
+      nombre_lista = $1,
+      descripcion = $2
+    WHERE id_lista = $3 AND id_cliente = $4
+    RETURNING *
+  `;
+
+  const valores = [nombre_lista, descripcion, id_lista, id_cliente];
+  const resultado = await pool.query(query, valores);
+
+  if (resultado.rows.length === 0) {
+    return null;
+  }
+
+  return resultado.rows[0];
+}
+
+}
+
+
 
 module.exports = Lista;

@@ -509,3 +509,20 @@
   font-size: 0.95rem;
   margin: 0.5rem 0;
 }
+
+/* Botón de favorito activo */
+.btn-favorito-home.favorito-activo {
+  background: #ff6b6b;
+  color: white;
+  border-color: #ff6b6b;
+}
+
+.btn-favorito-home.favorito-activo:hover {
+  background: #ff5252;
+  border-color: #ff5252;
+}
+
+.btn-favorito-home:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

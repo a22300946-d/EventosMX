@@ -4,6 +4,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleBasedGuestRoute from "./components/RoleBasedGuestRoute";
 
+import VerificarCorreo from "./pages/VerificarCorreo";
+
 // Páginas públicas
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -19,6 +21,8 @@ import MisListas from "./pages/cliente/MisListas";
 import Preferencias from "./pages/cliente/Preferencias";
 import ResenasPublicadas from "./pages/cliente/ResenasPublicadas";
 import PerfilProveedor from "./pages/cliente/PerfilProveedor";
+import DetallesLista from "./pages/cliente/DetallesLista";
+import Favoritos from "./pages/cliente/Favoritos";
 
 // Páginas de proveedor
 import MiInformacion from "./pages/proveedor/MiInformacion";
@@ -139,6 +143,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/cliente/listas" element={<MisListas />} />
+          <Route path="/cliente/listas/:id" element={<DetallesLista />} />
+          <Route path="/cliente/favoritos" element={<Favoritos />} />
 
           {/* Rutas de Proveedor */}
           <Route
@@ -197,6 +204,11 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Verificación de correo */}
+          <Route 
+            path="/login" 
+            element={<VerificarCorreo />} />
 
           {/* Ruta 404 */}
           <Route path="*" element={<Navigate to="/" />} />

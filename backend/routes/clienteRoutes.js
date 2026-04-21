@@ -12,6 +12,10 @@ const {
 router.post('/registro', registrarCliente);
 router.post('/login', loginCliente);
 
+const { solicitarRecuperacion } = require('../controllers/clienteController');
+
+router.post('/recuperar-contrasena', solicitarRecuperacion);
+
 // Rutas protegidas (requieren autenticación)
 router.get('/perfil', autenticar, verificarRol('cliente'), obtenerPerfil);
 router.put('/perfil', autenticar, verificarRol('cliente'), actualizarPerfil);

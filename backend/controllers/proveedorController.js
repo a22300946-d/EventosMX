@@ -1,3 +1,6 @@
+const emailService = require('../services/emailService');
+const admin = require('../config/firebase.config');
+
 const Proveedor = require('../models/Proveedor');
 const { generarToken } = require('../utils/jwt');
 
@@ -36,6 +39,17 @@ const registrarProveedor = async (req, res) => {
       tipo_servicio,
       descripcion
     });
+
+    // Crear en Firebase
+const firebaseUser = await admin.auth().createUser({
+  email: correo,
+  password: contrasena,
+  displayName: nombre_completo,
+  emailVerified: false
+});
+
+// Enviar verificación
+await emailService.enviarVerificacion({ email: correo, nombre: nombre_completo });
 
     // Generar token
     const token = generarToken({
@@ -261,11 +275,26 @@ const obtenerProveedorPublico = async (req, res) => {
   }
 };
 
+const solicitarRecuperacion = async (req, res) => {
+  const { correo } = req.body;
+  if (!correo) return res.status(400).json({ success: false, message: 'Correo requerido' });
+
+  try {
+    await admin.auth().getUserByEmail(correo); // verifica que existe
+    await emailService.enviarRecuperacion({ email: correo });
+  } catch (e) {
+    // No revelar si existe o no por seguridad
+  }
+
+  res.json({ success: true, message: 'Si el correo existe, recibirás el enlace' });
+};
+
 module.exports = {
   registrarProveedor,
   loginProveedor,
   obtenerPerfil,
   actualizarPerfil,
   buscarProveedores,
-  obtenerProveedorPublico
+  obtenerProveedorPublico,
+  solicitarRecuperacion
 };
