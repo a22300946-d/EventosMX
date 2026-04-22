@@ -142,34 +142,56 @@ function MisListas() {
   };
 
   const duplicarLista = async (lista, e) => {
-    e.stopPropagation();
-    setMostrarMenuLista(null);
+  e.stopPropagation();
+  setMostrarMenuLista(null);
 
-    try {
-      setProcesando((prev) => ({ ...prev, [lista.id_lista]: true }));
+  try {
+    setProcesando((prev) => ({ ...prev, [lista.id_lista]: true }));
 
-      let nuevoNombre = `${lista.nombre_lista} (Copia)`;
-      let contador = 1;
+    // Generar nombre único
+    let nuevoNombre = `${lista.nombre_lista} (Copia)`;
+    let contador = 1;
 
-      while (listas.some((l) => l.nombre_lista === nuevoNombre)) {
-        contador++;
-        nuevoNombre = `${lista.nombre_lista} (Copia ${contador})`;
-      }
-
-      await clienteService.crearLista({
-        nombre_lista: nuevoNombre,
-        descripcion: lista.descripcion || null,
-      });
-
-      await cargarListas();
-      alert(`✅ Lista "${nuevoNombre}" creada exitosamente`);
-    } catch (error) {
-      console.error("Error al duplicar lista:", error);
-      alert("❌ Error al duplicar la lista");
-    } finally {
-      setProcesando((prev) => ({ ...prev, [lista.id_lista]: false }));
+    while (listas.some((l) => l.nombre_lista === nuevoNombre)) {
+      contador++;
+      nuevoNombre = `${lista.nombre_lista} (Copia ${contador})`;
     }
-  };
+
+    // Crear la nueva lista
+    const responseNuevaLista = await clienteService.crearLista({
+      nombre_lista: nuevoNombre,
+      descripcion: lista.descripcion || null,
+    });
+
+    const idNuevaLista = responseNuevaLista.data.data.id_lista;
+
+    // Obtener los proveedores de la lista original
+    const responseProveedores = await clienteService.obtenerListaPorId(lista.id_lista);
+    const proveedoresOriginales = responseProveedores.data.data.proveedores || [];
+
+    // Copiar cada proveedor a la nueva lista
+    if (proveedoresOriginales.length > 0) {
+      await Promise.all(
+        proveedoresOriginales.map((proveedor) =>
+          clienteService.agregarProveedorALista(
+            idNuevaLista,
+            proveedor.id_proveedor
+          )
+        )
+      );
+    }
+
+    await cargarListas();
+    alert(
+      `✅ Lista "${nuevoNombre}" creada exitosamente con ${proveedoresOriginales.length} proveedor(es) copiado(s)`
+    );
+  } catch (error) {
+    console.error("Error al duplicar lista:", error);
+    alert("❌ Error al duplicar la lista");
+  } finally {
+    setProcesando((prev) => ({ ...prev, [lista.id_lista]: false }));
+  }
+};
 
   const eliminarLista = async (lista, e) => {
     e.stopPropagation();

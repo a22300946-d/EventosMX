@@ -210,28 +210,57 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
-/* Botón de favorito */
+.proveedor-card:hover .proveedor-image img {
+  transform: scale(1.05);
+}
+
+/* ========== Botón de favorito - ESTILO IGUAL A HOME ========== */
 .btn-favorito {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background: white;
-  border: none;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #ddd;
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
   font-size: 1.5rem;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
 }
 
-.btn-favorito:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.btn-favorito:hover:not(:disabled) {
+  transform: scale(1.15);
+  background: white;
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-favorito.favorito-activo {
+  background: #ff6b6b;
+  color: white;
+  border-color: #ff6b6b;
+}
+
+.btn-favorito.favorito-activo:hover {
+  background: #ff5252;
+  border-color: #ff5252;
+  transform: scale(1.15);
+}
+
+.btn-favorito:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .proveedor-info {
@@ -387,6 +416,13 @@
   .carousel-controls {
     width: 100%;
     justify-content: center;
+  }
+
+  /* Botón favorito responsive */
+  .btn-favorito {
+    width: 40px;
+    height: 40px;
+    font-size: 1.3rem;
   }
 }
 
