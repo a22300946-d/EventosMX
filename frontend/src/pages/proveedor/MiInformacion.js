@@ -21,12 +21,81 @@ function MiInformacion() {
   const [errores, setErrores] = useState({});
   const [categorias, setCategorias] = useState([]);
   const [ciudades, setCiudades] = useState([]);
+  
+  // Estados para tipos de eventos
+  const [tiposEventosDisponibles, setTiposEventosDisponibles] = useState([]);
+  const [misEventos, setMisEventos] = useState([]);
+  const [procesandoEvento, setProcesandoEvento] = useState(false);
 
   useEffect(() => {
     cargarDatos();
     cargarCategorias();
     cargarCiudades();
+    cargarTiposEventos();
+    cargarMisEventos();
   }, []);
+
+  const cargarTiposEventos = async () => {
+    try {
+      const response = await api.get("/proveedor-eventos/tipos-eventos");
+      setTiposEventosDisponibles(response.data.data || []);
+    } catch (error) {
+      console.error("Error al cargar tipos de eventos:", error);
+    }
+  };
+
+  const cargarMisEventos = async () => {
+    try {
+      const response = await api.get("/proveedor-eventos/mis-eventos");
+      setMisEventos(response.data.data || []);
+    } catch (error) {
+      console.error("Error al cargar mis eventos:", error);
+    }
+  };
+
+  const agregarEvento = async (id_tipo_evento) => {
+    if (procesandoEvento) return;
+
+    try {
+      setProcesandoEvento(true);
+      await api.post("/proveedor-eventos/mis-eventos", {
+        id_tipo_evento,
+      });
+      
+      // Recargar mis eventos
+      await cargarMisEventos();
+    } catch (error) {
+      console.error("Error al agregar evento:", error);
+      if (error.response?.status === 409) {
+        alert("Este tipo de evento ya está agregado");
+      } else {
+        alert("Error al agregar el tipo de evento");
+      }
+    } finally {
+      setProcesandoEvento(false);
+    }
+  };
+
+  const eliminarEvento = async (id_tipo_evento) => {
+    if (procesandoEvento) return;
+
+    try {
+      setProcesandoEvento(true);
+      await api.delete(`/proveedor-eventos/mis-eventos/${id_tipo_evento}`);
+      
+      // Recargar mis eventos
+      await cargarMisEventos();
+    } catch (error) {
+      console.error("Error al eliminar evento:", error);
+      alert("Error al eliminar el tipo de evento");
+    } finally {
+      setProcesandoEvento(false);
+    }
+  };
+
+  const estaEventoAgregado = (id_tipo_evento) => {
+    return misEventos.some((evento) => evento.id_tipo_evento === id_tipo_evento);
+  };
 
   const cargarCategorias = async () => {
     try {
@@ -76,7 +145,6 @@ function MiInformacion() {
     if (valor.length > 100) {
       return "El nombre no puede exceder 100 caracteres";
     }
-    // Permitir letras, números, espacios, guiones y algunos caracteres especiales
     const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\-&.,()]+$/;
     if (!regex.test(valor)) {
       return "El nombre contiene caracteres no permitidos";
@@ -86,18 +154,15 @@ function MiInformacion() {
 
   const validarTelefono = (valor) => {
     if (!valor.trim()) {
-      return ""; // El teléfono es opcional
+      return "";
     }
     
-    // Eliminar espacios, guiones y paréntesis para validar
     const telefonoLimpio = valor.replace(/[\s\-()]/g, "");
     
-    // Debe contener solo números
     if (!/^\d+$/.test(telefonoLimpio)) {
       return "El teléfono debe contener solo números";
     }
     
-    // Validar longitud (10 dígitos para México)
     if (telefonoLimpio.length !== 10) {
       return "El teléfono debe tener 10 dígitos";
     }
@@ -107,7 +172,7 @@ function MiInformacion() {
 
   const validarDescripcion = (valor) => {
     if (!valor.trim()) {
-      return ""; // La descripción es opcional
+      return "";
     }
     
     if (valor.length < 10) {
@@ -123,7 +188,7 @@ function MiInformacion() {
 
   const validarContrasena = (valor) => {
     if (!valor) {
-      return ""; // La contraseña es opcional (solo si quiere cambiarla)
+      return "";
     }
     
     if (valor.length < 8) {
@@ -134,17 +199,14 @@ function MiInformacion() {
       return "La contraseña no puede exceder 50 caracteres";
     }
     
-    // Al menos una mayúscula
     if (!/[A-Z]/.test(valor)) {
       return "La contraseña debe contener al menos una mayúscula";
     }
     
-    // Al menos una minúscula
     if (!/[a-z]/.test(valor)) {
       return "La contraseña debe contener al menos una minúscula";
     }
     
-    // Al menos un número
     if (!/\d/.test(valor)) {
       return "La contraseña debe contener al menos un número";
     }
@@ -188,32 +250,25 @@ function MiInformacion() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Validaciones en tiempo real
     let valorProcesado = value;
     
-    // Permitir solo números en teléfono (con formato)
     if (name === "telefono") {
-      // Permitir solo números, espacios, guiones y paréntesis
       valorProcesado = value.replace(/[^\d\s\-()]/g, "");
       
-      // Limitar a 10 dígitos (sin contar formato)
       const soloNumeros = valorProcesado.replace(/[\s\-()]/g, "");
       if (soloNumeros.length > 10) {
         return;
       }
     }
     
-    // Limitar caracteres en nombre de negocio
     if (name === "nombre_negocio" && value.length > 100) {
       return;
     }
     
-    // Limitar caracteres en descripción
     if (name === "descripcion" && value.length > 1000) {
       return;
     }
     
-    // Limitar caracteres en contraseña
     if (name === "nueva_contrasena" && value.length > 50) {
       return;
     }
@@ -223,7 +278,6 @@ function MiInformacion() {
       [name]: valorProcesado,
     });
     
-    // Validar el campo y actualizar errores
     const error = validarCampo(name, valorProcesado);
     setErrores({
       ...errores,
@@ -236,7 +290,6 @@ function MiInformacion() {
     setLoading(true);
     setMensaje({ tipo: "", texto: "" });
 
-    // Validar todos los campos
     const nuevosErrores = {};
     nuevosErrores.nombre_negocio = validarNombreNegocio(formData.nombre_negocio);
     nuevosErrores.telefono = validarTelefono(formData.telefono);
@@ -245,7 +298,6 @@ function MiInformacion() {
     nuevosErrores.descripcion = validarDescripcion(formData.descripcion);
     nuevosErrores.nueva_contrasena = validarContrasena(formData.nueva_contrasena);
 
-    // Filtrar solo errores que tengan contenido
     const erroresActivos = Object.entries(nuevosErrores).filter(([_, valor]) => valor !== "");
 
     if (erroresActivos.length > 0) {
@@ -261,13 +313,12 @@ function MiInformacion() {
     try {
       const datosActualizar = {
         nombre_negocio: formData.nombre_negocio.trim(),
-        telefono: formData.telefono.replace(/[\s\-()]/g, ""), // Enviar solo números
+        telefono: formData.telefono.replace(/[\s\-()]/g, ""),
         ciudad: formData.ciudad,
         tipo_servicio: formData.tipo_servicio,
         descripcion: formData.descripcion.trim(),
       };
 
-      // Si hay nueva contraseña, agregarla
       if (formData.nueva_contrasena) {
         datosActualizar.nueva_contrasena = formData.nueva_contrasena;
       }
@@ -276,19 +327,16 @@ function MiInformacion() {
 
       setMensaje({
         tipo: "success",
-        texto: " Datos actualizados exitosamente",
+        texto: "✓ Datos actualizados exitosamente",
       });
 
-      // Limpiar errores
       setErrores({});
 
-      // Limpiar campo de contraseña
       setFormData({
         ...formData,
         nueva_contrasena: "",
       });
 
-      // Actualizar localStorage
       const userStorage = JSON.parse(localStorage.getItem("user"));
       localStorage.setItem(
         "user",
@@ -303,7 +351,7 @@ function MiInformacion() {
     } catch (error) {
       setMensaje({
         tipo: "error",
-        texto: error.response?.data?.message || " Error al actualizar datos",
+        texto: error.response?.data?.message || "❌ Error al actualizar datos",
       });
     } finally {
       setLoading(false);
@@ -345,7 +393,7 @@ function MiInformacion() {
                 required
               />
               {errores.nombre_negocio && (
-                <span className="error-message"> {errores.nombre_negocio}</span>
+                <span className="error-message">⚠️ {errores.nombre_negocio}</span>
               )}
               <small className="field-hint">
                 {formData.nombre_negocio.length}/100 caracteres
@@ -376,7 +424,7 @@ function MiInformacion() {
                 maxLength="14"
               />
               {errores.telefono && (
-                <span className="error-message"> {errores.telefono}</span>
+                <span className="error-message">⚠️ {errores.telefono}</span>
               )}
               <small className="field-hint">
                 Ejemplo: 3312345678
@@ -404,7 +452,7 @@ function MiInformacion() {
                 ))}
               </select>
               {errores.ciudad && (
-                <span className="error-message"> {errores.ciudad}</span>
+                <span className="error-message">⚠️ {errores.ciudad}</span>
               )}
             </div>
 
@@ -432,7 +480,7 @@ function MiInformacion() {
                 ))}
               </select>
               {errores.tipo_servicio && (
-                <span className="error-message"> {errores.tipo_servicio}</span>
+                <span className="error-message">⚠️ {errores.tipo_servicio}</span>
               )}
             </div>
 
@@ -446,7 +494,7 @@ function MiInformacion() {
                 rows="4"
               />
               {errores.descripcion && (
-                <span className="error-message"> {errores.descripcion}</span>
+                <span className="error-message">⚠️ {errores.descripcion}</span>
               )}
               <small className="field-hint">
                 {formData.descripcion.length}/1000 caracteres
@@ -454,6 +502,52 @@ function MiInformacion() {
                   ` (mínimo 10)`
                 }
               </small>
+            </div>
+
+            {/* ========== SECCIÓN DE TIPOS DE EVENTOS ========== */}
+            <div className="form-group">
+              <label className="eventos-label">
+                Tipos de eventos que atiendo
+                <span className="eventos-hint">Selecciona los eventos en los que te especializas</span>
+              </label>
+
+              {/* Eventos agregados */}
+              {misEventos.length > 0 && (
+                <div className="eventos-seleccionados">
+                  {misEventos.map((evento) => (
+                    <button
+                      key={evento.id_tipo_evento}
+                      type="button"
+                      className="evento-tag evento-agregado"
+                      onClick={() => eliminarEvento(evento.id_tipo_evento)}
+                      disabled={procesandoEvento}
+                    >
+                      <span className="evento-icono">{evento.icono}</span>
+                      <span className="evento-nombre">{evento.nombre_evento}</span>
+                      <span className="evento-eliminar">×</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Eventos disponibles */}
+              <div className="eventos-disponibles">
+                {tiposEventosDisponibles
+                  .filter((tipo) => !estaEventoAgregado(tipo.id_tipo_evento))
+                  .map((tipo) => (
+                    <button
+                      key={tipo.id_tipo_evento}
+                      type="button"
+                      className="evento-tag evento-disponible"
+                      onClick={() => agregarEvento(tipo.id_tipo_evento)}
+                      disabled={procesandoEvento}
+                    >
+                      <span className="evento-icono">{tipo.icono}</span>
+                      <span className="evento-nombre">{tipo.nombre_evento}</span>
+                      <span className="evento-agregar">+</span>
+                    </button>
+                  ))}
+              </div>
             </div>
 
             <div className="form-group">
@@ -466,7 +560,7 @@ function MiInformacion() {
                 onChange={handleChange}
               />
               {errores.nueva_contrasena && (
-                <span className="error-message"> {errores.nueva_contrasena}</span>
+                <span className="error-message">⚠️ {errores.nueva_contrasena}</span>
               )}
               <small className="field-hint">
                 Mínimo 8 caracteres, debe incluir mayúsculas, minúsculas y números
@@ -480,7 +574,7 @@ function MiInformacion() {
             )}
 
             <button type="submit" className="btn-guardar" disabled={loading}>
-              {loading ? "Guardando..." : " Guardar cambios"}
+              {loading ? "Guardando..." : "✓ Guardar cambios"}
             </button>
           </form>
         </div>

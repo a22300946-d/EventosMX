@@ -1487,3 +1487,111 @@ html, body {
     flex-direction: column;
   }
 }
+
+
+/* ========== SECCIÓN DE TIPOS DE EVENTOS ========== */
+
+.eventos-seccion {
+  background: linear-gradient(135deg, #f8fbfc 0%, #e8f4f8 100%);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-top: 2rem;
+  border: 1px solid #d4ebf2;
+  box-shadow: 0 2px 8px rgba(26, 77, 92, 0.06);
+}
+
+.eventos-seccion h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a4d5c;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.eventos-seccion h2::before {
+  content: "🎯";
+  font-size: 1.4rem;
+}
+
+.eventos-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.evento-tag-perfil {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.1rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9fb 100%);
+  border: 2px solid #b8dae5;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a4d5c;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(26, 77, 92, 0.1);
+  cursor: default;
+}
+
+.evento-tag-perfil:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(26, 77, 92, 0.18);
+  background: linear-gradient(135deg, #e8f4f8 0%, #d4ebf2 100%);
+  border-color: #1a4d5c;
+}
+
+.evento-icono-perfil {
+  font-size: 1.25rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.evento-nombre-perfil {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .eventos-seccion {
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .eventos-seccion h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .eventos-tags-container {
+    gap: 0.65rem;
+  }
+
+  .evento-tag-perfil {
+    font-size: 0.85rem;
+    padding: 0.55rem 0.9rem;
+  }
+
+  .evento-icono-perfil {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .eventos-seccion {
+    padding: 1.25rem;
+  }
+
+  .eventos-seccion h2 {
+    font-size: 1.1rem;
+  }
+
+  .evento-tag-perfil {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.8rem;
+  }
+}

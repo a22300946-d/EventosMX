@@ -214,3 +214,140 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ========== SECCIÓN DE TIPOS DE EVENTOS ========== */
+
+.eventos-label {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a4d5c;
+  margin-bottom: 0.5rem;
+}
+
+.eventos-hint {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #6c757d;
+  margin-top: 0.25rem;
+}
+
+.eventos-seleccionados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #fff8e1;
+  border-radius: 12px;
+  border: 2px dashed #ffd54f;
+}
+
+.eventos-disponibles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.evento-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.evento-icono {
+  font-size: 1.2rem;
+}
+
+.evento-nombre {
+  font-weight: 500;
+}
+
+/* Evento agregado (dorado) */
+.evento-agregado {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #7c5d00;
+  border-color: #ffed4e;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.evento-agregado:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ffed4e 0%, #ffd700 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+}
+
+.evento-agregado:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.evento-eliminar {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #7c5d00;
+  margin-left: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.evento-agregado:hover .evento-eliminar {
+  color: #d32f2f;
+  transform: scale(1.2);
+}
+
+/* Evento disponible (gris claro) */
+.evento-disponible {
+  background: white;
+  color: #495057;
+  border-color: #dee2e6;
+}
+
+.evento-disponible:hover:not(:disabled) {
+  background: #e8f4f8;
+  border-color: #1a4d5c;
+  color: #1a4d5c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.2);
+}
+
+.evento-disponible:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.evento-agregar {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #28a745;
+  margin-left: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.evento-disponible:hover .evento-agregar {
+  transform: scale(1.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .evento-tag {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.8rem;
+  }
+
+  .evento-icono {
+    font-size: 1rem;
+  }
+}
