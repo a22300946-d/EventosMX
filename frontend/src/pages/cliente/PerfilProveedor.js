@@ -89,7 +89,9 @@ function PerfilProveedor() {
 
       // Cargar tipos de eventos del proveedor
       try {
-        const responseEventos = await api.get(`/proveedor-eventos/proveedor/${id}/eventos`);
+        const responseEventos = await api.get(
+          `/proveedor-eventos/proveedor/${id}/eventos`,
+        );
         setEventosProveedor(responseEventos.data.data || []);
       } catch (error) {
         console.error("Error al cargar eventos:", error);
@@ -110,6 +112,7 @@ function PerfilProveedor() {
         );
         setServicios(serviciosFiltrados);
       } catch (error) {
+        console.error("Error al cargar servicios:", error);
         setServicios([]);
       }
 
@@ -118,6 +121,7 @@ function PerfilProveedor() {
         const responseGaleria = await api.get(`/galeria/proveedor/${id}`);
         setGaleria(responseGaleria.data.data || []);
       } catch (error) {
+        console.error("Error al cargar galería:", error);
         setGaleria([]);
       }
 
@@ -128,6 +132,7 @@ function PerfilProveedor() {
         );
         setPromociones(responsePromociones.data.data || []);
       } catch (error) {
+        console.error("Error al cargar promociones:", error);
         setPromociones([]);
       }
 
@@ -136,10 +141,11 @@ function PerfilProveedor() {
         const responseResenas = await api.get(`/resenas/proveedor/${id}`);
         setResenas(responseResenas.data.data || []);
       } catch (error) {
+        console.error("Error al cargar reseñas:", error);
         setResenas([]);
       }
     } catch (error) {
-      console.error("Error al cargar datos:", error);
+      console.error("Error al cargar datos del proveedor:", error);
     } finally {
       setLoading(false);
     }
@@ -178,6 +184,7 @@ function PerfilProveedor() {
 
       setFechasBloqueadas(bloqueadas);
     } catch (error) {
+      console.error("Error al cargar fechas bloqueadas:", error);
       setFechasBloqueadas([]);
     }
   };
@@ -255,7 +262,7 @@ function PerfilProveedor() {
 
       await clienteService.agregarProveedorALista(
         parseInt(listaSeleccionada),
-        parseInt(proveedor.id_proveedor)
+        parseInt(proveedor.id_proveedor),
       );
 
       alert("✅ Proveedor agregado a la lista");
@@ -270,7 +277,7 @@ function PerfilProveedor() {
         alert("⚠️ Debes iniciar sesión para agregar a listas");
         navigate("/login");
       } else if (error.response?.status === 400) {
-        alert(`⚠️ ${error.response.data.message || 'Datos inválidos'}`);
+        alert(`⚠️ ${error.response.data.message || "Datos inválidos"}`);
       } else {
         alert("❌ Error al agregar a la lista");
       }
@@ -410,6 +417,7 @@ function PerfilProveedor() {
     }));
   };
 
+  // ✅ ACTUALIZADO: Redirigir al chat después de enviar solicitud
   const handleEnviarSolicitud = async () => {
     if (!formularioSolicitud.fecha_evento || !formularioSolicitud.tipo_evento) {
       alert(
@@ -457,12 +465,21 @@ function PerfilProveedor() {
         servicios_solicitados: serviciosSeleccionados,
       };
 
-      await api.post("/solicitudes", datos);
+      // ✅ Capturar respuesta para obtener id_solicitud
+      const response = await api.post("/solicitudes", datos);
+      const nuevaSolicitud = response.data.data;
+      const id_solicitud = nuevaSolicitud.id_solicitud;
 
-      alert(
-        "✅ ¡Solicitud enviada exitosamente! El proveedor te responderá pronto.",
-      );
+      // Cerrar modal
       handleCerrarModalCotizacion();
+
+      // Mostrar mensaje de éxito
+      alert(
+        "✅ ¡Solicitud enviada exitosamente! Ahora puedes chatear con el proveedor.",
+      );
+
+      // ✅ Redirigir al chat
+      navigate(`/chat/${id_solicitud}`);
     } catch (error) {
       console.error("Error al enviar solicitud:", error);
 
@@ -648,7 +665,7 @@ function PerfilProveedor() {
           </div>
         )}
 
-        {/* SECCIÓN DE TIPOS DE EVENTOS - MOVIDA AQUÍ */}
+        {/* SECCIÓN DE TIPOS DE EVENTOS */}
         {eventosProveedor.length > 0 && (
           <div className="perfil-seccion eventos-seccion">
             <h2>Tipos de eventos que atendemos</h2>
@@ -656,7 +673,9 @@ function PerfilProveedor() {
               {eventosProveedor.map((evento) => (
                 <span key={evento.id_tipo_evento} className="evento-tag-perfil">
                   <span className="evento-icono-perfil">{evento.icono}</span>
-                  <span className="evento-nombre-perfil">{evento.nombre_evento}</span>
+                  <span className="evento-nombre-perfil">
+                    {evento.nombre_evento}
+                  </span>
                 </span>
               ))}
             </div>
@@ -874,7 +893,7 @@ function PerfilProveedor() {
         </div>
       </div>
 
-      {/* Modales (sin cambios) */}
+      {/* Modal de imagen */}
       {imagenModalAbierta && (
         <div className="modal-overlay" onClick={handleCerrarImagen}>
           <div className="modal-imagen-container">
@@ -886,24 +905,375 @@ function PerfilProveedor() {
         </div>
       )}
 
+      {/* ✅ MODAL DE SOLICITAR COTIZACIÓN - COMPLETO */}
       {modalCotizacionAbierto && (
         <div className="modal-overlay" onClick={handleCerrarModalCotizacion}>
           <div
             className="modal-cotizacion"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* ... resto del modal de cotización (sin cambios) ... */}
+            <div className="modal-header">
+              <h2>📋 Solicitar Cotización</h2>
+              <button
+                className="btn-cerrar-modal"
+                onClick={handleCerrarModalCotizacion}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p className="modal-descripcion">
+                Completa los detalles de tu evento y {proveedor?.nombre_negocio}{" "}
+                te enviará una cotización personalizada.
+              </p>
+
+              {/* Campo de Fecha con Calendario */}
+              <div className="form-group">
+                <label htmlFor="fecha_evento">
+                  Fecha del Evento <span className="campo-obligatorio">*</span>
+                </label>
+
+                <div className="fecha-input-container">
+                  <input
+                    type="text"
+                    id="fecha_evento"
+                    name="fecha_evento"
+                    value={
+                      formularioSolicitud.fecha_evento
+                        ? new Date(
+                            formularioSolicitud.fecha_evento + "T00:00:00",
+                          ).toLocaleDateString("es-MX", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })
+                        : ""
+                    }
+                    readOnly
+                    placeholder="Selecciona una fecha del calendario"
+                    className="form-control fecha-readonly"
+                    onClick={() => setMostrarCalendario(!mostrarCalendario)}
+                  />
+                  <button
+                    type="button"
+                    className="btn-calendario-toggle"
+                    onClick={() => setMostrarCalendario(!mostrarCalendario)}
+                  >
+                    📅
+                  </button>
+                </div>
+
+                {mostrarCalendario && (
+                  <div className="calendario-modal-container">
+                    <div className="calendario-card-modal">
+                      <div className="calendario-header-modal">
+                        <button
+                          type="button"
+                          onClick={() => cambiarMesCalendario(-1)}
+                          className="btn-mes-modal"
+                        >
+                          &lt;
+                        </button>
+                        <h3>
+                          {meses[mesCalendario.getMonth()]}{" "}
+                          {mesCalendario.getFullYear()}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => cambiarMesCalendario(1)}
+                          className="btn-mes-modal"
+                        >
+                          &gt;
+                        </button>
+                      </div>
+
+                      <div className="calendario-semana-modal">
+                        {diasSemana.map((dia) => (
+                          <div
+                            key={dia}
+                            className="calendario-dia-semana-modal"
+                          >
+                            {dia}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="calendario-grid-modal">
+                        {renderCalendario()}
+                      </div>
+
+                      <div className="calendario-leyenda">
+                        <div className="leyenda-item">
+                          <div className="leyenda-color disponible"></div>
+                          <span>Disponible</span>
+                        </div>
+                        <div className="leyenda-item">
+                          <div className="leyenda-color bloqueado"></div>
+                          <span>No disponible</span>
+                        </div>
+                        <div className="leyenda-item">
+                          <div className="leyenda-color seleccionado"></div>
+                          <span>Seleccionado</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tipo de Evento */}
+              <div className="form-group">
+                <label htmlFor="tipo_evento">
+                  Tipo de Evento <span className="campo-obligatorio">*</span>
+                </label>
+                <select
+                  id="tipo_evento"
+                  name="tipo_evento"
+                  value={formularioSolicitud.tipo_evento}
+                  onChange={handleCambioFormulario}
+                  className="form-control"
+                  required
+                >
+                  <option value="">Selecciona un tipo</option>
+                  <option value="Boda">Boda</option>
+                  <option value="Cumpleaños">Cumpleaños</option>
+                  <option value="Graduación">Graduación</option>
+                  <option value="Conferencia">Conferencia</option>
+                  <option value="Reunión Empresarial">
+                    Reunión Empresarial
+                  </option>
+                  <option value="Aniversario">Aniversario</option>
+                  <option value="Fiesta Infantil">Fiesta Infantil</option>
+                  <option value="XV Años">XV Años</option>
+                  <option value="Baby Shower">Baby Shower</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+
+              {/* Checklist de Servicios */}
+              <div className="form-group">
+                <label>
+                  Servicios que Necesitas{" "}
+                  <span className="campo-obligatorio">*</span>
+                </label>
+                <div className="servicios-checklist">
+                  {servicios.length === 0 ? (
+                    <p className="no-servicios">
+                      Este proveedor aún no tiene servicios registrados.
+                    </p>
+                  ) : (
+                    servicios.map((servicio) => (
+                      <label
+                        key={servicio.id_servicio}
+                        className="servicio-item"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={serviciosSeleccionados.includes(
+                            servicio.id_servicio,
+                          )}
+                          onChange={() =>
+                            handleToggleServicio(servicio.id_servicio)
+                          }
+                        />
+                        <div className="servicio-info">
+                          <span className="servicio-nombre">
+                            {servicio.nombre_servicio}
+                          </span>
+                          <span className="servicio-precio">
+                            $
+                            {parseFloat(servicio.precio || 0).toLocaleString(
+                              "es-MX",
+                            )}
+                            {servicio.tipo_precio &&
+                              ` / ${servicio.tipo_precio}`}
+                          </span>
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {serviciosSeleccionados.length > 0 && (
+                  <p className="servicios-seleccionados-count">
+                    {serviciosSeleccionados.length} servicio
+                    {serviciosSeleccionados.length !== 1 ? "s" : ""}{" "}
+                    seleccionado
+                    {serviciosSeleccionados.length !== 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+
+              {/* Número de Invitados y Presupuesto */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="numero_invitados">Número de Invitados</label>
+                  <input
+                    type="number"
+                    id="numero_invitados"
+                    name="numero_invitados"
+                    value={formularioSolicitud.numero_invitados}
+                    onChange={handleCambioFormulario}
+                    min="1"
+                    placeholder="Ej: 100"
+                    className="form-control"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="presupuesto_estimado">
+                    Presupuesto Estimado
+                  </label>
+                  <input
+                    type="number"
+                    id="presupuesto_estimado"
+                    name="presupuesto_estimado"
+                    value={formularioSolicitud.presupuesto_estimado}
+                    onChange={handleCambioFormulario}
+                    min="0"
+                    max="99999999.99"
+                    step="0.01"
+                    placeholder="Ej: 50000"
+                    className="form-control"
+                  />
+                </div>
+              </div>
+
+              {/* Descripción */}
+              <div className="form-group">
+                <label htmlFor="descripcion_solicitud">
+                  Descripción del Evento
+                </label>
+                <textarea
+                  id="descripcion_solicitud"
+                  id="descripcion_solicitud"
+                  name="descripcion_solicitud"
+                  value={formularioSolicitud.descripcion_solicitud}
+                  onChange={handleCambioFormulario}
+                  rows="4"
+                  placeholder="Cuéntanos más sobre tu evento, preferencias especiales, horarios, etc."
+                  className="form-control"
+                ></textarea>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn-cancelar"
+                onClick={handleCerrarModalCotizacion}
+                disabled={enviandoSolicitud}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn-enviar-solicitud"
+                onClick={handleEnviarSolicitud}
+                disabled={enviandoSolicitud}
+              >
+                {enviandoSolicitud ? "Enviando..." : "Enviar Solicitud"}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* ✅ MODAL DE AGREGAR A LISTA - COMPLETO */}
       {mostrarModalListas && (
         <div
           className="modal-overlay"
           onClick={() => setMostrarModalListas(false)}
         >
           <div className="modal-listas" onClick={(e) => e.stopPropagation()}>
-            {/* ... resto del modal de listas (sin cambios) ... */}
+            <div className="modal-header">
+              <h2>📋 Agregar a Lista</h2>
+              <button
+                className="btn-cerrar-modal"
+                onClick={() => setMostrarModalListas(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p className="modal-descripcion">
+                Selecciona la lista donde deseas agregar a{" "}
+                {proveedor?.nombre_negocio}
+              </p>
+
+              {listasDisponibles.length === 0 ? (
+                <div className="sin-listas">
+                  <p>
+                    📝 Aún no tienes listas creadas. Ve a "Mis Eventos" para
+                    crear una nueva lista.
+                  </p>
+                  <button
+                    className="btn-ir-listas"
+                    onClick={() => navigate("/mis-eventos")}
+                  >
+                    Ir a Mis Eventos
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="listas-container">
+                    {listasDisponibles.map((lista) => (
+                      <label
+                        key={lista.id_lista}
+                        className={`lista-option ${listaSeleccionada === lista.id_lista.toString() ? "seleccionada" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="lista"
+                          value={lista.id_lista}
+                          checked={
+                            listaSeleccionada === lista.id_lista.toString()
+                          }
+                          onChange={(e) => setListaSeleccionada(e.target.value)}
+                        />
+                        <div className="lista-info">
+                          <span className="lista-nombre">
+                            {lista.nombre_lista}
+                          </span>
+                          {lista.descripcion && (
+                            <span className="lista-descripcion">
+                              {lista.descripcion}
+                            </span>
+                          )}
+                          <span className="lista-contador">
+                            {lista.cantidad_proveedores || 0} proveedor
+                            {lista.cantidad_proveedores !== 1 ? "es" : ""}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn-cancelar"
+                      onClick={() => {
+                        setMostrarModalListas(false);
+                        setListaSeleccionada("");
+                      }}
+                      disabled={agregandoALista}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-agregar-lista-confirm"
+                      onClick={agregarALista}
+                      disabled={agregandoALista || !listaSeleccionada}
+                    >
+                      {agregandoALista ? "Agregando..." : "Agregar a Lista"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

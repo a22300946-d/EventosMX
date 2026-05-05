@@ -33,6 +33,9 @@ import CalendarioDisponibilidad from "./pages/proveedor/CalendarioDisponibilidad
 import SolicitudesRecibidas from "./pages/proveedor/SolicitudesRecibidas";
 import ResenasCalificaciones from "./pages/proveedor/ResenasCalificaciones";
 
+// Página de chat
+import Chat from './pages/chat/Chat';
+
 function App() {
   return (
     <AuthProvider>
@@ -206,10 +209,12 @@ function App() {
           />
 
           {/* Verificación de correo */}
-          <Route 
-            path="/verificar-correo" 
-            element={<VerificarCorreo />} 
-          />
+          <Route path="/verificar-correo" element={<VerificarCorreo />} />
+
+    
+           {/*Rutas de chat - SOLO para CLIENTES y PROVEEDORES autenticados*/} 
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/chat/:id_solicitud" element={<Chat />} />
 
           {/* Ruta 404 */}
           <Route path="*" element={<Navigate to="/" />} />

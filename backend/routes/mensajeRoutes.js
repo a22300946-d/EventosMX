@@ -2,27 +2,29 @@ const express = require('express');
 const router = express.Router();
 const { autenticar } = require('../middleware/auth');
 const {
-  enviarMensaje,
   obtenerMensajes,
+  enviarMensaje,
+  marcarComoLeidos,
   obtenerConversaciones,
-  marcarComoLeido,
-  contarNoLeidos,
-  eliminarMensaje
+  contarNoLeidos
 } = require('../controllers/mensajeController');
 
 // Todas las rutas requieren autenticación
 router.use(autenticar);
 
-// Rutas de conversaciones
+// Obtener conversaciones activas del usuario
 router.get('/conversaciones', obtenerConversaciones);
 
-// Rutas de mensajes por solicitud
-router.post('/solicitud/:id_solicitud', enviarMensaje);
-router.get('/solicitud/:id_solicitud', obtenerMensajes);
-router.put('/solicitud/:id_solicitud/leer', marcarComoLeido);
-router.get('/solicitud/:id_solicitud/no-leidos', contarNoLeidos);
+// Contar mensajes no leídos
+router.get('/no-leidos', contarNoLeidos);
 
-// Eliminar mensaje
-router.delete('/:id_mensaje', eliminarMensaje);
+// Obtener mensajes de una solicitud específica
+router.get('/solicitud/:id_solicitud', obtenerMensajes);
+
+// Enviar un nuevo mensaje
+router.post('/solicitud/:id_solicitud', enviarMensaje);
+
+// Marcar mensajes como leídos
+router.put('/solicitud/:id_solicitud/leidos', marcarComoLeidos);
 
 module.exports = router;

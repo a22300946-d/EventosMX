@@ -59,8 +59,9 @@ function Layout({ children, showNav = true }) {
                 {/* Mostrar enlaces solo en desktop */}
                 {!isMobile && (
                   <>
+                    <Link to="/chat">Chat</Link>
                     <Link to="/">Explorar Servicios</Link>
-                    <Link to="/cliente/eventos">Mis eventos</Link>
+                    <Link to="/cliente/listas">Mis eventos</Link>
                   </>
                 )}
                 
@@ -78,6 +79,13 @@ function Layout({ children, showNav = true }) {
                       {isMobile && (
                         <>
                           <Link 
+                            to="/chat" 
+                            className="dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            Chat
+                          </Link>
+                          <Link 
                             to="/" 
                             className="dropdown-item"
                             onClick={() => setShowDropdown(false)}
@@ -85,7 +93,7 @@ function Layout({ children, showNav = true }) {
                             Explorar Servicios
                           </Link>
                           <Link 
-                            to="/cliente/eventos" 
+                            to="/cliente/listas" 
                             className="dropdown-item"
                             onClick={() => setShowDropdown(false)}
                           >
@@ -119,7 +127,7 @@ function Layout({ children, showNav = true }) {
                 {/* Mostrar Chat y Solicitudes solo en desktop */}
                 {!isMobile && (
                   <>
-                    <Link to="/proveedor/chat">Chat</Link>
+                    <Link to="/chat">Chat</Link>
                     <Link to="/proveedor/cuenta/solicitudes">Solicitudes</Link>
                   </>
                 )}
@@ -138,7 +146,7 @@ function Layout({ children, showNav = true }) {
                       {isMobile && (
                         <>
                           <Link 
-                            to="/proveedor/chat" 
+                            to="/chat" 
                             className="dropdown-item"
                             onClick={() => setShowDropdown(false)}
                           >

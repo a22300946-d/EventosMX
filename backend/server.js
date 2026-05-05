@@ -1,17 +1,25 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const server = http.createServer(app);
+
+// Inicializar Socket.IO
+const { initializeSocket } = require('./config/socket');
+initializeSocket(server);
 
 // Importar configuración de base de datos
 const pool = require('./config/database');
 
+
+const PORT = process.env.PORT || 5000;
+
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json());
@@ -51,7 +59,6 @@ const proveedorRoutes = require('./routes/proveedorRoutes');
 const categoriaRoutes = require('./routes/categoriaRoutes');
 const servicioRoutes = require('./routes/servicioRoutes');
 const solicitudRoutes = require('./routes/solicitudRoutes');
-const mensajeRoutes = require('./routes/mensajeRoutes');
 const galeriaRoutes = require('./routes/galeriaRoutes');
 const promocionRoutes = require('./routes/promocionRoutes');
 const resenaRoutes = require('./routes/resenaRoutes');
@@ -59,7 +66,7 @@ const calendarioRoutes = require('./routes/calendarioRoutes');
 const listaRoutes = require('./routes/listaRoutes');
 const lugarRoutes = require('./routes/lugarRoutes');
 const proveedorEventoRoutes = require('./routes/proveedorEventoRoutes');
-
+const mensajeRoutes = require('./routes/mensajeRoutes');
 
 // Usar las rutas
 app.use('/api/clientes', clienteRoutes);
@@ -75,7 +82,6 @@ app.use('/api/calendario', calendarioRoutes);
 app.use('/api/listas', listaRoutes);
 app.use('/api/lugar', lugarRoutes);
 app.use('/api/proveedor-eventos', proveedorEventoRoutes);
-
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {
@@ -96,13 +102,14 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:5000`);
-  console.log(`📝 Ambiente: ${process.env.NODE_ENV}`);
-  console.log('📍 Rutas disponibles:');
-  console.log('   - POST /api/clientes/registro');
-  console.log('   - POST /api/clientes/login');
-  console.log('   - POST /api/proveedores/registro');
-  console.log('   - POST /api/proveedores/login');
+// Iniciar servidor (usar 'server' en lugar de 'app')
+server.listen(PORT, () => {
+  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`🔌 WebSocket inicializado correctamente`);
+  console.log(`📝 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+
+
 });
+
+// Exportar io para uso en otras partes de la aplicación si es necesario
+module.exports = { app, server };

@@ -1,4 +1,15 @@
 const Solicitud = require('../models/Solicitud');
+const Mensaje = require('../models/Mensaje');
+
+// Importar socket de forma segura
+let emitNotification;
+try {
+  const socketConfig = require('../config/socket');
+  emitNotification = socketConfig.emitNotification;
+} catch (error) {
+  console.warn('⚠️ Socket.IO no disponible, notificaciones deshabilitadas');
+  emitNotification = () => {}; // Función vacía como fallback
+}
 
 // Crear nueva solicitud (cliente)
 const crearSolicitud = async (req, res) => {
@@ -34,6 +45,40 @@ const crearSolicitud = async (req, res) => {
       });
     }
 
+    // ✅ NUEVO: Validar presupuesto máximo
+    if (presupuesto_estimado) {
+      const presupuesto = parseFloat(presupuesto_estimado);
+      if (presupuesto > 99999999.99) {
+        return res.status(400).json({
+          success: false,
+          message: 'El presupuesto máximo permitido es $99,999,999.99'
+        });
+      }
+      if (presupuesto < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'El presupuesto no puede ser negativo'
+        });
+      }
+    }
+
+    // ✅ NUEVO: Validar número de invitados
+    if (numero_invitados) {
+      const invitados = parseInt(numero_invitados);
+      if (invitados < 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'El número de invitados debe ser al menos 1'
+        });
+      }
+      if (invitados > 999999) {
+        return res.status(400).json({
+          success: false,
+          message: 'El número de invitados es demasiado grande'
+        });
+      }
+    }
+
     // Validar servicios si se proporcionan
     if (servicios_solicitados && !Array.isArray(servicios_solicitados)) {
       return res.status(400).json({
@@ -42,6 +87,7 @@ const crearSolicitud = async (req, res) => {
       });
     }
 
+    // Crear la solicitud
     const nuevaSolicitud = await Solicitud.crear({
       id_cliente,
       id_proveedor,
@@ -53,17 +99,63 @@ const crearSolicitud = async (req, res) => {
       servicios_solicitados 
     });
 
+    // ✅ CREAR MENSAJE AUTOMÁTICO CON INFORMACIÓN DE LA SOLICITUD
+    try {
+      const mensajeInicial = `📋 Nueva solicitud de cotización
+
+🎉 Tipo de evento: ${tipo_evento}
+📅 Fecha: ${new Date(fecha_evento).toLocaleDateString('es-MX', { 
+  weekday: 'long', 
+  year: 'numeric', 
+  month: 'long', 
+  day: 'numeric' 
+})}
+${numero_invitados ? `👥 Número de invitados: ${numero_invitados}` : ''}
+${presupuesto_estimado ? `💰 Presupuesto estimado: $${parseFloat(presupuesto_estimado).toLocaleString('es-MX')}` : ''}
+${descripcion_solicitud ? `\n📝 Detalles adicionales:\n${descripcion_solicitud}` : ''}
+
+¡Hola! Estoy interesado en tus servicios para mi evento. ¿Podrías enviarme una cotización?`;
+
+      console.log('📝 Intentando crear mensaje inicial para solicitud:', nuevaSolicitud.id_solicitud);
+      
+      await Mensaje.crear({
+        id_solicitud: nuevaSolicitud.id_solicitud,
+        id_remitente: id_cliente,
+        tipo_remitente: 'cliente',
+        contenido: mensajeInicial
+      });
+
+      console.log('✅ Mensaje inicial creado exitosamente');
+    } catch (errorMensaje) {
+      console.error('❌ Error al crear mensaje inicial:', errorMensaje);
+      console.error('Stack:', errorMensaje.stack);
+      // No fallar la solicitud si el mensaje falla
+    }
+
+    // Emitir notificación por Socket.IO al proveedor
+    try {
+      emitNotification(id_proveedor, 'proveedor', 'nueva_solicitud', {
+        id_solicitud: nuevaSolicitud.id_solicitud,
+        mensaje: 'Nueva solicitud de cotización recibida',
+        tipo_evento,
+        fecha_evento
+      });
+    } catch (errorSocket) {
+      console.error('❌ Error al emitir notificación Socket.IO:', errorSocket);
+      // No fallar la solicitud si la notificación falla
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Solicitud enviada exitosamente',
+      message: 'Solicitud creada exitosamente',
       data: nuevaSolicitud
     });
 
   } catch (error) {
-    console.error('Error en crearSolicitud:', error);
+    console.error('Error al crear solicitud:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al crear solicitud',
+      message: 'Error al crear la solicitud',
       error: error.message
     });
   }
@@ -140,8 +232,8 @@ const obtenerSolicitudPorId = async (req, res) => {
 
     // Verificar que el usuario tenga permiso para ver esta solicitud
     const tienePermiso = 
-      (usuario.rol === 'cliente' && solicitud.id_cliente === usuario.id) ||
-      (usuario.rol === 'proveedor' && solicitud.id_proveedor === usuario.id);
+      (usuario.tipo === 'cliente' && solicitud.id_cliente === usuario.id) ||
+      (usuario.tipo === 'proveedor' && solicitud.id_proveedor === usuario.id);
 
     if (!tienePermiso) {
       return res.status(403).json({
@@ -164,7 +256,6 @@ const obtenerSolicitudPorId = async (req, res) => {
     });
   }
 };
-
 
 // Responder solicitud con propuesta (proveedor)
 const responderSolicitud = async (req, res) => {
@@ -237,7 +328,6 @@ const responderSolicitud = async (req, res) => {
   }
 };
 
-
 // Aceptar propuesta del proveedor (cliente)
 const aceptarSolicitud = async (req, res) => {
   try {
@@ -301,7 +391,7 @@ const rechazarSolicitud = async (req, res) => {
       id, 
       'Rechazada', 
       usuario.id, 
-      usuario.rol
+      usuario.tipo
     );
 
     if (!solicitudActualizada) {
@@ -364,7 +454,7 @@ const obtenerEstadisticas = async (req, res) => {
     
     let estadisticas;
 
-    if (usuario.rol === 'cliente') {
+    if (usuario.tipo === 'cliente') {
       const todasSolicitudes = await Solicitud.obtenerPorCliente(usuario.id);
       
       estadisticas = {
@@ -374,7 +464,7 @@ const obtenerEstadisticas = async (req, res) => {
         aceptadas: todasSolicitudes.filter(s => s.estado === 'Aceptada').length,
         rechazadas: todasSolicitudes.filter(s => s.estado === 'Rechazada').length
       };
-    } else if (usuario.rol === 'proveedor') {
+    } else if (usuario.tipo === 'proveedor') {
       const todasSolicitudes = await Solicitud.obtenerPorProveedor(usuario.id);
       
       estadisticas = {
