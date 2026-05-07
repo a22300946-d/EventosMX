@@ -39,14 +39,15 @@ const ModalSolicitud = ({
     try {
       const precioMatch = contenido.match(/\*\*Precio Total:\*\*\s*\$?([\d,]+)/);
       const descripcionMatch = contenido.match(/\*\*Descripción:\*\*\s*\n([\s\S]*?)(?=\n\n|\*\*|$)/);
-      const fechaMatch = contenido.match(/\*\*Fecha:\*\*\s*([\d\/]+)/);
+      // ✅ Actualizado para capturar formato largo: "lunes, 18 de mayo de 2026"
+      const fechaMatch = contenido.match(/\*\*Fecha:\*\*\s*([^\n]+)/);
       const horaMatch = contenido.match(/\*\*Hora:\*\*\s*([\d:]+)/);
       const notasMatch = contenido.match(/\*\*Notas:\*\*\s*\n([\s\S]*?)(?=¿Te parece|$)/);
 
       return {
         precio: precioMatch ? precioMatch[1].replace(/,/g, '') : null,
         descripcion: descripcionMatch ? descripcionMatch[1].trim() : null,
-        fecha_servicio: fechaMatch ? fechaMatch[1] : null,
+        fecha_servicio: fechaMatch ? fechaMatch[1].trim() : null,
         hora_servicio: horaMatch ? horaMatch[1] : null,
         notas_adicionales: notasMatch ? notasMatch[1].trim() : null,
         mensaje_id: mensajeConPropuesta.id_mensaje,
@@ -60,12 +61,15 @@ const ModalSolicitud = ({
 
   useEffect(() => {
     if (isOpen && solicitud) {
-      // Pre-llenar fecha si existe
+      console.log('📋 Modal actualizado - Estado actual:', solicitud.estado);
+      
+      // Pre-llenar fecha si existe (arreglar desfase de zona horaria)
       if (solicitud.fecha_evento) {
-        const fecha = new Date(solicitud.fecha_evento);
+        // ✅ Usar la fecha SIN conversión de zona horaria
+        const fechaString = solicitud.fecha_evento.split('T')[0];
         setPropuesta(prev => ({
           ...prev,
-          fecha_servicio: fecha.toISOString().split('T')[0]
+          fecha_servicio: fechaString
         }));
       }
 
@@ -76,7 +80,7 @@ const ModalSolicitud = ({
         console.log('🔍 Propuesta detectada:', propuestaDetectada);
       }
     }
-  }, [isOpen, solicitud, mensajes, usuarioTipo]);
+  }, [isOpen, solicitud, solicitud?.estado, mensajes, usuarioTipo]);
 
   if (!isOpen || !solicitud) return null;
 
@@ -136,7 +140,15 @@ const ModalSolicitud = ({
 
   const formatearFecha = (fecha) => {
     if (!fecha) return 'No especificada';
-    return new Date(fecha).toLocaleDateString('es-MX', {
+    
+    // ✅ Extraer la fecha sin conversión de zona horaria
+    const fechaString = fecha.split('T')[0]; // "2026-05-13"
+    const [year, month, day] = fechaString.split('-').map(Number);
+    
+    // Crear fecha en hora local (sin UTC)
+    const fechaLocal = new Date(year, month - 1, day);
+    
+    return fechaLocal.toLocaleDateString('es-MX', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -288,8 +300,22 @@ const ModalSolicitud = ({
 
           {/* VISTA PARA PROVEEDOR - ENVIAR PROPUESTA */}
           {usuarioTipo === 'proveedor' && (
-            <form className="propuesta-form" onSubmit={handleEnviarPropuesta}>
-              <h3>Tu Propuesta</h3>
+            <>
+              {solicitud.estado === 'Rechazada' && (
+                <div className="alert alert-info" style={{marginBottom: '20px'}}>
+                  ℹ️ Esta solicitud fue rechazada. Puedes enviar una nueva propuesta con mejores condiciones.
+                </div>
+              )}
+              
+              {solicitud.estado === 'Aceptada' && (
+                <div className="alert alert-success" style={{marginBottom: '20px'}}>
+                  ✅ Esta solicitud ya fue aceptada por el cliente.
+                </div>
+              )}
+
+              {(solicitud.estado !== 'Aceptada') && (
+                <form className="propuesta-form" onSubmit={handleEnviarPropuesta}>
+                  <h3>{solicitud.estado === 'Rechazada' ? 'Nueva Propuesta' : 'Tu Propuesta'}</h3>
 
               <div className="form-group">
                 <label>💵 Precio Total *</label>
@@ -350,9 +376,11 @@ const ModalSolicitud = ({
                 className="btn-enviar-propuesta"
                 disabled={loading}
               >
-                {loading ? 'Enviando...' : '📤 Enviar Propuesta al Cliente'}
+                {loading ? 'Enviando...' : solicitud.estado === 'Rechazada' ? '📤 Enviar Nueva Propuesta' : '📤 Enviar Propuesta al Cliente'}
               </button>
             </form>
+              )}
+            </>
           )}
         </div>
       </div>

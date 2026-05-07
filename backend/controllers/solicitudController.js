@@ -1,5 +1,6 @@
 const Solicitud = require('../models/Solicitud');
 const Mensaje = require('../models/Mensaje');
+const Calendario = require('../models/Calendario');
 
 // Importar socket de forma segura
 let emitNotification;
@@ -10,6 +11,27 @@ try {
   console.warn('⚠️ Socket.IO no disponible, notificaciones deshabilitadas');
   emitNotification = () => {}; // Función vacía como fallback
 }
+
+// ✅ Función helper para formatear fechas sin desfase de zona horaria
+const formatearFechaSinDesfase = (fechaString) => {
+  if (!fechaString) return 'Fecha no especificada';
+  
+  // Extraer componentes de la fecha
+  const fecha = new Date(fechaString);
+  const year = fecha.getUTCFullYear();
+  const month = fecha.getUTCMonth();
+  const day = fecha.getUTCDate();
+  
+  // Crear fecha en hora local
+  const fechaLocal = new Date(year, month, day);
+  
+  return fechaLocal.toLocaleDateString('es-MX', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
 
 // Crear nueva solicitud (cliente)
 const crearSolicitud = async (req, res) => {
@@ -104,12 +126,7 @@ const crearSolicitud = async (req, res) => {
       const mensajeInicial = `📋 Nueva solicitud de cotización
 
 🎉 Tipo de evento: ${tipo_evento}
-📅 Fecha: ${new Date(fecha_evento).toLocaleDateString('es-MX', { 
-  weekday: 'long', 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-})}
+📅 Fecha: ${formatearFechaSinDesfase(fecha_evento)}
 ${numero_invitados ? `👥 Número de invitados: ${numero_invitados}` : ''}
 ${presupuesto_estimado ? `💰 Presupuesto estimado: $${parseFloat(presupuesto_estimado).toLocaleString('es-MX')}` : ''}
 ${descripcion_solicitud ? `\n📝 Detalles adicionales:\n${descripcion_solicitud}` : ''}
@@ -269,8 +286,15 @@ const responderSolicitud = async (req, res) => {
       fecha_disponible 
     } = req.body;
 
+    console.log('📋 responderSolicitud - Datos recibidos:', {
+      id_solicitud: id,
+      id_proveedor,
+      body: req.body
+    });
+
     // Validar campos requeridos
     if (!mensaje_respuesta || !precio_propuesto) {
+      console.log('❌ Validación falló - Campos faltantes');
       return res.status(400).json({
         success: false,
         message: 'Mensaje de respuesta y precio propuesto son obligatorios'
@@ -279,6 +303,13 @@ const responderSolicitud = async (req, res) => {
 
     // Primero verificar que la solicitud existe y pertenece a este proveedor
     const solicitudExistente = await Solicitud.obtenerPorId(id);
+    
+    console.log('📋 Solicitud existente:', {
+      encontrada: !!solicitudExistente,
+      estado: solicitudExistente?.estado,
+      id_proveedor: solicitudExistente?.id_proveedor,
+      match: solicitudExistente?.id_proveedor === id_proveedor
+    });
     
     if (!solicitudExistente) {
       return res.status(404).json({
@@ -294,10 +325,12 @@ const responderSolicitud = async (req, res) => {
       });
     }
 
-    if (solicitudExistente.estado !== 'Pendiente') {
+    // ✅ PERMITIR RESPONDER SI NO ESTÁ ACEPTADA
+    if (solicitudExistente.estado === 'Aceptada') {
+      console.log('❌ Solicitud ya aceptada, no se puede modificar');
       return res.status(400).json({
         success: false,
-        message: 'Solo se pueden responder solicitudes pendientes'
+        message: 'No se puede modificar una solicitud ya aceptada'
       });
     }
 
@@ -358,12 +391,43 @@ const aceptarSolicitud = async (req, res) => {
       });
     }
 
+    // Actualizar estado de la solicitud
     const solicitudActualizada = await Solicitud.actualizarEstado(
       id, 
       'Aceptada', 
       id_cliente, 
       'cliente'
     );
+
+    // ✅ BLOQUEAR AUTOMÁTICAMENTE LA FECHA EN EL CALENDARIO DEL PROVEEDOR
+    try {
+      // Usar fecha_disponible (de la propuesta) si existe, sino usar fecha_evento
+      const fechaABloquear = solicitudExistente.fecha_disponible || solicitudExistente.fecha_evento;
+      
+      if (fechaABloquear) {
+        console.log('📅 Fecha a bloquear:', {
+          fecha_disponible: solicitudExistente.fecha_disponible,
+          fecha_evento: solicitudExistente.fecha_evento,
+          usaremos: fechaABloquear
+        });
+        
+        await Calendario.marcarNoDisponible(
+          solicitudExistente.id_proveedor,
+          fechaABloquear,
+          `Evento: ${solicitudExistente.tipo_evento} - ${solicitudExistente.cliente_nombre || 'Cliente'}`,
+          id // ID de la solicitud
+        );
+        
+        console.log('✅ Fecha bloqueada en calendario del proveedor:', {
+          fecha: fechaABloquear,
+          proveedor: solicitudExistente.id_proveedor,
+          solicitud: id
+        });
+      }
+    } catch (errorCalendario) {
+      console.error('❌ Error al bloquear fecha en calendario:', errorCalendario);
+      // No fallar la aceptación si el calendario falla
+    }
 
     res.json({
       success: true,

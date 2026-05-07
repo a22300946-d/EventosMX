@@ -143,7 +143,12 @@ const Chat = () => {
   const cargarConversaciones = async () => {
     try {
       const response = await mensajeService.obtenerConversaciones();
-      setConversaciones(response.data || []);
+      // ✅ Mapear estado_solicitud a estado para consistencia
+      const conversacionesMapeadas = (response.data || []).map(conv => ({
+        ...conv,
+        estado: conv.estado_solicitud || conv.estado
+      }));
+      setConversaciones(conversacionesMapeadas);
     } catch (error) {
       console.error('Error al cargar conversaciones:', error);
     }
@@ -158,9 +163,14 @@ const Chat = () => {
       await mensajeService.marcarComoLeidos(solicitudId);
       socketService.markAsRead(parseInt(solicitudId));
       
-      // Encontrar conversación actual
+      // Encontrar conversación actual y mapear estado
       const conv = conversaciones.find(c => c.id_solicitud === parseInt(solicitudId));
-      setConversacionActual(conv);
+      if (conv) {
+        setConversacionActual({
+          ...conv,
+          estado: conv.estado_solicitud || conv.estado
+        });
+      }
     } catch (error) {
       console.error('Error al cargar mensajes:', error);
     }
@@ -191,11 +201,17 @@ const Chat = () => {
     
     if (conversacionActualizada) {
       console.log('📋 Abriendo modal con solicitud:', conversacionActualizada);
-      setSolicitudActual(conversacionActualizada);
+      setSolicitudActual({
+        ...conversacionActualizada,
+        estado: conversacionActualizada.estado_solicitud || conversacionActualizada.estado
+      });
       setModalOpen(true);
     } else if (conversacionActual) {
       // Fallback a conversacionActual si no se encuentra en la lista
-      setSolicitudActual(conversacionActual);
+      setSolicitudActual({
+        ...conversacionActual,
+        estado: conversacionActual.estado_solicitud || conversacionActual.estado
+      });
       setModalOpen(true);
     }
   };
@@ -203,10 +219,10 @@ const Chat = () => {
   // Cliente aprueba solicitud
   const handleAprobarSolicitud = async (id_solicitud) => {
     try {
-      // ✅ Llamar al backend para aprobar
+      // ✅ Primero llamar al backend para aprobar
       await solicitudService.aprobar(id_solicitud);
       
-      // Enviar mensaje automático
+      // ✅ Solo si el backend responde OK, enviar mensaje automático
       socketService.sendMessage(
         parseInt(id_solicitud), 
         '✅ He aprobado tu propuesta. ¡Nos vemos pronto!'
@@ -230,17 +246,18 @@ const Chat = () => {
       await cargarMensajes(id_solicitud);
     } catch (error) {
       console.error('Error al aprobar solicitud:', error);
-      alert('❌ Error al aprobar la solicitud');
+      alert('❌ Error al aprobar la solicitud. Por favor intenta de nuevo.');
+      // No enviar mensaje si falla
     }
   };
 
   // Cliente rechaza solicitud
   const handleRechazarSolicitud = async (id_solicitud) => {
     try {
-      // ✅ Llamar al backend para rechazar
+      // ✅ Primero llamar al backend para rechazar
       await solicitudService.rechazar(id_solicitud);
       
-      // Enviar mensaje automático
+      // ✅ Solo si el backend responde OK, enviar mensaje automático
       socketService.sendMessage(
         parseInt(id_solicitud), 
         '❌ Lamentablemente he decidido no continuar con esta solicitud. Gracias por tu tiempo.'
@@ -264,13 +281,30 @@ const Chat = () => {
       await cargarMensajes(id_solicitud);
     } catch (error) {
       console.error('Error al rechazar solicitud:', error);
-      alert('❌ Error al rechazar la solicitud');
+      alert('❌ Error al rechazar la solicitud. Por favor intenta de nuevo.');
+      // No enviar mensaje si falla
     }
   };
 
   // Proveedor envía propuesta
   const handleEnviarPropuesta = async (id_solicitud, propuesta) => {
     try {
+      // ✅ Primero llamar al backend
+      await solicitudService.marcarComoRespondida(id_solicitud, propuesta);
+      
+      // ✅ Función auxiliar para formatear fecha sin desfase
+      const formatearFechaSinDesfase = (fechaString) => {
+        if (!fechaString) return '';
+        const [year, month, day] = fechaString.split('-').map(Number);
+        const fecha = new Date(year, month - 1, day);
+        return fecha.toLocaleDateString('es-MX', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      };
+      
       // Construir mensaje con la propuesta
       const mensajePropuesta = `📋 **Mi Propuesta**
 
@@ -279,18 +313,15 @@ const Chat = () => {
 📝 **Descripción:**
 ${propuesta.descripcion}
 
-${propuesta.fecha_servicio ? `📅 **Fecha:** ${new Date(propuesta.fecha_servicio).toLocaleDateString('es-MX')}` : ''}
+${propuesta.fecha_servicio ? `📅 **Fecha:** ${formatearFechaSinDesfase(propuesta.fecha_servicio)}` : ''}
 ${propuesta.hora_servicio ? `⏰ **Hora:** ${propuesta.hora_servicio}` : ''}
 
 ${propuesta.notas_adicionales ? `📋 **Notas:**\n${propuesta.notas_adicionales}` : ''}
 
 ¿Te parece bien esta propuesta? ¡Espero tu respuesta!`;
       
-      // Enviar mensaje con la propuesta
+      // ✅ Solo si el backend responde OK, enviar mensaje
       socketService.sendMessage(parseInt(id_solicitud), mensajePropuesta);
-      
-      // ✅ Llamar al backend para marcar como respondida
-      await solicitudService.marcarComoRespondida(id_solicitud, propuesta);
       
       alert('✅ Propuesta enviada exitosamente');
       
@@ -310,7 +341,8 @@ ${propuesta.notas_adicionales ? `📋 **Notas:**\n${propuesta.notas_adicionales}
       await cargarMensajes(id_solicitud);
     } catch (error) {
       console.error('Error al enviar propuesta:', error);
-      alert('❌ Error al enviar la propuesta');
+      alert('❌ Error al enviar la propuesta. Por favor intenta de nuevo.');
+      // No enviar mensaje si falla
     }
   };
 
