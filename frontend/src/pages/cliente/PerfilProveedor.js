@@ -19,6 +19,10 @@ function PerfilProveedor() {
   const [loading, setLoading] = useState(true);
   const [tabActiva, setTabActiva] = useState("servicios");
 
+  // ✅ Estados para filtros de reseñas
+  const [filtroSentimiento, setFiltroSentimiento] = useState("todos"); // todos, positivo, neutro, negativo
+  const [ordenResenas, setOrdenResenas] = useState("recientes"); // recientes, mejores, peores
+
   // Estados para tipos de eventos
   const [eventosProveedor, setEventosProveedor] = useState([]);
 
@@ -56,18 +60,8 @@ function PerfilProveedor() {
 
   // Constantes para el calendario
   const meses = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
   ];
   const diasSemana = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 
@@ -76,6 +70,48 @@ function PerfilProveedor() {
     cargarDatosProveedor();
     verificarSiEsFavorito();
   }, [id]);
+
+  // ✅ Función para obtener sentimiento basado en calificación
+  const obtenerSentimiento = (calificacion) => {
+    const cal = parseFloat(calificacion || 0);
+    if (cal >= 0.625) return "positivo";
+    if (cal <= 0.375) return "negativo";
+    return "neutro";
+  };
+
+  // ✅ Función para filtrar y ordenar reseñas
+  const obtenerResenasFiltradas = () => {
+    let resenasFiltradas = [...resenas];
+
+    // Filtrar por sentimiento
+    if (filtroSentimiento !== "todos") {
+      resenasFiltradas = resenasFiltradas.filter(resena => 
+        obtenerSentimiento(resena.calificacion) === filtroSentimiento
+      );
+    }
+
+    // Ordenar
+    if (ordenResenas === "mejores") {
+      resenasFiltradas.sort((a, b) => parseFloat(b.calificacion || 0) - parseFloat(a.calificacion || 0));
+    } else if (ordenResenas === "peores") {
+      resenasFiltradas.sort((a, b) => parseFloat(a.calificacion || 0) - parseFloat(b.calificacion || 0));
+    } else {
+      // Recientes (por defecto)
+      resenasFiltradas.sort((a, b) => {
+        const fechaA = new Date(a.fecha_resena || a.fecha_publicacion);
+        const fechaB = new Date(b.fecha_resena || b.fecha_publicacion);
+        return fechaB - fechaA;
+      });
+    }
+
+    return resenasFiltradas;
+  };
+
+  // ✅ Contar reseñas por sentimiento
+  const contarPorSentimiento = (sentimiento) => {
+    if (sentimiento === "todos") return resenas.length;
+    return resenas.filter(r => obtenerSentimiento(r.calificacion) === sentimiento).length;
+  };
 
   // ========== FUNCIONES DE CARGA DE DATOS ==========
 
@@ -417,7 +453,6 @@ function PerfilProveedor() {
     }));
   };
 
-  // ✅ ACTUALIZADO: Redirigir al chat después de enviar solicitud
   const handleEnviarSolicitud = async () => {
     if (!formularioSolicitud.fecha_evento || !formularioSolicitud.tipo_evento) {
       alert(
@@ -465,20 +500,16 @@ function PerfilProveedor() {
         servicios_solicitados: serviciosSeleccionados,
       };
 
-      // ✅ Capturar respuesta para obtener id_solicitud
       const response = await api.post("/solicitudes", datos);
       const nuevaSolicitud = response.data.data;
       const id_solicitud = nuevaSolicitud.id_solicitud;
 
-      // Cerrar modal
       handleCerrarModalCotizacion();
 
-      // Mostrar mensaje de éxito
       alert(
         "✅ ¡Solicitud enviada exitosamente! Ahora puedes chatear con el proveedor.",
       );
 
-      // ✅ Redirigir al chat
       navigate(`/chat/${id_solicitud}`);
     } catch (error) {
       console.error("Error al enviar solicitud:", error);
@@ -568,6 +599,9 @@ function PerfilProveedor() {
 
   const calificacion = parseFloat(proveedor.calificacion_promedio) || 0;
   const calificacionDe5 = calificacion * 5;
+
+  // ✅ Obtener reseñas filtradas y ordenadas
+  const resenasMostradas = obtenerResenasFiltradas();
 
   // ========== RENDERIZADO PRINCIPAL ==========
 
@@ -819,17 +853,72 @@ function PerfilProveedor() {
             </div>
           )}
 
-          {/* Tab Reseñas */}
+          {/* ✅ Tab Reseñas CON FILTROS */}
           {tabActiva === "resenas" && (
             <div className="tab-panel">
-              <h2>Opiniones de Clientes</h2>
+              <div className="resenas-header-section">
+                <h2>Opiniones de Clientes</h2>
+                
+                {/* ✅ CONTROLES DE FILTRADO */}
+                {resenas.length > 0 && (
+                  <div className="resenas-controles">
+                    {/* Filtro por sentimiento */}
+                    <div className="filtro-sentimiento">
+                      <button
+                        className={`btn-filtro ${filtroSentimiento === "todos" ? "activo" : ""}`}
+                        onClick={() => setFiltroSentimiento("todos")}
+                      >
+                        Todas ({contarPorSentimiento("todos")})
+                      </button>
+                      <button
+                        className={`btn-filtro btn-positivo ${filtroSentimiento === "positivo" ? "activo" : ""}`}
+                        onClick={() => setFiltroSentimiento("positivo")}
+                      >
+                        😊 Positivas ({contarPorSentimiento("positivo")})
+                      </button>
+                      <button
+                        className={`btn-filtro btn-neutro ${filtroSentimiento === "neutro" ? "activo" : ""}`}
+                        onClick={() => setFiltroSentimiento("neutro")}
+                      >
+                        😐 Neutras ({contarPorSentimiento("neutro")})
+                      </button>
+                      <button
+                        className={`btn-filtro btn-negativo ${filtroSentimiento === "negativo" ? "activo" : ""}`}
+                        onClick={() => setFiltroSentimiento("negativo")}
+                      >
+                        😞 Negativas ({contarPorSentimiento("negativo")})
+                      </button>
+                    </div>
+
+                    {/* Ordenamiento */}
+                    <div className="filtro-ordenamiento">
+                      <label>Ordenar por:</label>
+                      <select 
+                        value={ordenResenas} 
+                        onChange={(e) => setOrdenResenas(e.target.value)}
+                        className="select-ordenamiento"
+                      >
+                        <option value="recientes">Más recientes</option>
+                        <option value="mejores">Mejor calificadas</option>
+                        <option value="peores">Peor calificadas</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Lista de reseñas filtradas */}
               {resenas.length === 0 ? (
                 <p className="mensaje-vacio">
                   Aún no hay reseñas para este proveedor
                 </p>
+              ) : resenasMostradas.length === 0 ? (
+                <p className="mensaje-vacio">
+                  No hay reseñas que coincidan con los filtros seleccionados
+                </p>
               ) : (
                 <div className="resenas-lista">
-                  {resenas.map((resena) => {
+                  {resenasMostradas.map((resena) => {
                     const badge = getBadge(resena.calificacion);
                     return (
                       <div key={resena.id_resena} className="resena-card">

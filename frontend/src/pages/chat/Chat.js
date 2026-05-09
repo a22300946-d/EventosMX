@@ -4,8 +4,10 @@ import Layout from '../../components/Layout';
 import socketService from '../../services/socketService';
 import { mensajeService } from '../../services/mensajeService';
 import { solicitudService } from '../../services/solicitudService';
+import { resenaService } from '../../services/resenaService';
 import ConversacionesList from './ConversacionesList';
 import ModalSolicitud from './ModalSolicitud';
+import ModalResena from './ModalResena';
 import './Chat.css';
 
 const Chat = () => {
@@ -19,6 +21,8 @@ const Chat = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [solicitudActual, setSolicitudActual] = useState(null);
+  const [modalResenaOpen, setModalResenaOpen] = useState(false);
+  const [puedeDejarResena, setPuedeDejarResena] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
@@ -139,6 +143,11 @@ const Chat = () => {
       console.log('📋 Solicitud actual actualizada:', conversacionActual);
     }
   }, [conversacionActual]);
+
+  // ✅ Verificar si puede dejar reseña cuando cambia la conversación o el usuario
+  useEffect(() => {
+    verificarPuedeDejarResena();
+  }, [conversacionActual, usuario]);
 
   const cargarConversaciones = async () => {
     try {
@@ -346,6 +355,90 @@ ${propuesta.notas_adicionales ? `📋 **Notas:**\n${propuesta.notas_adicionales}
     }
   };
 
+  // ✅ Verificar si el cliente puede dejar reseña
+  const verificarPuedeDejarResena = async () => {
+    if (!conversacionActual || usuario?.tipo !== 'cliente') {
+      setPuedeDejarResena(false);
+      return;
+    }
+
+    const estadoValido = conversacionActual.estado === 'Aceptada' || 
+                         conversacionActual.estado_solicitud === 'Aceptada';
+    
+    const fechaEvento = conversacionActual.fecha_evento;
+    const eventoYaPaso = fechaEvento && new Date(fechaEvento) < new Date();
+
+    // ✅ Si cumple condiciones básicas, verificar si ya dejó reseña
+    if (estadoValido && eventoYaPaso && conversacionActual.id_proveedor) {
+      try {
+        // Obtener todas las reseñas del proveedor
+        const response = await resenaService.obtenerPorProveedor(conversacionActual.id_proveedor);
+        const resenas = response.data || response;
+        
+        // Verificar si alguna reseña es de este cliente para esta solicitud
+        const yaDejoResena = resenas.some(resena => 
+          resena.id_cliente === usuario.id && 
+          resena.id_solicitud === conversacionActual.id_solicitud
+        );
+        
+        console.log('🔍 Verificando si puede dejar reseña:', {
+          usuario_tipo: usuario?.tipo,
+          usuario_id: usuario?.id,
+          estado: conversacionActual.estado || conversacionActual.estado_solicitud,
+          fecha_evento: fechaEvento,
+          evento_ya_paso: eventoYaPaso,
+          total_resenas: resenas.length,
+          ya_dejo_resena: yaDejoResena,
+          puede_dejar_resena: !yaDejoResena
+        });
+        
+        setPuedeDejarResena(!yaDejoResena);
+      } catch (error) {
+        console.error('Error al verificar si puede reseñar:', error);
+        // Si hay error en la consulta, asumir que NO puede (más seguro)
+        setPuedeDejarResena(false);
+      }
+    } else {
+      console.log('🔍 No cumple condiciones básicas:', {
+        estadoValido,
+        eventoYaPaso,
+        tiene_proveedor: !!conversacionActual?.id_proveedor
+      });
+      setPuedeDejarResena(false);
+    }
+  };
+
+  // ✅ Handler para enviar reseña
+  const handleEnviarResena = async (datosResena) => {
+    try {
+      const response = await resenaService.crear(datosResena);
+      
+      console.log('✅ Reseña enviada completa:', response);
+      
+      // La respuesta puede venir en response.data o directamente en response
+      const resenaData = response.data || response;
+      
+      // Opcional: Enviar mensaje en el chat notificando
+      socketService.sendMessage(
+        parseInt(id_solicitud),
+        `⭐ ¡Gracias por tu servicio! He dejado una reseña sobre mi experiencia.`
+      );
+      
+      // Mostrar resultado con los datos correctos
+      if (resenaData.calificacion !== undefined && resenaData.sentimiento) {
+        alert(`✅ Reseña publicada exitosamente!\n\nCalificación: ${resenaData.calificacion}/5\nSentimiento: ${resenaData.sentimiento}`);
+      } else {
+        alert('✅ Reseña publicada exitosamente!');
+      }
+      
+      setModalResenaOpen(false);
+      setPuedeDejarResena(false); // Ya dejó reseña
+    } catch (error) {
+      console.error('Error al enviar reseña:', error);
+      throw error; // El modal maneja el error
+    }
+  };
+
   const handleTyping = (e) => {
     setNuevoMensaje(e.target.value);
 
@@ -479,6 +572,17 @@ ${propuesta.notas_adicionales ? `📋 **Notas:**\n${propuesta.notas_adicionales}
 
             {/* Input de mensaje */}
             <div className="chat-input-container">
+              {/* ✅ BOTÓN DE DEJAR RESEÑA (solo para clientes con evento pasado y aceptado) */}
+              {puedeDejarResena && (
+                <button 
+                  className="btn-dejar-resena"
+                  onClick={() => setModalResenaOpen(true)}
+                  title="Dejar una reseña sobre este servicio"
+                >
+                  ⭐ Dejar Reseña
+                </button>
+              )}
+              
               <form onSubmit={handleEnviarMensaje} className="chat-input-form">
                 <input
                   type="text"
@@ -538,6 +642,17 @@ ${propuesta.notas_adicionales ? `📋 **Notas:**\n${propuesta.notas_adicionales}
       onAprobar={handleAprobarSolicitud}
       onRechazar={handleRechazarSolicitud}
       onEnviarPropuesta={handleEnviarPropuesta}
+    />
+
+    {/* ✅ MODAL DE RESEÑA */}
+    <ModalResena
+      isOpen={modalResenaOpen}
+      onClose={() => setModalResenaOpen(false)}
+      solicitud={{
+        ...conversacionActual,
+        nombre_proveedor: conversacionActual?.nombre_negocio || conversacionActual?.proveedor_nombre
+      }}
+      onEnviar={handleEnviarResena}
     />
     </Layout>
   );

@@ -370,6 +370,8 @@ const aceptarSolicitud = async (req, res) => {
     // Verificar que la solicitud existe
     const solicitudExistente = await Solicitud.obtenerPorId(id);
     
+    console.log('🔍 DEBUG - solicitudExistente COMPLETO:', JSON.stringify(solicitudExistente, null, 2));
+    
     if (!solicitudExistente) {
       return res.status(404).json({
         success: false,
@@ -384,14 +386,24 @@ const aceptarSolicitud = async (req, res) => {
       });
     }
 
-    if (solicitudExistente.estado !== 'Respondida') {
+    console.log('🔍 Validando estado:', {
+      estado_actual: solicitudExistente.estado,
+      tipo: typeof solicitudExistente.estado,
+      longitud: solicitudExistente.estado?.length,
+      comparacion: solicitudExistente.estado === 'Respondida',
+      trim: solicitudExistente.estado?.trim(),
+      trim_comparacion: solicitudExistente.estado?.trim() === 'Respondida'
+    });
+
+    if (solicitudExistente.estado?.trim() !== 'Respondida') {
+      console.log('❌ Estado no válido para aceptar');
       return res.status(400).json({
         success: false,
-        message: 'Solo se pueden aceptar solicitudes que han sido respondidas por el proveedor'
+        message: `Solo se pueden aceptar solicitudes que han sido respondidas por el proveedor. Estado actual: "${solicitudExistente.estado}"`
       });
     }
 
-    // Actualizar estado de la solicitud
+    // Actualizar estado de la solicitud a Aceptada
     const solicitudActualizada = await Solicitud.actualizarEstado(
       id, 
       'Aceptada', 
@@ -400,29 +412,23 @@ const aceptarSolicitud = async (req, res) => {
     );
 
     // ✅ BLOQUEAR AUTOMÁTICAMENTE LA FECHA EN EL CALENDARIO DEL PROVEEDOR
+    // La fecha_evento ya fue actualizada cuando el proveedor respondió con su propuesta
     try {
-      // Usar fecha_disponible (de la propuesta) si existe, sino usar fecha_evento
-      const fechaABloquear = solicitudExistente.fecha_disponible || solicitudExistente.fecha_evento;
-      
-      if (fechaABloquear) {
-        console.log('📅 Fecha a bloquear:', {
-          fecha_disponible: solicitudExistente.fecha_disponible,
-          fecha_evento: solicitudExistente.fecha_evento,
-          usaremos: fechaABloquear
+      if (solicitudExistente.fecha_evento) {
+        console.log('📅 Bloqueando fecha en calendario:', {
+          fecha: solicitudExistente.fecha_evento,
+          proveedor: solicitudExistente.id_proveedor,
+          solicitud: id
         });
         
         await Calendario.marcarNoDisponible(
           solicitudExistente.id_proveedor,
-          fechaABloquear,
+          solicitudExistente.fecha_evento,
           `Evento: ${solicitudExistente.tipo_evento} - ${solicitudExistente.cliente_nombre || 'Cliente'}`,
-          id // ID de la solicitud
+          id
         );
         
-        console.log('✅ Fecha bloqueada en calendario del proveedor:', {
-          fecha: fechaABloquear,
-          proveedor: solicitudExistente.id_proveedor,
-          solicitud: id
-        });
+        console.log('✅ Fecha bloqueada en calendario');
       }
     } catch (errorCalendario) {
       console.error('❌ Error al bloquear fecha en calendario:', errorCalendario);
@@ -436,11 +442,13 @@ const aceptarSolicitud = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error en aceptarSolicitud:', error);
+    console.error('❌ Error en aceptarSolicitud:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error al aceptar solicitud',
-      error: error.message
+      error: error.message,
+      details: error.stack
     });
   }
 };

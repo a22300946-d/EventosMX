@@ -166,9 +166,29 @@
   text-transform: uppercase;
 }
 
+/* HEADER DEL ESTADO PARA CLIENTE */
+.estado-solicitud-header {
+  text-align: center;
+  padding: 20px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 12px;
+}
+
+.estado-solicitud-header .badge {
+  font-size: 16px;
+  padding: 10px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .badge-pendiente {
   background: #fff3cd;
   color: #856404;
+}
+
+.badge-respondida {
+  background: #d1ecf1;
+  color: #0c5460;
 }
 
 .badge-aceptada {

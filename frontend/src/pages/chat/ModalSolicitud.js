@@ -167,42 +167,51 @@ const ModalSolicitud = ({
         </div>
 
         <div className="modal-body">
-          {/* INFORMACIÓN DE LA SOLICITUD */}
-          <div className="solicitud-info">
-            <h3>Información del Evento</h3>
-            <div className="info-grid">
-              <div className="info-item">
-                <span className="info-label">🎉 Tipo de evento:</span>
-                <span className="info-value">{solicitud.tipo_evento || 'No especificado'}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">📅 Fecha del evento:</span>
-                <span className="info-value">{formatearFecha(solicitud.fecha_evento)}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">👥 Número de invitados:</span>
-                <span className="info-value">{solicitud.numero_invitados || 'No especificado'}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">💰 Presupuesto estimado:</span>
-                <span className="info-value">
-                  {solicitud.presupuesto_estimado 
-                    ? `$${parseFloat(solicitud.presupuesto_estimado).toLocaleString('es-MX')}` 
-                    : 'No especificado'}
-                </span>
-              </div>
-              {solicitud.descripcion_solicitud && (
-                <div className="info-item info-item-full">
-                  <span className="info-label">📝 Descripción:</span>
-                  <p className="info-description">{solicitud.descripcion_solicitud}</p>
+          {/* INFORMACIÓN DE LA SOLICITUD - SOLO PARA PROVEEDOR */}
+          {usuarioTipo === 'proveedor' && (
+            <div className="solicitud-info">
+              <h3>Información del Evento</h3>
+              <div className="info-grid">
+                <div className="info-item">
+                  <span className="info-label">🎉 Tipo de evento:</span>
+                  <span className="info-value">{solicitud.tipo_evento || 'No especificado'}</span>
                 </div>
-              )}
+                <div className="info-item">
+                  <span className="info-label">📅 Fecha del evento:</span>
+                  <span className="info-value">{formatearFecha(solicitud.fecha_evento)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">👥 Número de invitados:</span>
+                  <span className="info-value">{solicitud.numero_invitados || 'No especificado'}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">💰 Presupuesto estimado:</span>
+                  <span className="info-value">
+                    {solicitud.presupuesto_estimado 
+                      ? `$${parseFloat(solicitud.presupuesto_estimado).toLocaleString('es-MX')}` 
+                      : 'No especificado'}
+                  </span>
+                </div>
+                {solicitud.descripcion_solicitud && (
+                  <div className="info-item info-item-full">
+                    <span className="info-label">📝 Descripción:</span>
+                    <p className="info-description">{solicitud.descripcion_solicitud}</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* VISTA PARA CLIENTE - APROBAR/RECHAZAR */}
+          {/* VISTA PARA CLIENTE - SOLO PROPUESTA Y ACCIONES */}
           {usuarioTipo === 'cliente' && (
             <>
+              {/* ESTADO DE LA SOLICITUD */}
+              <div className="estado-solicitud-header">
+                <span className={`badge badge-${solicitud.estado?.toLowerCase()}`}>
+                  {solicitud.estado || 'Pendiente'}
+                </span>
+              </div>
+
               {/* PROPUESTA DEL PROVEEDOR */}
               {propuestaProveedor && (
                 <div className="propuesta-recibida">
@@ -250,51 +259,46 @@ const ModalSolicitud = ({
                 </div>
               )}
 
-              {/* ACCIONES DEL CLIENTE */}
-              <div className="solicitud-actions">
-                <div className="estado-actual">
-                  <span className={`badge badge-${solicitud.estado?.toLowerCase()}`}>
-                    {solicitud.estado || 'Pendiente'}
-                  </span>
+              {/* BOTONES DE ACCIÓN */}
+              {propuestaProveedor && solicitud.estado !== 'Aceptada' && solicitud.estado !== 'Rechazada' && (
+                <div className="action-buttons">
+                  <button 
+                    className="btn-aprobar"
+                    onClick={handleAprobar}
+                    disabled={loading}
+                  >
+                    ✅ Aprobar Propuesta
+                  </button>
+                  <button 
+                    className="btn-rechazar"
+                    onClick={handleRechazar}
+                    disabled={loading}
+                  >
+                    ❌ Rechazar Propuesta
+                  </button>
                 </div>
+              )}
 
-                {propuestaProveedor && solicitud.estado !== 'Aceptada' && solicitud.estado !== 'Rechazada' && (
-                  <div className="action-buttons">
-                    <button 
-                      className="btn-aprobar"
-                      onClick={handleAprobar}
-                      disabled={loading}
-                    >
-                      ✅ Aprobar Propuesta
-                    </button>
-                    <button 
-                      className="btn-rechazar"
-                      onClick={handleRechazar}
-                      disabled={loading}
-                    >
-                      ❌ Rechazar Propuesta
-                    </button>
-                  </div>
-                )}
+              {/* MENSAJE SI NO HAY PROPUESTA */}
+              {!propuestaProveedor && solicitud.estado === 'Pendiente' && (
+                <div className="alert alert-info">
+                  ⏳ Esperando propuesta del proveedor...
+                </div>
+              )}
 
-                {!propuestaProveedor && solicitud.estado === 'Pendiente' && (
-                  <div className="alert alert-info">
-                    ⏳ Esperando propuesta del proveedor...
-                  </div>
-                )}
+              {/* MENSAJE SI YA FUE APROBADA */}
+              {solicitud.estado === 'Aceptada' && (
+                <div className="alert alert-success">
+                  ✅ Ya aprobaste esta propuesta
+                </div>
+              )}
 
-                {solicitud.estado === 'Aceptada' && (
-                  <div className="alert alert-success">
-                    ✅ Ya aprobaste esta propuesta
-                  </div>
-                )}
-
-                {solicitud.estado === 'Rechazada' && (
-                  <div className="alert alert-danger">
-                    ❌ Esta propuesta fue rechazada
-                  </div>
-                )}
-              </div>
+              {/* MENSAJE SI FUE RECHAZADA */}
+              {solicitud.estado === 'Rechazada' && (
+                <div className="alert alert-danger">
+                  ❌ Esta propuesta fue rechazada
+                </div>
+              )}
             </>
           )}
 

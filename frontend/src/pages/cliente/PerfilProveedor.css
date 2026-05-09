@@ -1595,3 +1595,139 @@ html, body {
     padding: 0.5rem 0.8rem;
   }
 }
+
+/* ✅ ESTILOS PARA FILTROS DE RESEÑAS */
+
+.resenas-header-section {
+  margin-bottom: 30px;
+}
+
+.resenas-header-section h2 {
+  margin-bottom: 20px;
+}
+
+.resenas-controles {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 30px;
+}
+
+/* Filtro por sentimiento */
+.filtro-sentimiento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-filtro {
+  padding: 10px 20px;
+  border: 2px solid #dee2e6;
+  background: white;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-filtro:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-filtro.activo {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+}
+
+.btn-filtro.btn-positivo.activo {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+  border-color: #56ab2f;
+}
+
+.btn-filtro.btn-neutro.activo {
+  background: linear-gradient(135deg, #f8b500 0%, #fceabb 100%);
+  border-color: #f8b500;
+  color: #333;
+}
+
+.btn-filtro.btn-negativo.activo {
+  background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+  border-color: #eb3349;
+}
+
+/* Ordenamiento */
+.filtro-ordenamiento {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filtro-ordenamiento label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+.select-ordenamiento {
+  padding: 10px 16px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.select-ordenamiento:hover {
+  border-color: #667eea;
+}
+
+.select-ordenamiento:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .resenas-controles {
+    padding: 15px;
+  }
+
+  .filtro-sentimiento {
+    justify-content: center;
+  }
+
+  .btn-filtro {
+    font-size: 12px;
+    padding: 8px 16px;
+  }
+
+  .filtro-ordenamiento {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .filtro-ordenamiento label {
+    text-align: center;
+  }
+
+  .select-ordenamiento {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-filtro {
+    flex: 1 1 calc(50% - 5px);
+    min-width: 120px;
+  }
+}

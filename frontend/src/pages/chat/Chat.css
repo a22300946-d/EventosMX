@@ -305,3 +305,28 @@
     padding: 15px;
   }
 }
+
+/* ✅ BOTÓN DE DEJAR RESEÑA */
+.btn-dejar-resena {
+  width: 100%;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+}
+
+.btn-dejar-resena:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 147, 251, 0.4);
+}
+
+.btn-dejar-resena:active {
+  transform: translateY(0);
+}
