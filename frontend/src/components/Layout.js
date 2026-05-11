@@ -60,7 +60,7 @@ function Layout({ children, showNav = true }) {
                 {!isMobile && (
                   <>
                     <Link to="/chat">Chat</Link>
-                    <Link to="/">Explorar Servicios</Link>
+                    <Link to="/cliente/explorar">Explorar Servicios</Link>
                     <Link to="/cliente/listas">Mis eventos</Link>
                   </>
                 )}
@@ -86,7 +86,7 @@ function Layout({ children, showNav = true }) {
                             Chat
                           </Link>
                           <Link 
-                            to="/" 
+                            to="/cliente/explorar" 
                             className="dropdown-item"
                             onClick={() => setShowDropdown(false)}
                           >

@@ -1,4 +1,5 @@
 const ProveedorEvento = require('../models/ProveedorEvento');
+const pool = require('../config/database'); // ✅ Agregar para la búsqueda
 
 // Obtener todos los tipos de eventos disponibles
 const obtenerTiposEventos = async (req, res) => {
@@ -167,6 +168,63 @@ const actualizarMisEventos = async (req, res) => {
   }
 };
 
+// ✅ NUEVA FUNCIÓN: Buscar proveedores por tipo de evento
+const obtenerProveedoresPorTipoEvento = async (req, res) => {
+  try {
+    const { nombre_evento } = req.query;
+
+    if (!nombre_evento) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parámetro nombre_evento es requerido'
+      });
+    }
+
+    console.log(`🔍 Buscando proveedores con evento: ${nombre_evento}`);
+
+    // ✅ QUERY SIMPLIFICADO: Sin filtros de activo/aprobado (no existen)
+    const query = `
+      SELECT DISTINCT
+        pe.id_proveedor,
+        p.nombre_negocio,
+        p.correo,
+        p.telefono,
+        p.ciudad,
+        p.descripcion,
+        p.logo,
+        p.tipo_servicio,
+        p.calificacion_promedio,
+        te.nombre_evento,
+        te.activo as evento_activo
+      FROM ProveedorEvento pe
+      INNER JOIN Proveedor p ON pe.id_proveedor = p.id_proveedor
+      INNER JOIN TipoEvento te ON pe.id_tipo_evento = te.id_tipo_evento
+      WHERE te.nombre_evento ILIKE $1
+        AND te.activo = true
+      ORDER BY p.calificacion_promedio DESC NULLS LAST
+    `;
+
+    const result = await pool.query(query, [`%${nombre_evento}%`]);
+
+    console.log(`✅ Proveedores encontrados: ${result.rows.length}`);
+
+    res.status(200).json({
+      success: true,
+      data: result.rows,
+      total: result.rows.length,
+      message: `${result.rows.length} proveedores encontrados con el evento ${nombre_evento}`
+    });
+
+  } catch (error) {
+    console.error('❌ Error al buscar proveedores por tipo de evento:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al buscar proveedores por tipo de evento',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   obtenerTiposEventos,
   obtenerEventosDeProveedor,
@@ -174,4 +232,5 @@ module.exports = {
   agregarEvento,
   eliminarEvento,
   actualizarMisEventos,
+  obtenerProveedoresPorTipoEvento, // ✅ AGREGAR
 };

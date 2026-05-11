@@ -8,13 +8,26 @@ const {
   agregarEvento,
   eliminarEvento,
   actualizarMisEventos,
+  obtenerProveedoresPorTipoEvento,
 } = require('../controllers/proveedorEventoController');
 
-// Rutas públicas
+// ============================================
+// RUTAS PÚBLICAS
+// ============================================
+
+// Buscar proveedores por tipo de evento (DEBE IR PRIMERO)
+router.get('/por-tipo', obtenerProveedoresPorTipoEvento);
+
+// Obtener tipos de eventos disponibles
 router.get('/tipos-eventos', obtenerTiposEventos);
+
+// Obtener eventos de un proveedor específico
 router.get('/proveedor/:id_proveedor/eventos', obtenerEventosDeProveedor);
 
-// Rutas protegidas para proveedores
+// ============================================
+// RUTAS PROTEGIDAS PARA PROVEEDORES
+// ============================================
+
 router.get('/mis-eventos', autenticar, verificarRol('proveedor'), obtenerMisEventos);
 router.post('/mis-eventos', autenticar, verificarRol('proveedor'), agregarEvento);
 router.put('/mis-eventos', autenticar, verificarRol('proveedor'), actualizarMisEventos);
