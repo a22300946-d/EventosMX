@@ -225,3 +225,48 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ========== AVATAR CLICKEABLE - AGREGAR AL FINAL DE EditarDatos.css ========== */
+/* Igual al estilo del proveedor */
+
+.avatar-circle-clickable {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.avatar-circle-clickable:hover {
+  transform: scale(1.05);
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(26, 77, 92, 0.9);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.avatar-circle-clickable:hover .avatar-overlay {
+  opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .avatar-circle-clickable {
+    width: 150px;
+    height: 150px;
+  }
+}

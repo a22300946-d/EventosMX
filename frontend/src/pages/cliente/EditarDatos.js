@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import api from "../../services/api";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
 import { clienteService } from "../../services/clienteService";
@@ -12,12 +12,15 @@ function EditarDatos() {
     correo: "",
     telefono: "",
     ciudad: "",
+    foto_perfil: "",
     nueva_contrasena: "",
   });
   const [loading, setLoading] = useState(false);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
   const [mensaje, setMensaje] = useState({ tipo: "", texto: "" });
   const [errores, setErrores] = useState({});
   const [ciudades, setCiudades] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     cargarDatos();
@@ -33,8 +36,6 @@ function EditarDatos() {
     }
   };
 
-  
-
   const cargarDatos = async () => {
     try {
       const response = await clienteService.obtenerPerfil();
@@ -44,10 +45,62 @@ function EditarDatos() {
         correo: datos.correo || "",
         telefono: datos.telefono || "",
         ciudad: datos.ciudad || "",
+        foto_perfil: datos.foto_perfil || "",
         nueva_contrasena: "",
       });
     } catch (error) {
       console.error("Error al cargar datos:", error);
+    }
+  };
+
+  // ⭐ Handler para cambiar foto de perfil
+  const handleFotoChange = async (e) => {
+    const file = e.target.files[0];
+    
+    if (!file) return;
+
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      alert('Solo se permiten imágenes');
+      return;
+    }
+
+    // Validar tamaño (2MB máximo)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('La imagen no debe superar los 2MB');
+      return;
+    }
+
+    try {
+      setUploadingFoto(true);
+
+      const formDataFoto = new FormData();
+      formDataFoto.append('logo', file);
+
+      const response = await clienteService.actualizarFotoPerfil(formDataFoto);
+
+      // Actualizar la foto en el estado local
+      setFormData(prev => ({
+        ...prev,
+        foto_perfil: response.data.data.foto_perfil
+      }));
+
+      // Actualizar localStorage
+      const userStorage = JSON.parse(localStorage.getItem("user"));
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          ...userStorage,
+          foto_perfil: response.data.data.foto_perfil
+        })
+      );
+
+      alert('✅ Foto de perfil actualizada');
+    } catch (error) {
+      console.error('Error al actualizar foto:', error);
+      alert('Error al actualizar la foto de perfil');
+    } finally {
+      setUploadingFoto(false);
     }
   };
 
@@ -63,12 +116,10 @@ function EditarDatos() {
     if (valor.length > 100) {
       return "El nombre no puede exceder 100 caracteres";
     }
-    // Solo permitir letras, espacios, acentos y algunos caracteres comunes
     const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
     if (!regex.test(valor)) {
       return "El nombre solo puede contener letras y espacios";
     }
-    // Validar que tenga al menos nombre y apellido
     const palabras = valor.trim().split(/\s+/);
     if (palabras.length < 2) {
       return "Debes ingresar nombre y apellido";
@@ -78,18 +129,15 @@ function EditarDatos() {
 
   const validarTelefono = (valor) => {
     if (!valor.trim()) {
-      return ""; // El teléfono es opcional
+      return "";
     }
     
-    // Eliminar espacios, guiones y paréntesis para validar
     const telefonoLimpio = valor.replace(/[\s\-()]/g, "");
     
-    // Debe contener solo números
     if (!/^\d+$/.test(telefonoLimpio)) {
       return "El teléfono debe contener solo números";
     }
     
-    // Validar longitud (10 dígitos para México)
     if (telefonoLimpio.length !== 10) {
       return "El teléfono debe tener 10 dígitos";
     }
@@ -99,7 +147,7 @@ function EditarDatos() {
 
   const validarContrasena = (valor) => {
     if (!valor) {
-      return ""; // La contraseña es opcional (solo si quiere cambiarla)
+      return "";
     }
     
     if (valor.length < 8) {
@@ -110,17 +158,14 @@ function EditarDatos() {
       return "La contraseña no puede exceder 50 caracteres";
     }
     
-    // Al menos una mayúscula
     if (!/[A-Z]/.test(valor)) {
       return "La contraseña debe contener al menos una mayúscula";
     }
     
-    // Al menos una minúscula
     if (!/[a-z]/.test(valor)) {
       return "La contraseña debe contener al menos una minúscula";
     }
     
-    // Al menos un número
     if (!/\d/.test(valor)) {
       return "La contraseña debe contener al menos un número";
     }
@@ -156,32 +201,25 @@ function EditarDatos() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Validaciones en tiempo real
     let valorProcesado = value;
     
-    // Permitir solo letras y espacios en nombre completo
     if (name === "nombre_completo") {
       valorProcesado = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, "");
       
-      // Limitar a 100 caracteres
       if (valorProcesado.length > 100) {
         return;
       }
     }
     
-    // Permitir solo números en teléfono (con formato)
     if (name === "telefono") {
-      // Permitir solo números, espacios, guiones y paréntesis
       valorProcesado = value.replace(/[^\d\s\-()]/g, "");
       
-      // Limitar a 10 dígitos (sin contar formato)
       const soloNumeros = valorProcesado.replace(/[\s\-()]/g, "");
       if (soloNumeros.length > 10) {
         return;
       }
     }
     
-    // Limitar caracteres en contraseña
     if (name === "nueva_contrasena" && value.length > 50) {
       return;
     }
@@ -191,7 +229,6 @@ function EditarDatos() {
       [name]: valorProcesado,
     });
     
-    // Validar el campo y actualizar errores
     const error = validarCampo(name, valorProcesado);
     setErrores({
       ...errores,
@@ -204,14 +241,12 @@ function EditarDatos() {
     setLoading(true);
     setMensaje({ tipo: "", texto: "" });
 
-    // Validar todos los campos
     const nuevosErrores = {};
     nuevosErrores.nombre_completo = validarNombreCompleto(formData.nombre_completo);
     nuevosErrores.telefono = validarTelefono(formData.telefono);
     nuevosErrores.ciudad = formData.ciudad ? "" : "Debes seleccionar una ciudad";
     nuevosErrores.nueva_contrasena = validarContrasena(formData.nueva_contrasena);
 
-    // Filtrar solo errores que tengan contenido
     const erroresActivos = Object.entries(nuevosErrores).filter(([_, valor]) => valor !== "");
 
     if (erroresActivos.length > 0) {
@@ -227,11 +262,10 @@ function EditarDatos() {
     try {
       const datosActualizar = {
         nombre_completo: formData.nombre_completo.trim(),
-        telefono: formData.telefono.replace(/[\s\-()]/g, ""), // Enviar solo números
+        telefono: formData.telefono.replace(/[\s\-()]/g, ""),
         ciudad: formData.ciudad,
       };
 
-      // Si hay nueva contraseña, agregarla
       if (formData.nueva_contrasena) {
         datosActualizar.nueva_contrasena = formData.nueva_contrasena;
       }
@@ -240,19 +274,16 @@ function EditarDatos() {
 
       setMensaje({
         tipo: "success",
-        texto: " Datos actualizados exitosamente",
+        texto: "✓ Datos actualizados exitosamente",
       });
 
-      // Limpiar errores
       setErrores({});
 
-      // Limpiar campo de contraseña
       setFormData({
         ...formData,
         nueva_contrasena: "",
       });
 
-      // Actualizar localStorage
       const userStorage = JSON.parse(localStorage.getItem("user"));
       localStorage.setItem(
         "user",
@@ -266,7 +297,7 @@ function EditarDatos() {
     } catch (error) {
       setMensaje({
         tipo: "error",
-        texto: error.response?.data?.message || " Error al actualizar datos",
+        texto: error.response?.data?.message || "❌ Error al actualizar datos",
       });
     } finally {
       setLoading(false);
@@ -279,21 +310,67 @@ function EditarDatos() {
         <h1>Editar mis datos personales</h1>
 
         <div className="editar-datos-content">
+          {/* ⭐ AVATAR CLICKEABLE - IGUAL AL DEL PROVEEDOR */}
           <div className="avatar-section">
-            <div className="avatar-circle">
-              <svg viewBox="0 0 100 100" width="200" height="200">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="48"
-                  fill="#8ba9b5"
-                  stroke="#6b8a96"
-                  strokeWidth="2"
+            <div 
+              className="avatar-circle-clickable"
+              onClick={() => !uploadingFoto && fileInputRef.current?.click()}
+              style={{ cursor: uploadingFoto ? 'wait' : 'pointer' }}
+            >
+              {formData.foto_perfil ? (
+                <img 
+                  src={formData.foto_perfil} 
+                  alt="Foto de perfil"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '50%'
+                  }}
                 />
-                <circle cx="50" cy="40" r="18" fill="white" />
-                <path d="M 25 75 Q 25 55, 50 55 Q 75 55, 75 75" fill="white" />
-              </svg>
+              ) : (
+                <svg viewBox="0 0 100 100" width="200" height="200">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="48"
+                    fill="#8ba9b5"
+                    stroke="#6b8a96"
+                    strokeWidth="2"
+                  />
+                  <circle cx="50" cy="40" r="18" fill="white" />
+                  <path d="M 25 75 Q 25 55, 50 55 Q 75 55, 75 75" fill="white" />
+                </svg>
+              )}
+              
+              {/* Overlay que aparece al hacer hover */}
+              <div className="avatar-overlay">
+                {uploadingFoto ? (
+                  <span style={{ fontSize: '48px' }}>⏳</span>
+                ) : (
+                  <>
+                    <span style={{ fontSize: '48px' }}>📷</span>
+                    <span style={{ 
+                      color: 'white', 
+                      fontSize: '14px', 
+                      fontWeight: '500',
+                      marginTop: '8px'
+                    }}>
+                      Cambiar foto
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
+            
+            {/* Input hidden */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFotoChange}
+              style={{ display: 'none' }}
+            />
           </div>
 
           <form onSubmit={handleSubmit} className="datos-form">
@@ -308,7 +385,7 @@ function EditarDatos() {
                 required
               />
               {errores.nombre_completo && (
-                <span className="error-message"> {errores.nombre_completo}</span>
+                <span className="error-message">⚠️ {errores.nombre_completo}</span>
               )}
               <small className="field-hint">
                 {formData.nombre_completo.length}/100 caracteres - Solo letras
@@ -339,7 +416,7 @@ function EditarDatos() {
                 maxLength="14"
               />
               {errores.telefono && (
-                <span className="error-message"> {errores.telefono}</span>
+                <span className="error-message">⚠️ {errores.telefono}</span>
               )}
               <small className="field-hint">
                 Ejemplo: 3312345678
@@ -367,7 +444,7 @@ function EditarDatos() {
                 ))}
               </select>
               {errores.ciudad && (
-                <span className="error-message"> {errores.ciudad}</span>
+                <span className="error-message">⚠️ {errores.ciudad}</span>
               )}
             </div>
 
@@ -381,7 +458,7 @@ function EditarDatos() {
                 onChange={handleChange}
               />
               {errores.nueva_contrasena && (
-                <span className="error-message"> {errores.nueva_contrasena}</span>
+                <span className="error-message">⚠️ {errores.nueva_contrasena}</span>
               )}
               <small className="field-hint">
                 Mínimo 8 caracteres, debe incluir mayúsculas, minúsculas y números
@@ -395,7 +472,7 @@ function EditarDatos() {
             )}
 
             <button type="submit" className="btn-guardar" disabled={loading}>
-              {loading ? "Guardando..." : " Guardar cambios"}
+              {loading ? "Guardando..." : "✓ Guardar cambios"}
             </button>
           </form>
         </div>

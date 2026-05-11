@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import api from "../../services/api";
 import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { proveedorService } from "../../services/proveedorService";
@@ -14,13 +14,16 @@ function MiInformacion() {
     ciudad: "",
     tipo_servicio: "",
     descripcion: "",
+    logo: "",
     nueva_contrasena: "",
   });
   const [loading, setLoading] = useState(false);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
   const [mensaje, setMensaje] = useState({ tipo: "", texto: "" });
   const [errores, setErrores] = useState({});
   const [categorias, setCategorias] = useState([]);
   const [ciudades, setCiudades] = useState([]);
+  const fileInputRef = useRef(null);
   
   // Estados para tipos de eventos
   const [tiposEventosDisponibles, setTiposEventosDisponibles] = useState([]);
@@ -62,7 +65,6 @@ function MiInformacion() {
         id_tipo_evento,
       });
       
-      // Recargar mis eventos
       await cargarMisEventos();
     } catch (error) {
       console.error("Error al agregar evento:", error);
@@ -83,7 +85,6 @@ function MiInformacion() {
       setProcesandoEvento(true);
       await api.delete(`/proveedor-eventos/mis-eventos/${id_tipo_evento}`);
       
-      // Recargar mis eventos
       await cargarMisEventos();
     } catch (error) {
       console.error("Error al eliminar evento:", error);
@@ -126,6 +127,7 @@ function MiInformacion() {
         ciudad: datos.ciudad || "",
         tipo_servicio: datos.tipo_servicio || "",
         descripcion: datos.descripcion || "",
+        logo: datos.logo || "",
         nueva_contrasena: "",
       });
     } catch (error) {
@@ -133,8 +135,58 @@ function MiInformacion() {
     }
   };
 
-  // ========== VALIDACIONES ==========
+  // ⭐ NUEVO: Manejar cambio de foto de perfil
+  const handleFotoChange = async (e) => {
+    const file = e.target.files[0];
+    
+    if (!file) return;
 
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      alert('Solo se permiten imágenes');
+      return;
+    }
+
+    // Validar tamaño (2MB máximo)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('La imagen no debe superar los 2MB');
+      return;
+    }
+
+    try {
+      setUploadingFoto(true);
+
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const response = await proveedorService.actualizarFotoPerfil(formData);
+
+      // Actualizar la foto en el estado local
+      setFormData(prev => ({
+        ...prev,
+        logo: response.data.data.logo
+      }));
+
+      // Actualizar localStorage
+      const userStorage = JSON.parse(localStorage.getItem("user"));
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          ...userStorage,
+          logo: response.data.data.logo
+        })
+      );
+
+      alert('✅ Foto de perfil actualizada');
+    } catch (error) {
+      console.error('Error al actualizar foto:', error);
+      alert('Error al actualizar la foto de perfil');
+    } finally {
+      setUploadingFoto(false);
+    }
+  };
+
+  // Validaciones (mantener las existentes)
   const validarNombreNegocio = (valor) => {
     if (!valor.trim()) {
       return "El nombre del negocio es obligatorio";
@@ -364,24 +416,63 @@ function MiInformacion() {
         <h1>Editar mis datos personales</h1>
 
         <div className="informacion-content">
+          {/* ⭐ SECCIÓN DE AVATAR ACTUALIZADA */}
           <div className="avatar-section">
-            <div className="avatar-circle">
-              <svg viewBox="0 0 100 100" width="200" height="200">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="48"
-                  fill="#8ba9b5"
-                  stroke="#6b8a96"
-                  strokeWidth="2"
-                />
-                <circle cx="50" cy="40" r="18" fill="white" />
-                <path d="M 25 75 Q 25 55, 50 55 Q 75 55, 75 75" fill="white" />
-              </svg>
+            <div className="avatar-upload-wrapper">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFotoChange}
+                style={{ display: 'none' }}
+              />
+              
+              <div 
+                className="avatar-circle-clickable"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {formData.logo ? (
+                  <img 
+                    src={formData.logo} 
+                    alt="Foto de perfil" 
+                    className="avatar-image"
+                  />
+                ) : (
+                  <svg viewBox="0 0 100 100" width="200" height="200">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="48"
+                      fill="#8ba9b5"
+                      stroke="#6b8a96"
+                      strokeWidth="2"
+                    />
+                    <circle cx="50" cy="40" r="18" fill="white" />
+                    <path d="M 25 75 Q 25 55, 50 55 Q 75 55, 75 75" fill="white" />
+                  </svg>
+                )}
+                
+                {/* Overlay al hacer hover */}
+                <div className="avatar-overlay">
+                  {uploadingFoto ? (
+                    <span className="avatar-loading">⏳</span>
+                  ) : (
+                    <>
+                      <span className="avatar-icon">📷</span>
+                      <span className="avatar-text">Cambiar foto</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <p className="avatar-hint">
+                Click para cambiar • JPG, PNG • Máx 2MB
+              </p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="informacion-form">
+            {/* Resto del formulario (mantener igual) */}
             <div className="form-group">
               <input
                 type="text"
@@ -504,14 +595,13 @@ function MiInformacion() {
               </small>
             </div>
 
-            {/* ========== SECCIÓN DE TIPOS DE EVENTOS ========== */}
+            {/* SECCIÓN DE TIPOS DE EVENTOS (mantener igual) */}
             <div className="form-group">
               <label className="eventos-label">
                 Tipos de eventos que atiendo
                 <span className="eventos-hint">Selecciona los eventos en los que te especializas</span>
               </label>
 
-              {/* Eventos agregados */}
               {misEventos.length > 0 && (
                 <div className="eventos-seleccionados">
                   {misEventos.map((evento) => (
@@ -530,7 +620,6 @@ function MiInformacion() {
                 </div>
               )}
 
-              {/* Eventos disponibles */}
               <div className="eventos-disponibles">
                 {tiposEventosDisponibles
                   .filter((tipo) => !estaEventoAgregado(tipo.id_tipo_evento))

@@ -10,6 +10,14 @@ export const clienteService = {
     return await api.put("/clientes/perfil", datos);
   },
 
+  // ⭐ NUEVO: Actualizar foto de perfil
+  actualizarFotoPerfil: (formData) => 
+    api.put("/clientes/perfil/foto", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }),
+
   // ========== SERVICIOS ==========
   buscarServicios: async (params) => {
     return await api.get("/servicios/buscar", { params });
@@ -38,33 +46,33 @@ export const clienteService = {
     return await api.get(`/proveedores/publico/${id}`);
   },
 
-// ========== LISTAS ==========
-crearLista: async (datos) => {
-  return await api.post('/listas', datos);
-},
+  // ========== LISTAS ==========
+  crearLista: async (datos) => {
+    return await api.post('/listas', datos);
+  },
 
-obtenerMisListas: async () => {
-  return await api.get('/listas');
-},
+  obtenerMisListas: async () => {
+    return await api.get('/listas');
+  },
 
-obtenerListaPorId: async (idLista) => {
-  return await api.get(`/listas/${idLista}`);
-},
+  obtenerListaPorId: async (idLista) => {
+    return await api.get(`/listas/${idLista}`);
+  },
 
-actualizarLista: async (idLista, datos) => {
-  return await api.put(`/listas/${idLista}`, datos);
-},
+  actualizarLista: async (idLista, datos) => {
+    return await api.put(`/listas/${idLista}`, datos);
+  },
 
-eliminarLista: async (idLista) => {
-  return await api.delete(`/listas/${idLista}`);
-},
+  eliminarLista: async (idLista) => {
+    return await api.delete(`/listas/${idLista}`);
+  },
 
- // ========== PROVEEDORES EN LISTAS ==========
-agregarProveedorALista: async (idLista, idProveedor) => {
-  return await api.post(`/listas/${idLista}/proveedores`, {
-    id_proveedor: idProveedor,
-  });
-},
+  // ========== PROVEEDORES EN LISTAS ==========
+  agregarProveedorALista: async (idLista, idProveedor) => {
+    return await api.post(`/listas/${idLista}/proveedores`, {
+      id_proveedor: idProveedor,
+    });
+  },
 
   cambiarEstadoProveedor: async (idListaProveedor, nuevoEstado) => {
     return await api.put(
@@ -79,7 +87,7 @@ agregarProveedorALista: async (idLista, idProveedor) => {
     return await api.delete(`/listas/proveedores/${idListaProveedor}`);
   },
 
-// ========== FAVORITOS (usando listas) ==========
+  // ========== FAVORITOS (usando listas) ==========
   obtenerListaFavoritos: async () => {
     return await api.get("/listas/favoritos");
   },

@@ -1,8 +1,9 @@
 const emailService = require('../services/emailService');
 const admin = require('../config/firebase.config');
-
 const Proveedor = require('../models/Proveedor');
 const { generarToken } = require('../utils/jwt');
+const bcrypt = require('bcrypt');
+const { eliminarImagen, extraerPublicId } = require('../config/cloudinary');
 
 // Registro de proveedor
 const registrarProveedor = async (req, res) => {
@@ -41,15 +42,15 @@ const registrarProveedor = async (req, res) => {
     });
 
     // Crear en Firebase
-const firebaseUser = await admin.auth().createUser({
-  email: correo,
-  password: contrasena,
-  displayName: nombre_completo,
-  emailVerified: false
-});
+    const firebaseUser = await admin.auth().createUser({
+      email: correo,
+      password: contrasena,
+      displayName: nombre_negocio,
+      emailVerified: false
+    });
 
-// Enviar verificación
-await emailService.enviarVerificacion({ email: correo, nombre: nombre_completo });
+    // Enviar verificación
+    await emailService.enviarVerificacion({ email: correo, nombre: nombre_negocio });
 
     // Generar token
     const token = generarToken({
@@ -175,17 +176,28 @@ const actualizarPerfil = async (req, res) => {
     const id_proveedor = req.usuario.id;
     const { 
       nombre_negocio, telefono, ciudad, tipo_servicio, 
-      descripcion, logo 
+      descripcion, nueva_contrasena
     } = req.body;
 
-    const proveedorActualizado = await Proveedor.actualizarPerfil(id_proveedor, {
-      nombre_negocio,
-      telefono,
-      ciudad,
-      tipo_servicio,
-      descripcion,
-      logo
-    });
+    // Preparar datos a actualizar
+    const datosActualizar = {};
+
+    if (nombre_negocio !== undefined) datosActualizar.nombre_negocio = nombre_negocio;
+    if (telefono !== undefined) datosActualizar.telefono = telefono;
+    if (ciudad !== undefined) datosActualizar.ciudad = ciudad;
+    if (tipo_servicio !== undefined) datosActualizar.tipo_servicio = tipo_servicio;
+    if (descripcion !== undefined) datosActualizar.descripcion = descripcion;
+
+    // Si se proporciona nueva contraseña, hashearla
+    if (nueva_contrasena) {
+      const salt = await bcrypt.genSalt(10);
+      datosActualizar.contrasena = await bcrypt.hash(nueva_contrasena, salt);
+    }
+
+    const proveedorActualizado = await Proveedor.actualizarPerfil(
+      id_proveedor, 
+      datosActualizar
+    );
 
     if (!proveedorActualizado) {
       return res.status(404).json({
@@ -193,6 +205,9 @@ const actualizarPerfil = async (req, res) => {
         message: 'Proveedor no encontrado'
       });
     }
+
+    // No enviar la contraseña
+    delete proveedorActualizado.contrasena;
 
     res.json({
       success: true,
@@ -205,6 +220,75 @@ const actualizarPerfil = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al actualizar perfil',
+      error: error.message
+    });
+  }
+};
+
+// ⭐ NUEVO: Actualizar foto de perfil
+const actualizarFotoPerfil = async (req, res) => {
+  try {
+    const id_proveedor = req.usuario.id;
+
+    // Validar que se haya subido un archivo
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debes subir una imagen'
+      });
+    }
+
+    // La URL de Cloudinary viene en req.file.path
+    const nueva_foto = req.file.path;
+
+    // Obtener el proveedor para ver si tiene foto anterior
+    const proveedorActual = await Proveedor.buscarPorId(id_proveedor);
+
+    // Actualizar en la base de datos
+    const proveedorActualizado = await Proveedor.actualizarFotoPerfil(
+      id_proveedor,
+      nueva_foto
+    );
+
+    // Si tenía una foto anterior en Cloudinary, eliminarla
+    if (proveedorActual.logo && proveedorActual.logo.includes('cloudinary')) {
+      const publicId = extraerPublicId(proveedorActual.logo);
+      if (publicId) {
+        try {
+          await eliminarImagen(publicId);
+        } catch (error) {
+          console.error('Error al eliminar foto anterior de Cloudinary:', error);
+          // No fallar si no se puede eliminar la foto anterior
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Foto de perfil actualizada exitosamente',
+      data: {
+        logo: nueva_foto
+      }
+    });
+
+  } catch (error) {
+    console.error('Error en actualizarFotoPerfil:', error);
+    
+    // Si falla, intentar eliminar la imagen que se acaba de subir
+    if (req.file && req.file.path) {
+      const publicId = extraerPublicId(req.file.path);
+      if (publicId) {
+        try {
+          await eliminarImagen(publicId);
+        } catch (err) {
+          console.error('Error al eliminar imagen tras fallo:', err);
+        }
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar foto de perfil',
       error: error.message
     });
   }
@@ -294,6 +378,7 @@ module.exports = {
   loginProveedor,
   obtenerPerfil,
   actualizarPerfil,
+  actualizarFotoPerfil, // ⭐ NUEVO
   buscarProveedores,
   obtenerProveedorPublico,
   solicitarRecuperacion
