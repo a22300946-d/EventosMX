@@ -1,5 +1,6 @@
 const Galeria = require('../models/Galeria');
 const { LIMITES, MENSAJES } = require('../config/constantes');
+const { eliminarImagen, extraerPublicId } = require('../config/cloudinary');
 
 // Obtener galería de un proveedor (público)
 const obtenerGaleriaProveedor = async (req, res) => {
@@ -49,28 +50,22 @@ const obtenerMiGaleria = async (req, res) => {
   }
 };
 
-// Agregar foto a la galería
+// ⭐ NUEVO: Agregar foto CON UPLOAD A CLOUDINARY
 const agregarFoto = async (req, res) => {
   try {
     const id_proveedor = req.usuario.id;
-    const { url_foto, descripcion, orden } = req.body;
+    const { descripcion, orden } = req.body;
 
-    // Validar que se proporcione la URL
-    if (!url_foto) {
+    // Validar que se haya subido un archivo
+    if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'La URL de la foto es obligatoria'
+        message: 'Debes subir una imagen'
       });
     }
 
-    // Validar formato de URL (básico)
-    const urlRegex = /^https?:\/\/.+\.(jpg|jpeg|png|webp)(\?.*)?$/i;
-    if (!urlRegex.test(url_foto)) {
-      return res.status(400).json({
-        success: false,
-        message: MENSAJES.FORMATO_INVALIDO
-      });
-    }
+    // La URL de Cloudinary viene en req.file.path
+    const url_foto = req.file.path;
 
     // Intentar agregar la foto (el modelo verificará el límite)
     let nuevaFoto;
@@ -82,6 +77,12 @@ const agregarFoto = async (req, res) => {
         orden
       });
     } catch (error) {
+      // Si falla, eliminar la imagen de Cloudinary
+      const publicId = extraerPublicId(url_foto);
+      if (publicId) {
+        await eliminarImagen(publicId);
+      }
+
       if (error.message.startsWith('LIMITE_EXCEDIDO')) {
         const limite = error.message.split(':')[1];
         return res.status(400).json({
@@ -148,12 +149,24 @@ const actualizarFoto = async (req, res) => {
   }
 };
 
-// Eliminar foto
+// ⭐ ACTUALIZADO: Eliminar foto Y su imagen de Cloudinary
 const eliminarFoto = async (req, res) => {
   try {
     const id_proveedor = req.usuario.id;
     const { id } = req.params;
 
+    // Primero obtener la foto para tener su URL
+    const fotos = await Galeria.obtenerPorProveedor(id_proveedor);
+    const foto = fotos.find(f => f.id_foto === parseInt(id));
+
+    if (!foto) {
+      return res.status(404).json({
+        success: false,
+        message: 'Foto no encontrada'
+      });
+    }
+
+    // Eliminar de la base de datos
     const fotoEliminada = await Galeria.eliminar(id, id_proveedor);
 
     if (!fotoEliminada) {
@@ -161,6 +174,17 @@ const eliminarFoto = async (req, res) => {
         success: false,
         message: 'Foto no encontrada o no tienes permiso para eliminarla'
       });
+    }
+
+    // Eliminar de Cloudinary
+    const publicId = extraerPublicId(foto.url_foto);
+    if (publicId) {
+      try {
+        await eliminarImagen(publicId);
+      } catch (error) {
+        console.error('Error al eliminar de Cloudinary:', error);
+        // No fallar si Cloudinary falla, ya eliminamos de BD
+      }
     }
 
     const infoLimite = await Galeria.obtenerInfoLimite(id_proveedor);
@@ -187,7 +211,6 @@ const reordenarFotos = async (req, res) => {
     const id_proveedor = req.usuario.id;
     const { orden } = req.body;
 
-    // Validar que se proporcione el array de orden
     if (!Array.isArray(orden) || orden.length === 0) {
       return res.status(400).json({
         success: false,
@@ -195,7 +218,6 @@ const reordenarFotos = async (req, res) => {
       });
     }
 
-    // Validar formato del array
     const formatoValido = orden.every(item => 
       item.hasOwnProperty('id_foto') && 
       item.hasOwnProperty('orden')

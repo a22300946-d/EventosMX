@@ -42,20 +42,73 @@ class Cliente {
 
   // Actualizar perfil
   static async actualizarPerfil(id_cliente, datos) {
-    const { nombre_completo, telefono, ciudad, foto_perfil } = datos;
-    
+    const campos = [];
+    const valores = [];
+    let contador = 1;
+
+    // Construir dinámicamente la query solo con los campos proporcionados
+    if (datos.nombre_completo !== undefined) {
+      campos.push(`nombre_completo = $${contador}`);
+      valores.push(datos.nombre_completo);
+      contador++;
+    }
+
+    if (datos.telefono !== undefined) {
+      campos.push(`telefono = $${contador}`);
+      valores.push(datos.telefono);
+      contador++;
+    }
+
+    if (datos.ciudad !== undefined) {
+      campos.push(`ciudad = $${contador}`);
+      valores.push(datos.ciudad);
+      contador++;
+    }
+
+    if (datos.contrasena !== undefined) {
+      campos.push(`contrasena = $${contador}`);
+      valores.push(datos.contrasena);
+      contador++;
+    }
+
+    if (campos.length === 0) {
+      throw new Error('No hay campos para actualizar');
+    }
+
+    // Agregar el ID al final
+    valores.push(id_cliente);
+
     const query = `
       UPDATE Cliente 
-      SET nombre_completo = COALESCE($1, nombre_completo),
-          telefono = COALESCE($2, telefono),
-          ciudad = COALESCE($3, ciudad),
-          foto_perfil = COALESCE($4, foto_perfil)
-      WHERE id_cliente = $5
+      SET ${campos.join(', ')}
+      WHERE id_cliente = $${contador}
       RETURNING id_cliente, nombre_completo, correo, telefono, ciudad, foto_perfil
     `;
     
-    const valores = [nombre_completo, telefono, ciudad, foto_perfil, id_cliente];
     const resultado = await pool.query(query, valores);
+    return resultado.rows[0];
+  }
+
+  // ⭐ NUEVO: Actualizar solo la foto de perfil
+  static async actualizarFotoPerfil(id_cliente, foto_perfil) {
+    const query = `
+      UPDATE cliente
+      SET foto_perfil = $1
+      WHERE id_cliente = $2
+      RETURNING 
+        id_cliente,
+        nombre_completo,
+        correo,
+        telefono,
+        ciudad,
+        foto_perfil,
+        fecha_registro,
+        estado_cuenta
+    `;
+    
+    const valores = [foto_perfil, id_cliente];
+    const resultado = await pool.query(query, valores);
+    
     return resultado.rows[0];
   }
 

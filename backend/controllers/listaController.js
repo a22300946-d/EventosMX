@@ -1,4 +1,5 @@
 const Lista = require('../models/Lista');
+const pool = require('../config/database');
 
 // Crear nueva lista
 const crearLista = async (req, res) => {
@@ -40,7 +41,6 @@ const crearLista = async (req, res) => {
 const obtenerMisListas = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
-
     const listas = await Lista.obtenerPorCliente(id_cliente);
 
     res.json({
@@ -96,37 +96,82 @@ const obtenerListaPorId = async (req, res) => {
   }
 };
 
-// Actualizar lista
+// Actualizar lista (renombrar) - VERSIÓN ÚNICA Y COMPLETA
 const actualizarLista = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
     const { id } = req.params;
     const { nombre_lista, descripcion } = req.body;
 
-    const listaActualizada = await Lista.actualizar(id, id_cliente, {
-      nombre_lista,
-      descripcion
-    });
+    console.log('Actualizando lista:', { id, nombre_lista, descripcion, id_cliente });
 
-    if (!listaActualizada) {
-      return res.status(404).json({
+    // Validar datos
+    if (!nombre_lista || nombre_lista.trim().length < 3) {
+      return res.status(400).json({
         success: false,
-        message: 'Lista no encontrada'
+        message: 'El nombre de la lista debe tener al menos 3 caracteres',
       });
     }
 
+    if (nombre_lista.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'El nombre no puede exceder 100 caracteres',
+      });
+    }
+
+    // Evitar renombrar a "Favoritos"
+    if (nombre_lista.trim().toLowerCase() === 'favoritos') {
+      return res.status(400).json({
+        success: false,
+        message: 'El nombre "Favoritos" está reservado para el sistema',
+      });
+    }
+
+    // Verificar que la lista pertenece al cliente
+    const lista = await Lista.obtenerPorId(id, id_cliente);
+    
+    if (!lista) {
+      return res.status(404).json({
+        success: false,
+        message: 'Lista no encontrada',
+      });
+    }
+
+    // Evitar renombrar la lista de Favoritos
+    if (lista.nombre_lista === 'Favoritos') {
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede renombrar la lista de Favoritos',
+      });
+    }
+
+    // Actualizar la lista
+    const listaActualizada = await Lista.actualizar(id, id_cliente, {
+      nombre_lista: nombre_lista.trim(),
+      descripcion: descripcion?.trim() || null,
+    });
+
     res.json({
       success: true,
-      message: 'Lista actualizada exitosamente',
-      data: listaActualizada
+      message: 'Lista actualizada correctamente',
+      data: listaActualizada,
     });
 
   } catch (error) {
     console.error('Error en actualizarLista:', error);
+
+    if (error.code === '23505') {
+      return res.status(409).json({
+        success: false,
+        message: 'Ya existe una lista con ese nombre',
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Error al actualizar lista',
-      error: error.message
+      message: 'Error al actualizar la lista',
+      error: error.message,
     });
   }
 };
@@ -161,60 +206,82 @@ const eliminarLista = async (req, res) => {
   }
 };
 
-// Agregar proveedor a la lista
-const agregarProveedor = async (req, res) => {
+// Agregar proveedor a una lista
+const agregarProveedorALista = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
-    const { id } = req.params;
-    const { id_proveedor, notas } = req.body;
+    const { id } = req.params; // id_lista
+    const { id_proveedor } = req.body;
 
+    console.log('Agregar proveedor a lista:', {
+      id_lista: id,
+      id_proveedor,
+      id_cliente
+    });
+
+    // Validar datos
     if (!id_proveedor) {
       return res.status(400).json({
         success: false,
-        message: 'El ID del proveedor es obligatorio'
+        message: 'El id_proveedor es obligatorio',
       });
     }
 
-    try {
-      const proveedorAgregado = await Lista.agregarProveedor(
-        id,
-        id_proveedor,
-        id_cliente,
-        notas
-      );
-
-      res.status(201).json({
-        success: true,
-        message: 'Proveedor agregado a la lista exitosamente',
-        data: proveedorAgregado
+    // Verificar que la lista pertenece al cliente
+    const lista = await Lista.obtenerPorId(id, id_cliente);
+    
+    if (!lista) {
+      return res.status(404).json({
+        success: false,
+        message: 'Lista no encontrada',
       });
-
-    } catch (error) {
-      if (error.message.includes('ya está en esta lista')) {
-        return res.status(400).json({
-          success: false,
-          message: error.message
-        });
-      }
-      throw error;
     }
+
+    // Agregar el proveedor a la lista
+    const proveedorAgregado = await Lista.agregarProveedor(
+      id,
+      id_proveedor,
+      id_cliente,
+      null // notas
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Proveedor agregado a la lista',
+      data: proveedorAgregado,
+    });
 
   } catch (error) {
-    console.error('Error en agregarProveedor:', error);
+    console.error('Error en agregarProveedorALista:', error);
+
+    if (error.code === '23503') {
+      return res.status(404).json({
+        success: false,
+        message: 'El proveedor no existe',
+      });
+    }
+
+    if (error.message === 'El proveedor ya está en esta lista') {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Error al agregar proveedor',
-      error: error.message
+      message: 'Error al agregar proveedor a la lista',
+      error: error.message,
     });
   }
 };
 
-// Actualizar estado del proveedor en la lista
-const actualizarEstadoProveedor = async (req, res) => {
+// Cambiar estado del proveedor en la lista
+const cambiarEstadoProveedor = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
-    const { id_lista_proveedor } = req.params;
-    const { estado, notas } = req.body;
+    const { id } = req.params; // id_lista_proveedor
+    const { estado } = req.body;
 
     // Validar estado
     const estadosValidos = ['Pendiente', 'Adquirido'];
@@ -226,10 +293,9 @@ const actualizarEstadoProveedor = async (req, res) => {
     }
 
     const proveedorActualizado = await Lista.actualizarEstadoProveedor(
-      id_lista_proveedor,
+      id,
       id_cliente,
-      estado,
-      notas
+      estado
     );
 
     if (!proveedorActualizado) {
@@ -246,7 +312,7 @@ const actualizarEstadoProveedor = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error en actualizarEstadoProveedor:', error);
+    console.error('Error en cambiarEstadoProveedor:', error);
     res.status(500).json({
       success: false,
       message: 'Error al actualizar estado',
@@ -255,50 +321,14 @@ const actualizarEstadoProveedor = async (req, res) => {
   }
 };
 
-// Actualizar notas del proveedor
-const actualizarNotasProveedor = async (req, res) => {
+// Eliminar proveedor de una lista
+const eliminarProveedorDeLista = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
-    const { id_lista_proveedor } = req.params;
-    const { notas } = req.body;
+    const { id } = req.params; // id_lista_proveedor
 
-    const proveedorActualizado = await Lista.actualizarNotasProveedor(
-      id_lista_proveedor,
-      id_cliente,
-      notas
-    );
-
-    if (!proveedorActualizado) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proveedor no encontrado en la lista'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Notas actualizadas exitosamente',
-      data: proveedorActualizado
-    });
-
-  } catch (error) {
-    console.error('Error en actualizarNotasProveedor:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar notas',
-      error: error.message
-    });
-  }
-};
-
-// Eliminar proveedor de la lista
-const eliminarProveedor = async (req, res) => {
-  try {
-    const id_cliente = req.usuario.id;
-    const { id_lista_proveedor } = req.params;
-
-    const proveedorEliminado = await Lista.eliminarProveedor(
-      id_lista_proveedor,
+    const proveedorEliminado = await Lista.eliminarProveedorDeLista(
+      id,
       id_cliente
     );
 
@@ -315,7 +345,7 @@ const eliminarProveedor = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error en eliminarProveedor:', error);
+    console.error('Error en eliminarProveedorDeLista:', error);
     res.status(500).json({
       success: false,
       message: 'Error al eliminar proveedor',
@@ -324,54 +354,188 @@ const eliminarProveedor = async (req, res) => {
   }
 };
 
-// Duplicar lista
-const duplicarLista = async (req, res) => {
+// ========== CONTROLADORES DE FAVORITOS ==========
+
+// Obtener lista de Favoritos
+const obtenerListaFavoritos = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
-    const { id } = req.params;
-    const { nuevo_nombre } = req.body;
 
-    if (!nuevo_nombre) {
-      return res.status(400).json({
-        success: false,
-        message: 'Debe proporcionar un nombre para la nueva lista'
-      });
-    }
+    // Obtener o crear la lista de favoritos
+    const listaFavoritos = await Lista.obtenerOCrearListaFavoritos(id_cliente);
 
-    const listaDuplicada = await Lista.duplicar(id, id_cliente, nuevo_nombre);
+    // Obtener los proveedores de la lista
+    const proveedores = await Lista.obtenerProveedoresDeLista(
+      listaFavoritos.id_lista,
+      id_cliente
+    );
 
-    if (!listaDuplicada) {
-      return res.status(404).json({
-        success: false,
-        message: 'Lista no encontrada'
-      });
-    }
-
-    res.status(201).json({
+    res.json({
       success: true,
-      message: 'Lista duplicada exitosamente',
-      data: listaDuplicada
+      data: {
+        lista: listaFavoritos,
+        proveedores: proveedores || [],
+      },
     });
-
   } catch (error) {
-    console.error('Error en duplicarLista:', error);
+    console.error('Error en obtenerListaFavoritos:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al duplicar lista',
-      error: error.message
+      message: 'Error al obtener favoritos',
+      error: error.message,
     });
   }
 };
 
+// Agregar proveedor a Favoritos
+const agregarProveedorAFavoritos = async (req, res) => {
+  try {
+    const id_cliente = req.usuario.id;
+    const { id_proveedor } = req.body;
+
+    if (!id_proveedor) {
+      return res.status(400).json({
+        success: false,
+        message: 'El id_proveedor es obligatorio',
+      });
+    }
+
+    // Obtener o crear la lista de favoritos
+    const listaFavoritos = await Lista.obtenerOCrearListaFavoritos(id_cliente);
+
+    // Verificar si ya está en favoritos
+    const yaExiste = await Lista.verificarProveedorEnFavoritos(
+      id_cliente,
+      id_proveedor
+    );
+
+    if (yaExiste) {
+      return res.status(409).json({
+        success: false,
+        message: 'Este proveedor ya está en favoritos',
+      });
+    }
+
+    // Agregar el proveedor a la lista
+    const proveedorAgregado = await Lista.agregarProveedor(
+      listaFavoritos.id_lista,
+      id_proveedor,
+      id_cliente,
+      null
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Proveedor agregado a favoritos',
+      data: proveedorAgregado,
+    });
+  } catch (error) {
+    console.error('Error en agregarProveedorAFavoritos:', error);
+
+    if (error.code === '23503') {
+      return res.status(404).json({
+        success: false,
+        message: 'El proveedor no existe',
+      });
+    }
+
+    if (error.message === 'El proveedor ya está en esta lista') {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Error al agregar a favoritos',
+      error: error.message,
+    });
+  }
+};
+
+// Eliminar proveedor de Favoritos
+const eliminarProveedorDeFavoritos = async (req, res) => {
+  try {
+    const id_cliente = req.usuario.id;
+    const { id } = req.params; // id_lista_proveedor
+
+    // Verificar que pertenece a la lista de favoritos del cliente
+    const query = `
+      SELECT lp.id_lista_proveedor
+      FROM ListaProveedor lp
+      INNER JOIN Lista l ON lp.id_lista = l.id_lista
+      WHERE lp.id_lista_proveedor = $1
+        AND l.id_cliente = $2
+        AND l.nombre_lista = 'Favoritos'
+    `;
+
+    const resultado = await pool.query(query, [id, id_cliente]);
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Favorito no encontrado',
+      });
+    }
+
+    // Eliminar usando el método del modelo
+    await Lista.eliminarProveedorDeLista(id, id_cliente);
+
+    res.json({
+      success: true,
+      message: 'Proveedor eliminado de favoritos',
+    });
+  } catch (error) {
+    console.error('Error en eliminarProveedorDeFavoritos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar de favoritos',
+      error: error.message,
+    });
+  }
+};
+
+// Verificar si un proveedor está en favoritos
+const verificarProveedorEnFavoritos = async (req, res) => {
+  try {
+    const id_cliente = req.usuario.id;
+    const { id_proveedor } = req.params;
+
+    const favorito = await Lista.verificarProveedorEnFavoritos(
+      id_cliente,
+      id_proveedor
+    );
+
+    res.json({
+      success: true,
+      data: {
+        es_favorito: !!favorito,
+        id_lista_proveedor: favorito?.id_lista_proveedor || null,
+      },
+    });
+  } catch (error) {
+    console.error('Error en verificarProveedorEnFavoritos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al verificar favorito',
+      error: error.message,
+    });
+  }
+};
+
+// ========== EXPORTACIONES ==========
 module.exports = {
   crearLista,
   obtenerMisListas,
   obtenerListaPorId,
   actualizarLista,
   eliminarLista,
-  agregarProveedor,
-  actualizarEstadoProveedor,
-  actualizarNotasProveedor,
-  eliminarProveedor,
-  duplicarLista
+  agregarProveedorALista,
+  cambiarEstadoProveedor,
+  eliminarProveedorDeLista,
+  obtenerListaFavoritos,
+  agregarProveedorAFavoritos,
+  eliminarProveedorDeFavoritos,
+  verificarProveedorEnFavoritos
 };

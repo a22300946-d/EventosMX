@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
 import Layout from "../../components/Layout";
 import api from "../../services/api";
+import { clienteService } from "../../services/clienteService";
 import "./PerfilProveedor.css";
 
 function PerfilProveedor() {
@@ -17,6 +18,13 @@ function PerfilProveedor() {
   const [resenas, setResenas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tabActiva, setTabActiva] = useState("servicios");
+
+  // ✅ Estados para filtros de reseñas
+  const [filtroSentimiento, setFiltroSentimiento] = useState("todos"); // todos, positivo, neutro, negativo
+  const [ordenResenas, setOrdenResenas] = useState("recientes"); // recientes, mejores, peores
+
+  // Estados para tipos de eventos
+  const [eventosProveedor, setEventosProveedor] = useState([]);
 
   // Estados para modal de imagen
   const [imagenModalAbierta, setImagenModalAbierta] = useState(false);
@@ -39,27 +47,71 @@ function PerfilProveedor() {
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
   const [mesCalendario, setMesCalendario] = useState(new Date());
 
+  // Estados para listas
+  const [mostrarModalListas, setMostrarModalListas] = useState(false);
+  const [listasDisponibles, setListasDisponibles] = useState([]);
+  const [listaSeleccionada, setListaSeleccionada] = useState("");
+  const [agregandoALista, setAgregandoALista] = useState(false);
+
+  // Estados para favoritos
+  const [esFavorito, setEsFavorito] = useState(false);
+  const [idFavorito, setIdFavorito] = useState(null);
+  const [procesandoFavorito, setProcesandoFavorito] = useState(false);
+
   // Constantes para el calendario
   const meses = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
   ];
   const diasSemana = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 
   // Effect para cargar datos iniciales
   useEffect(() => {
     cargarDatosProveedor();
+    verificarSiEsFavorito();
   }, [id]);
+
+  // ✅ Función para obtener sentimiento basado en calificación
+  const obtenerSentimiento = (calificacion) => {
+    const cal = parseFloat(calificacion || 0);
+    if (cal >= 0.625) return "positivo";
+    if (cal <= 0.375) return "negativo";
+    return "neutro";
+  };
+
+  // ✅ Función para filtrar y ordenar reseñas
+  const obtenerResenasFiltradas = () => {
+    let resenasFiltradas = [...resenas];
+
+    // Filtrar por sentimiento
+    if (filtroSentimiento !== "todos") {
+      resenasFiltradas = resenasFiltradas.filter(resena => 
+        obtenerSentimiento(resena.calificacion) === filtroSentimiento
+      );
+    }
+
+    // Ordenar
+    if (ordenResenas === "mejores") {
+      resenasFiltradas.sort((a, b) => parseFloat(b.calificacion || 0) - parseFloat(a.calificacion || 0));
+    } else if (ordenResenas === "peores") {
+      resenasFiltradas.sort((a, b) => parseFloat(a.calificacion || 0) - parseFloat(b.calificacion || 0));
+    } else {
+      // Recientes (por defecto)
+      resenasFiltradas.sort((a, b) => {
+        const fechaA = new Date(a.fecha_resena || a.fecha_publicacion);
+        const fechaB = new Date(b.fecha_resena || b.fecha_publicacion);
+        return fechaB - fechaA;
+      });
+    }
+
+    return resenasFiltradas;
+  };
+
+  // ✅ Contar reseñas por sentimiento
+  const contarPorSentimiento = (sentimiento) => {
+    if (sentimiento === "todos") return resenas.length;
+    return resenas.filter(r => obtenerSentimiento(r.calificacion) === sentimiento).length;
+  };
 
   // ========== FUNCIONES DE CARGA DE DATOS ==========
 
@@ -70,6 +122,17 @@ function PerfilProveedor() {
       // Cargar datos del proveedor
       const responseProveedor = await api.get(`/proveedores/publico/${id}`);
       setProveedor(responseProveedor.data.data);
+
+      // Cargar tipos de eventos del proveedor
+      try {
+        const responseEventos = await api.get(
+          `/proveedor-eventos/proveedor/${id}/eventos`,
+        );
+        setEventosProveedor(responseEventos.data.data || []);
+      } catch (error) {
+        console.error("Error al cargar eventos:", error);
+        setEventosProveedor([]);
+      }
 
       // Cargar servicios
       try {
@@ -85,6 +148,7 @@ function PerfilProveedor() {
         );
         setServicios(serviciosFiltrados);
       } catch (error) {
+        console.error("Error al cargar servicios:", error);
         setServicios([]);
       }
 
@@ -93,6 +157,7 @@ function PerfilProveedor() {
         const responseGaleria = await api.get(`/galeria/proveedor/${id}`);
         setGaleria(responseGaleria.data.data || []);
       } catch (error) {
+        console.error("Error al cargar galería:", error);
         setGaleria([]);
       }
 
@@ -103,6 +168,7 @@ function PerfilProveedor() {
         );
         setPromociones(responsePromociones.data.data || []);
       } catch (error) {
+        console.error("Error al cargar promociones:", error);
         setPromociones([]);
       }
 
@@ -111,9 +177,11 @@ function PerfilProveedor() {
         const responseResenas = await api.get(`/resenas/proveedor/${id}`);
         setResenas(responseResenas.data.data || []);
       } catch (error) {
+        console.error("Error al cargar reseñas:", error);
         setResenas([]);
       }
     } catch (error) {
+      console.error("Error al cargar datos del proveedor:", error);
     } finally {
       setLoading(false);
     }
@@ -124,10 +192,10 @@ function PerfilProveedor() {
       const hoy = new Date();
       const fechaInicio = hoy.toISOString().split("T")[0];
 
-      // Obtener fechas para los próximos 12 meses
       const fechaFin = new Date();
       fechaFin.setMonth(fechaFin.getMonth() + 12);
       const fechaFinStr = fechaFin.toISOString().split("T")[0];
+
       const response = await api.get(
         `/calendario/proveedor/${idProveedor}/disponibilidad`,
         {
@@ -138,28 +206,119 @@ function PerfilProveedor() {
         },
       );
 
-      // Filtrar solo las fechas NO disponibles y normalizar formato
       const bloqueadas = response.data.data
-        .filter((fecha) => {
-          return fecha.disponible === false;
-        })
+        .filter((fecha) => fecha.disponible === false)
         .map((fecha) => {
-          // Normalizar formato: extraer solo YYYY-MM-DD
           let fechaStr = fecha.fecha;
-
-          // Si viene como objeto Date o con timestamp, extraer solo la fecha
           if (typeof fechaStr === "string" && fechaStr.includes("T")) {
             fechaStr = fechaStr.split("T")[0];
           } else if (fechaStr instanceof Date) {
             fechaStr = fechaStr.toISOString().split("T")[0];
           }
-
           return fechaStr;
         });
 
       setFechasBloqueadas(bloqueadas);
     } catch (error) {
+      console.error("Error al cargar fechas bloqueadas:", error);
       setFechasBloqueadas([]);
+    }
+  };
+
+  // ========== FUNCIONES DE FAVORITOS ==========
+
+  const verificarSiEsFavorito = async () => {
+    try {
+      const response = await clienteService.verificarSiEsFavorito(id);
+
+      if (response.data.data.es_favorito) {
+        setEsFavorito(true);
+        setIdFavorito(response.data.data.id_lista_proveedor);
+      } else {
+        setEsFavorito(false);
+        setIdFavorito(null);
+      }
+    } catch (error) {
+      console.log("No se pudo verificar favoritos");
+    }
+  };
+
+  const toggleFavorito = async () => {
+    try {
+      setProcesandoFavorito(true);
+
+      if (esFavorito) {
+        await clienteService.eliminarDeFavoritos(idFavorito);
+        setEsFavorito(false);
+        setIdFavorito(null);
+      } else {
+        const response = await clienteService.agregarAFavoritos(parseInt(id));
+        setEsFavorito(true);
+        setIdFavorito(response.data.data.id_lista_proveedor);
+      }
+    } catch (error) {
+      console.error("Error al gestionar favorito:", error);
+      if (error.response?.status === 401) {
+        alert("⚠️ Debes iniciar sesión para guardar favoritos");
+        navigate("/login");
+      } else {
+        alert("❌ Error al actualizar favoritos");
+      }
+    } finally {
+      setProcesandoFavorito(false);
+    }
+  };
+
+  // ========== FUNCIONES DE LISTAS ==========
+
+  const cargarListasCliente = async () => {
+    try {
+      const response = await clienteService.obtenerMisListas();
+      setListasDisponibles(response.data.data || []);
+      setMostrarModalListas(true);
+    } catch (error) {
+      console.error("Error al cargar listas:", error);
+      if (error.response?.status === 401) {
+        alert("⚠️ Debes iniciar sesión para agregar a listas");
+        navigate("/login");
+      } else {
+        alert("❌ Error al cargar tus listas");
+      }
+    }
+  };
+
+  const agregarALista = async () => {
+    if (!listaSeleccionada) {
+      alert("⚠️ Selecciona una lista");
+      return;
+    }
+
+    try {
+      setAgregandoALista(true);
+
+      await clienteService.agregarProveedorALista(
+        parseInt(listaSeleccionada),
+        parseInt(proveedor.id_proveedor),
+      );
+
+      alert("✅ Proveedor agregado a la lista");
+      setMostrarModalListas(false);
+      setListaSeleccionada("");
+    } catch (error) {
+      console.error("Error al agregar a lista:", error);
+
+      if (error.response?.status === 409) {
+        alert("⚠️ Este proveedor ya está en esa lista");
+      } else if (error.response?.status === 401) {
+        alert("⚠️ Debes iniciar sesión para agregar a listas");
+        navigate("/login");
+      } else if (error.response?.status === 400) {
+        alert(`⚠️ ${error.response.data.message || "Datos inválidos"}`);
+      } else {
+        alert("❌ Error al agregar a la lista");
+      }
+    } finally {
+      setAgregandoALista(false);
     }
   };
 
@@ -186,16 +345,16 @@ function PerfilProveedor() {
     const year = mesCalendario.getFullYear();
     const month = mesCalendario.getMonth();
 
-    // Verificar si es fecha pasada
     if (esFechaPasada(year, month, dia)) {
       return;
     }
 
     const fechaStr = `${year}-${(month + 1).toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
 
-    // Verificar si está bloqueada
     if (esFechaBloqueada(fechaStr)) {
-      alert(" Esta fecha no está disponible. Por favor selecciona otra fecha.");
+      alert(
+        "⚠️ Esta fecha no está disponible. Por favor selecciona otra fecha.",
+      );
       return;
     }
 
@@ -218,14 +377,12 @@ function PerfilProveedor() {
     const primerDiaSemana =
       primerDia.getDay() === 0 ? 6 : primerDia.getDay() - 1;
 
-    // Días vacíos antes del primer día
     for (let i = 0; i < primerDiaSemana; i++) {
       diasMes.push(
         <div key={`empty-${i}`} className="calendario-dia-modal vacio"></div>,
       );
     }
 
-    // Días del mes
     for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
       const fechaStr = `${year}-${(month + 1).toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
       const bloqueado = esFechaBloqueada(fechaStr);
@@ -290,7 +447,6 @@ function PerfilProveedor() {
 
   const handleCambioFormulario = (e) => {
     const { name, value } = e.target;
-
     setFormularioSolicitud((prev) => ({
       ...prev,
       [name]: value,
@@ -298,35 +454,31 @@ function PerfilProveedor() {
   };
 
   const handleEnviarSolicitud = async () => {
-    // Validar campos obligatorios
     if (!formularioSolicitud.fecha_evento || !formularioSolicitud.tipo_evento) {
       alert(
-        " Por favor completa los campos obligatorios: Fecha del evento y Tipo de evento",
+        "⚠️ Por favor completa los campos obligatorios: Fecha del evento y Tipo de evento",
       );
       return;
     }
 
-    // Validar que haya al menos un servicio seleccionado
     if (serviciosSeleccionados.length === 0) {
-      alert(" Por favor selecciona al menos un servicio para tu evento");
+      alert("⚠️ Por favor selecciona al menos un servicio para tu evento");
       return;
     }
 
-    // Validar que la fecha no esté bloqueada
     if (esFechaBloqueada(formularioSolicitud.fecha_evento)) {
       alert(
-        " La fecha seleccionada no está disponible. Por favor elige otra fecha.",
+        "⚠️ La fecha seleccionada no está disponible. Por favor elige otra fecha.",
       );
       return;
     }
 
-    // Validar que la fecha sea futura
     const fechaEvento = new Date(formularioSolicitud.fecha_evento);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
     if (fechaEvento < hoy) {
-      alert(" La fecha del evento debe ser futura");
+      alert("⚠️ La fecha del evento debe ser futura");
       return;
     }
 
@@ -348,22 +500,29 @@ function PerfilProveedor() {
         servicios_solicitados: serviciosSeleccionados,
       };
 
-      await api.post("/solicitudes", datos);
+      const response = await api.post("/solicitudes", datos);
+      const nuevaSolicitud = response.data.data;
+      const id_solicitud = nuevaSolicitud.id_solicitud;
+
+      handleCerrarModalCotizacion();
 
       alert(
-        " ¡Solicitud enviada exitosamente! El proveedor te responderá pronto.",
+        "✅ ¡Solicitud enviada exitosamente! Ahora puedes chatear con el proveedor.",
       );
-      handleCerrarModalCotizacion();
+
+      navigate(`/chat/${id_solicitud}`);
     } catch (error) {
       console.error("Error al enviar solicitud:", error);
 
       if (error.response?.status === 401) {
-        alert(" Debes iniciar sesión para solicitar una cotización");
+        alert("⚠️ Debes iniciar sesión para solicitar una cotización");
         navigate("/login");
       } else if (error.response?.data?.message) {
-        alert(` ${error.response.data.message}`);
+        alert(`❌ ${error.response.data.message}`);
       } else {
-        alert(" Error al enviar la solicitud. Por favor, intenta nuevamente.");
+        alert(
+          "❌ Error al enviar la solicitud. Por favor, intenta nuevamente.",
+        );
       }
     } finally {
       setEnviandoSolicitud(false);
@@ -441,6 +600,9 @@ function PerfilProveedor() {
   const calificacion = parseFloat(proveedor.calificacion_promedio) || 0;
   const calificacionDe5 = calificacion * 5;
 
+  // ✅ Obtener reseñas filtradas y ordenadas
+  const resenasMostradas = obtenerResenasFiltradas();
+
   // ========== RENDERIZADO PRINCIPAL ==========
 
   return (
@@ -464,8 +626,17 @@ function PerfilProveedor() {
             <div className="perfil-info-principal">
               <div className="perfil-titulo">
                 <h1>{proveedor.nombre_negocio}</h1>
-                <button className="btn-favorito-grande">
-                  <span className="icono-corazon">♡</span>
+                <button
+                  className={`btn-favorito-grande ${esFavorito ? "favorito-activo" : ""}`}
+                  onClick={toggleFavorito}
+                  disabled={procesandoFavorito}
+                  title={
+                    esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"
+                  }
+                >
+                  <span className="icono-corazon">
+                    {esFavorito ? "♥" : "♡"}
+                  </span>
                 </button>
               </div>
 
@@ -509,7 +680,12 @@ function PerfilProveedor() {
                 >
                   Solicitar Cotización
                 </button>
-                <button className="btn-secundario">Enviar Mensaje</button>
+                <button
+                  className="btn-agregar-lista"
+                  onClick={cargarListasCliente}
+                >
+                  + Agregar a lista
+                </button>
               </div>
             </div>
           </div>
@@ -520,6 +696,23 @@ function PerfilProveedor() {
           <div className="perfil-seccion descripcion-seccion">
             <h2>Acerca de nosotros</h2>
             <p>{proveedor.descripcion}</p>
+          </div>
+        )}
+
+        {/* SECCIÓN DE TIPOS DE EVENTOS */}
+        {eventosProveedor.length > 0 && (
+          <div className="perfil-seccion eventos-seccion">
+            <h2>Tipos de eventos que atendemos</h2>
+            <div className="eventos-tags-container">
+              {eventosProveedor.map((evento) => (
+                <span key={evento.id_tipo_evento} className="evento-tag-perfil">
+                  <span className="evento-icono-perfil">{evento.icono}</span>
+                  <span className="evento-nombre-perfil">
+                    {evento.nombre_evento}
+                  </span>
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
@@ -660,17 +853,72 @@ function PerfilProveedor() {
             </div>
           )}
 
-          {/* Tab Reseñas */}
+          {/* ✅ Tab Reseñas CON FILTROS */}
           {tabActiva === "resenas" && (
             <div className="tab-panel">
-              <h2>Opiniones de Clientes</h2>
+              <div className="resenas-header-section">
+                <h2>Opiniones de Clientes</h2>
+                
+                {/* ✅ CONTROLES DE FILTRADO */}
+                {resenas.length > 0 && (
+                  <div className="resenas-controles">
+                    {/* Filtro por sentimiento */}
+                    <div className="filtro-sentimiento">
+                      <button
+                        className={`btn-filtro ${filtroSentimiento === "todos" ? "activo" : ""}`}
+                        onClick={() => setFiltroSentimiento("todos")}
+                      >
+                        Todas ({contarPorSentimiento("todos")})
+                      </button>
+                      <button
+                        className={`btn-filtro btn-positivo ${filtroSentimiento === "positivo" ? "activo" : ""}`}
+                        onClick={() => setFiltroSentimiento("positivo")}
+                      >
+                        😊 Positivas ({contarPorSentimiento("positivo")})
+                      </button>
+                      <button
+                        className={`btn-filtro btn-neutro ${filtroSentimiento === "neutro" ? "activo" : ""}`}
+                        onClick={() => setFiltroSentimiento("neutro")}
+                      >
+                        😐 Neutras ({contarPorSentimiento("neutro")})
+                      </button>
+                      <button
+                        className={`btn-filtro btn-negativo ${filtroSentimiento === "negativo" ? "activo" : ""}`}
+                        onClick={() => setFiltroSentimiento("negativo")}
+                      >
+                        😞 Negativas ({contarPorSentimiento("negativo")})
+                      </button>
+                    </div>
+
+                    {/* Ordenamiento */}
+                    <div className="filtro-ordenamiento">
+                      <label>Ordenar por:</label>
+                      <select 
+                        value={ordenResenas} 
+                        onChange={(e) => setOrdenResenas(e.target.value)}
+                        className="select-ordenamiento"
+                      >
+                        <option value="recientes">Más recientes</option>
+                        <option value="mejores">Mejor calificadas</option>
+                        <option value="peores">Peor calificadas</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Lista de reseñas filtradas */}
               {resenas.length === 0 ? (
                 <p className="mensaje-vacio">
                   Aún no hay reseñas para este proveedor
                 </p>
+              ) : resenasMostradas.length === 0 ? (
+                <p className="mensaje-vacio">
+                  No hay reseñas que coincidan con los filtros seleccionados
+                </p>
               ) : (
                 <div className="resenas-lista">
-                  {resenas.map((resena) => {
+                  {resenasMostradas.map((resena) => {
                     const badge = getBadge(resena.calificacion);
                     return (
                       <div key={resena.id_resena} className="resena-card">
@@ -723,7 +971,6 @@ function PerfilProveedor() {
                             {badge.text}
                           </span>
                         </div>
-
                         <p className="resena-comentario">{resena.comentario}</p>
                       </div>
                     );
@@ -747,7 +994,7 @@ function PerfilProveedor() {
         </div>
       )}
 
-      {/* Modal de Solicitar Cotización */}
+      {/* ✅ MODAL DE SOLICITAR COTIZACIÓN - COMPLETO */}
       {modalCotizacionAbierto && (
         <div className="modal-overlay" onClick={handleCerrarModalCotizacion}>
           <div
@@ -755,7 +1002,7 @@ function PerfilProveedor() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h2> Solicitar Cotización</h2>
+              <h2>📋 Solicitar Cotización</h2>
               <button
                 className="btn-cerrar-modal"
                 onClick={handleCerrarModalCotizacion}
@@ -940,7 +1187,8 @@ function PerfilProveedor() {
                   <p className="servicios-seleccionados-count">
                     {serviciosSeleccionados.length} servicio
                     {serviciosSeleccionados.length !== 1 ? "s" : ""}{" "}
-                    seleccionado{serviciosSeleccionados.length !== 1 ? "s" : ""}
+                    seleccionado
+                    {serviciosSeleccionados.length !== 1 ? "s" : ""}
                   </p>
                 )}
               </div>
@@ -972,6 +1220,7 @@ function PerfilProveedor() {
                     value={formularioSolicitud.presupuesto_estimado}
                     onChange={handleCambioFormulario}
                     min="0"
+                    max="99999999.99"
                     step="0.01"
                     placeholder="Ej: 50000"
                     className="form-control"
@@ -986,22 +1235,20 @@ function PerfilProveedor() {
                 </label>
                 <textarea
                   id="descripcion_solicitud"
+                  id="descripcion_solicitud"
                   name="descripcion_solicitud"
                   value={formularioSolicitud.descripcion_solicitud}
                   onChange={handleCambioFormulario}
                   rows="4"
-                  placeholder="Cuéntanos más detalles sobre tu evento..."
+                  placeholder="Cuéntanos más sobre tu evento, preferencias especiales, horarios, etc."
                   className="form-control"
-                />
+                ></textarea>
               </div>
-
-              <p className="campos-obligatorios-nota">
-                <span className="campo-obligatorio">*</span> Campos obligatorios
-              </p>
             </div>
 
             <div className="modal-footer">
               <button
+                type="button"
                 className="btn-cancelar"
                 onClick={handleCerrarModalCotizacion}
                 disabled={enviandoSolicitud}
@@ -1009,12 +1256,112 @@ function PerfilProveedor() {
                 Cancelar
               </button>
               <button
+                type="button"
                 className="btn-enviar-solicitud"
                 onClick={handleEnviarSolicitud}
                 disabled={enviandoSolicitud}
               >
-                {enviandoSolicitud ? "Enviando..." : " Enviar Solicitud"}
+                {enviandoSolicitud ? "Enviando..." : "Enviar Solicitud"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ MODAL DE AGREGAR A LISTA - COMPLETO */}
+      {mostrarModalListas && (
+        <div
+          className="modal-overlay"
+          onClick={() => setMostrarModalListas(false)}
+        >
+          <div className="modal-listas" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📋 Agregar a Lista</h2>
+              <button
+                className="btn-cerrar-modal"
+                onClick={() => setMostrarModalListas(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p className="modal-descripcion">
+                Selecciona la lista donde deseas agregar a{" "}
+                {proveedor?.nombre_negocio}
+              </p>
+
+              {listasDisponibles.length === 0 ? (
+                <div className="sin-listas">
+                  <p>
+                    📝 Aún no tienes listas creadas. Ve a "Mis Eventos" para
+                    crear una nueva lista.
+                  </p>
+                  <button
+                    className="btn-ir-listas"
+                    onClick={() => navigate("/mis-eventos")}
+                  >
+                    Ir a Mis Eventos
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="listas-container">
+                    {listasDisponibles.map((lista) => (
+                      <label
+                        key={lista.id_lista}
+                        className={`lista-option ${listaSeleccionada === lista.id_lista.toString() ? "seleccionada" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="lista"
+                          value={lista.id_lista}
+                          checked={
+                            listaSeleccionada === lista.id_lista.toString()
+                          }
+                          onChange={(e) => setListaSeleccionada(e.target.value)}
+                        />
+                        <div className="lista-info">
+                          <span className="lista-nombre">
+                            {lista.nombre_lista}
+                          </span>
+                          {lista.descripcion && (
+                            <span className="lista-descripcion">
+                              {lista.descripcion}
+                            </span>
+                          )}
+                          <span className="lista-contador">
+                            {lista.cantidad_proveedores || 0} proveedor
+                            {lista.cantidad_proveedores !== 1 ? "es" : ""}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn-cancelar"
+                      onClick={() => {
+                        setMostrarModalListas(false);
+                        setListaSeleccionada("");
+                      }}
+                      disabled={agregandoALista}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-agregar-lista-confirm"
+                      onClick={agregarALista}
+                      disabled={agregandoALista || !listaSeleccionada}
+                    >
+                      {agregandoALista ? "Agregando..." : "Agregar a Lista"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

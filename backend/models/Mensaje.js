@@ -4,23 +4,42 @@ class Mensaje {
   
   // Crear un nuevo mensaje
   static async crear(datos) {
-    const { id_solicitud, id_remitente, tipo_remitente, contenido } = datos;
-    
+    const {
+      id_solicitud,
+      id_remitente,
+      tipo_remitente,
+      contenido
+    } = datos;
+
     const query = `
-      INSERT INTO Mensaje (id_solicitud, id_remitente, tipo_remitente, contenido)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO Mensaje (
+        id_solicitud,
+        id_remitente,
+        tipo_remitente,
+        contenido,
+        fecha_envio,
+        leido
+      )
+      VALUES ($1, $2, $3, $4, NOW(), false)
       RETURNING *
     `;
-    
-    const valores = [id_solicitud, id_remitente, tipo_remitente, contenido];
-    const resultado = await pool.query(query, valores);
-    return resultado.rows[0];
+
+    const values = [id_solicitud, id_remitente, tipo_remitente, contenido];
+
+    try {
+      const result = await pool.query(query, values);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error al crear mensaje:', error);
+      throw error;
+    }
   }
 
-  // Obtener mensajes de una solicitud
+  // Obtener todos los mensajes de una solicitud
   static async obtenerPorSolicitud(id_solicitud) {
     const query = `
-      SELECT m.*,
+      SELECT 
+        m.*,
         CASE 
           WHEN m.tipo_remitente = 'cliente' THEN c.nombre_completo
           WHEN m.tipo_remitente = 'proveedor' THEN p.nombre_negocio
@@ -30,120 +49,181 @@ class Mensaje {
           WHEN m.tipo_remitente = 'proveedor' THEN p.logo
         END as foto_remitente
       FROM Mensaje m
-      LEFT JOIN Cliente c ON m.tipo_remitente = 'cliente' AND m.id_remitente = c.id_cliente
-      LEFT JOIN Proveedor p ON m.tipo_remitente = 'proveedor' AND m.id_remitente = p.id_proveedor
+      LEFT JOIN Cliente c ON m.id_remitente = c.id_cliente AND m.tipo_remitente = 'cliente'
+      LEFT JOIN Proveedor p ON m.id_remitente = p.id_proveedor AND m.tipo_remitente = 'proveedor'
       WHERE m.id_solicitud = $1
       ORDER BY m.fecha_envio ASC
     `;
-    
-    const resultado = await pool.query(query, [id_solicitud]);
-    return resultado.rows;
+
+    try {
+      const result = await pool.query(query, [id_solicitud]);
+      return result.rows;
+    } catch (error) {
+      console.error('Error al obtener mensajes:', error);
+      throw error;
+    }
   }
 
-  // Marcar mensajes como leídos
-  static async marcarComoLeido(id_solicitud, id_usuario, tipo_usuario) {
+  // Marcar un mensaje como leído
+  static async marcarComoLeido(id_mensaje) {
     const query = `
-      UPDATE Mensaje 
+      UPDATE Mensaje
       SET leido = true,
-          fecha_lectura = CURRENT_TIMESTAMP
-      WHERE id_solicitud = $1 
-      AND NOT (id_remitente = $2 AND tipo_remitente = $3)
-      AND leido = false
+          fecha_lectura = NOW()
+      WHERE id_mensaje = $1
       RETURNING *
     `;
-    
-    const valores = [id_solicitud, id_usuario, tipo_usuario];
-    const resultado = await pool.query(query, valores);
-    return resultado.rows;
+
+    try {
+      const result = await pool.query(query, [id_mensaje]);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error al marcar mensaje como leído:', error);
+      throw error;
+    }
   }
 
-  // Contar mensajes no leídos por solicitud
-  static async contarNoLeidos(id_solicitud, id_usuario, tipo_usuario) {
+  // Marcar TODOS los mensajes de una conversación como leídos
+  static async marcarTodosComoLeidos(id_solicitud, tipo_usuario, id_usuario) {
+    const query = `
+      UPDATE Mensaje
+      SET leido = true,
+          fecha_lectura = NOW()
+      WHERE id_solicitud = $1
+        AND leido = false
+        AND NOT (tipo_remitente = $2 AND id_remitente = $3)
+      RETURNING *
+    `;
+
+    try {
+      const result = await pool.query(query, [id_solicitud, tipo_usuario, id_usuario]);
+      return result.rows;
+    } catch (error) {
+      console.error('Error al marcar todos los mensajes como leídos:', error);
+      throw error;
+    }
+  }
+
+  // Contar mensajes no leídos para un usuario
+  static async contarNoLeidos(id_usuario, tipo_usuario) {
     const query = `
       SELECT COUNT(*) as total
-      FROM Mensaje
-      WHERE id_solicitud = $1
-      AND NOT (id_remitente = $2 AND tipo_remitente = $3)
-      AND leido = false
+      FROM Mensaje m
+      WHERE m.leido = false
+        AND NOT (m.tipo_remitente = $2 AND m.id_remitente = $1)
+        AND m.id_solicitud IN (
+          SELECT s.id_solicitud
+          FROM Solicitud s
+          WHERE 
+            (s.id_cliente = $1 AND $2 = 'cliente') OR
+            (s.id_proveedor = $1 AND $2 = 'proveedor')
+        )
     `;
-    
-    const valores = [id_solicitud, id_usuario, tipo_usuario];
-    const resultado = await pool.query(query, valores);
-    return parseInt(resultado.rows[0].total);
+
+    try {
+      const result = await pool.query(query, [id_usuario, tipo_usuario]);
+      return parseInt(result.rows[0].total);
+    } catch (error) {
+      console.error('Error al contar mensajes no leídos:', error);
+      throw error;
+    }
   }
 
-  // Obtener conversaciones del cliente (últimos mensajes de cada solicitud)
-  static async obtenerConversacionesCliente(id_cliente) {
+  // Obtener conversaciones activas de un usuario
+  static async obtenerConversacionesActivas(id_usuario, tipo_usuario) {
     const query = `
-      SELECT DISTINCT ON (s.id_solicitud)
+      WITH ultimos_mensajes AS (
+        SELECT DISTINCT ON (m.id_solicitud)
+          m.*,
+          CASE 
+            WHEN m.tipo_remitente = 'cliente' THEN c.nombre_completo
+            WHEN m.tipo_remitente = 'proveedor' THEN p.nombre_negocio
+          END as nombre_remitente
+        FROM Mensaje m
+        LEFT JOIN Cliente c ON m.id_remitente = c.id_cliente AND m.tipo_remitente = 'cliente'
+        LEFT JOIN Proveedor p ON m.id_remitente = p.id_proveedor AND m.tipo_remitente = 'proveedor'
+        WHERE m.id_solicitud IN (
+          SELECT s.id_solicitud
+          FROM Solicitud s
+          WHERE 
+            (s.id_cliente = $1 AND $2 = 'cliente') OR
+            (s.id_proveedor = $1 AND $2 = 'proveedor')
+        )
+        ORDER BY m.id_solicitud, m.fecha_envio DESC
+      ),
+      mensajes_no_leidos AS (
+        SELECT 
+          id_solicitud,
+          COUNT(*) as no_leidos
+        FROM Mensaje
+        WHERE leido = false
+          AND NOT (tipo_remitente = $2 AND id_remitente = $1)
+          AND id_solicitud IN (
+            SELECT s.id_solicitud
+            FROM Solicitud s
+            WHERE 
+              (s.id_cliente = $1 AND $2 = 'cliente') OR
+              (s.id_proveedor = $1 AND $2 = 'proveedor')
+          )
+        GROUP BY id_solicitud
+      )
+      SELECT 
         s.id_solicitud,
-        s.estado,
+        s.id_cliente,
+        s.id_proveedor,
+        s.estado as estado_solicitud,
         s.fecha_evento,
         s.tipo_evento,
-        p.nombre_negocio,
-        p.logo,
-        p.ciudad,
-        m.contenido as ultimo_mensaje,
-        m.fecha_envio as fecha_ultimo_mensaje,
-        m.tipo_remitente as ultimo_remitente,
-        (SELECT COUNT(*) FROM Mensaje 
-         WHERE id_solicitud = s.id_solicitud 
-         AND tipo_remitente = 'proveedor' 
-         AND leido = false) as mensajes_no_leidos
-      FROM Solicitud s
-      INNER JOIN Proveedor p ON s.id_proveedor = p.id_proveedor
-      LEFT JOIN Mensaje m ON s.id_solicitud = m.id_solicitud
-      WHERE s.id_cliente = $1
-      ORDER BY s.id_solicitud, m.fecha_envio DESC NULLS LAST
-    `;
-    
-    const resultado = await pool.query(query, [id_cliente]);
-    return resultado.rows;
-  }
-
-  // Obtener conversaciones del proveedor
-  static async obtenerConversacionesProveedor(id_proveedor) {
-    const query = `
-      SELECT DISTINCT ON (s.id_solicitud)
-        s.id_solicitud,
-        s.estado,
-        s.fecha_evento,
-        s.tipo_evento,
-        c.nombre_completo as cliente_nombre,
-        c.foto_perfil,
-        c.ciudad,
-        m.contenido as ultimo_mensaje,
-        m.fecha_envio as fecha_ultimo_mensaje,
-        m.tipo_remitente as ultimo_remitente,
-        (SELECT COUNT(*) FROM Mensaje 
-         WHERE id_solicitud = s.id_solicitud 
-         AND tipo_remitente = 'cliente' 
-         AND leido = false) as mensajes_no_leidos
+        s.numero_invitados,
+        s.presupuesto_estimado,
+        s.descripcion_solicitud,
+        c.nombre_completo as nombre_cliente,
+        c.foto_perfil as foto_cliente,
+        p.nombre_negocio as nombre_proveedor,
+        p.logo as logo_proveedor,
+        um.contenido as ultimo_mensaje,
+        um.fecha_envio as fecha_ultimo_mensaje,
+        um.tipo_remitente as tipo_ultimo_remitente,
+        COALESCE(mnl.no_leidos, 0) as mensajes_no_leidos
       FROM Solicitud s
       INNER JOIN Cliente c ON s.id_cliente = c.id_cliente
-      LEFT JOIN Mensaje m ON s.id_solicitud = m.id_solicitud
-      WHERE s.id_proveedor = $1
-      ORDER BY s.id_solicitud, m.fecha_envio DESC NULLS LAST
+      INNER JOIN Proveedor p ON s.id_proveedor = p.id_proveedor
+      LEFT JOIN ultimos_mensajes um ON s.id_solicitud = um.id_solicitud
+      LEFT JOIN mensajes_no_leidos mnl ON s.id_solicitud = mnl.id_solicitud
+      WHERE 
+        (s.id_cliente = $1 AND $2 = 'cliente') OR
+        (s.id_proveedor = $1 AND $2 = 'proveedor')
+      ORDER BY um.fecha_envio DESC NULLS LAST
     `;
-    
-    const resultado = await pool.query(query, [id_proveedor]);
-    return resultado.rows;
+
+    try {
+      const result = await pool.query(query, [id_usuario, tipo_usuario]);
+      return result.rows;
+    } catch (error) {
+      console.error('Error al obtener conversaciones activas:', error);
+      throw error;
+    }
   }
 
-  // Eliminar mensaje (solo si fue enviado hace menos de 5 minutos)
-  static async eliminar(id_mensaje, id_remitente, tipo_remitente) {
+  // Verificar si un usuario tiene acceso a una conversación
+  static async verificarAcceso(id_solicitud, id_usuario, tipo_usuario) {
     const query = `
-      DELETE FROM Mensaje
-      WHERE id_mensaje = $1
-      AND id_remitente = $2
-      AND tipo_remitente = $3
-      AND fecha_envio > NOW() - INTERVAL '5 minutes'
-      RETURNING id_mensaje
+      SELECT 1
+      FROM Solicitud
+      WHERE id_solicitud = $1
+        AND (
+          (id_cliente = $2 AND $3 = 'cliente') OR
+          (id_proveedor = $2 AND $3 = 'proveedor')
+        )
     `;
-    
-    const valores = [id_mensaje, id_remitente, tipo_remitente];
-    const resultado = await pool.query(query, valores);
-    return resultado.rows[0];
+
+    try {
+      const result = await pool.query(query, [id_solicitud, id_usuario, tipo_usuario]);
+      return result.rows.length > 0;
+    } catch (error) {
+      console.error('Error al verificar acceso:', error);
+      throw error;
+    }
   }
 }
 

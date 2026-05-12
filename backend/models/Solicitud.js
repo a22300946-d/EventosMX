@@ -279,6 +279,7 @@ static async obtenerServicios(id_solicitud) {
       fecha_disponible 
     } = propuesta;
     
+    // ✅ Si hay fecha_disponible, actualizar TAMBIÉN fecha_evento
     const query = `
       UPDATE Solicitud 
       SET estado = 'Respondida',
@@ -286,7 +287,8 @@ static async obtenerServicios(id_solicitud) {
           mensaje_respuesta = $1,
           precio_propuesto = $2,
           detalles_servicio = $3,
-          fecha_disponible = $4
+          fecha_disponible = $4,
+          fecha_evento = COALESCE($4, fecha_evento)
       WHERE id_solicitud = $5 AND id_proveedor = $6
       RETURNING *
     `;
@@ -300,7 +302,19 @@ static async obtenerServicios(id_solicitud) {
       id_proveedor
     ];
     
+    console.log('📅 Actualizando solicitud con propuesta:', {
+      id_solicitud,
+      fecha_disponible,
+      mensaje: 'Si fecha_disponible existe, también se actualiza fecha_evento'
+    });
+    
     const resultado = await pool.query(query, valores);
+    
+    console.log('✅ Solicitud actualizada:', {
+      fecha_evento: resultado.rows[0].fecha_evento,
+      fecha_disponible: resultado.rows[0].fecha_disponible
+    });
+    
     return resultado.rows[0];
   }
 }

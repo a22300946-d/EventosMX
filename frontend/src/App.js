@@ -21,6 +21,8 @@ import MisListas from "./pages/cliente/MisListas";
 import Preferencias from "./pages/cliente/Preferencias";
 import ResenasPublicadas from "./pages/cliente/ResenasPublicadas";
 import PerfilProveedor from "./pages/cliente/PerfilProveedor";
+import DetallesLista from "./pages/cliente/DetallesLista";
+import Favoritos from "./pages/cliente/Favoritos";
 
 // Páginas de proveedor
 import MiInformacion from "./pages/proveedor/MiInformacion";
@@ -37,6 +39,9 @@ import RegistroProveedores from "./pages/admin/RegistroProveedores";
 import SolicitudesProveedores from "./pages/admin/SolicitudesProveedores";
 import ModerarResenas from "./pages/admin/ModerarResenas";
 import NotificacionesGenerales from "./pages/admin/NotificacionesGenerales";
+
+// Página de chat
+import Chat from './pages/chat/Chat';
 
 function App() {
   return (
@@ -63,7 +68,7 @@ function App() {
             }
           />
 
-          {/* Rutas de autenticación CLIENTE - SOLO para NO autenticados */}
+          {/* Rutas de autenticación CLIENTE */}
           <Route
             path="/login"
             element={
@@ -99,7 +104,7 @@ function App() {
             }
           />
 
-          {/* Verificación de correo - ruta propia */}
+          {/* Verificación de correo */}
           <Route path="/verificar-correo" element={<VerificarCorreo />} />
 
           {/* Rutas de Cliente */}
@@ -151,6 +156,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/cliente/listas" element={<MisListas />} />
+          <Route path="/cliente/listas/:id" element={<DetallesLista />} />
+          <Route path="/cliente/favoritos" element={<Favoritos />} />
 
           {/* Rutas de Proveedor */}
           <Route
@@ -256,8 +264,12 @@ function App() {
             }
           />
 
+          {/* Rutas de chat - SOLO para CLIENTES y PROVEEDORES autenticados */}
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/chat/:id_solicitud" element={<Chat />} />
+
           {/* Ruta 404 */}
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/" /> } />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

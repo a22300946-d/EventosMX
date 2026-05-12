@@ -58,8 +58,9 @@ function Layout({ children, showNav = true }) {
               <div className="nav-links">
                 {!isMobile && (
                   <>
+                    <Link to="/chat">Chat</Link>
                     <Link to="/cliente/explorar">Explorar Servicios</Link>
-                    <Link to="/cliente/cuenta/listas">Mis listas</Link>
+                    <Link to="/cliente/listas">Mis eventos</Link>
                   </>
                 )}
                 <div className="nav-dropdown" ref={dropdownRef}>
@@ -73,11 +74,26 @@ function Layout({ children, showNav = true }) {
                     <div className="nav-dropdown-menu">
                       {isMobile && (
                         <>
-                          <Link to="/cliente/explorar" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                          <Link
+                            to="/chat"
+                            className="dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            Chat
+                          </Link>
+                          <Link
+                            to="/cliente/explorar"
+                            className="dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
                             Explorar Servicios
                           </Link>
-                          <Link to="/cliente/cuenta/listas" className="dropdown-item" onClick={() => setShowDropdown(false)}>
-                            Mis listas
+                          <Link
+                            to="/cliente/listas"
+                            className="dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            Mis eventos
                           </Link>
                         </>
                       )}
@@ -98,7 +114,7 @@ function Layout({ children, showNav = true }) {
               <div className="nav-links">
                 {!isMobile && (
                   <>
-                    <Link to="/proveedor/chat">Chat</Link>
+                    <Link to="/chat">Chat</Link>
                     <Link to="/proveedor/cuenta/solicitudes">Solicitudes</Link>
                   </>
                 )}
@@ -113,7 +129,11 @@ function Layout({ children, showNav = true }) {
                     <div className="nav-dropdown-menu">
                       {isMobile && (
                         <>
-                          <Link to="/proveedor/chat" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                          <Link
+                            to="/chat"
+                            className="dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
                             Chat
                           </Link>
                           <Link to="/proveedor/cuenta/solicitudes" className="dropdown-item" onClick={() => setShowDropdown(false)}>

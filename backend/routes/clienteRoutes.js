@@ -1,23 +1,42 @@
 const express = require('express');
 const router = express.Router();
 const { autenticar, verificarRol } = require('../middleware/auth');
+const { uploadLogo } = require('../config/cloudinary');
 const {
   registrarCliente,
   loginCliente,
   obtenerPerfil,
-  actualizarPerfil
+  actualizarPerfil,
+  actualizarFotoPerfil,
+  eliminarFotoPerfil,
+  solicitarRecuperacion
 } = require('../controllers/clienteController');
 
-// Rutas públicas
+// ========== RUTAS PÚBLICAS ==========
 router.post('/registro', registrarCliente);
 router.post('/login', loginCliente);
-
-const { solicitarRecuperacion } = require('../controllers/clienteController');
-
 router.post('/recuperar-contrasena', solicitarRecuperacion);
 
-// Rutas protegidas (requieren autenticación)
+// ========== RUTAS PROTEGIDAS - CLIENTES ==========
+// Obtener mi perfil
 router.get('/perfil', autenticar, verificarRol('cliente'), obtenerPerfil);
+
+// Actualizar mi perfil (datos generales)
 router.put('/perfil', autenticar, verificarRol('cliente'), actualizarPerfil);
+
+// ⭐ NUEVO: Actualizar foto de perfil
+router.put(
+  '/perfil/foto',
+  autenticar,
+  verificarRol('cliente'),
+  uploadLogo, // ← Middleware de Cloudinary
+  actualizarFotoPerfil
+);
+router.delete(
+  '/perfil/foto',
+  autenticar,
+  verificarRol('cliente'),
+  eliminarFotoPerfil
+);
 
 module.exports = router;

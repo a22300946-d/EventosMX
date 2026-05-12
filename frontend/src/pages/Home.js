@@ -9,8 +9,10 @@ import "./Home.css";
 
 function Home() {
   const [ciudades, setCiudades] = useState([]);
-  const [categorias, setCategorias] = useState([]);
+  const [tiposEventos, setTiposEventos] = useState([]);
   const [proveedores, setProveedores] = useState([]);
+  const [favoritos, setFavoritos] = useState({});
+  const [procesandoFavorito, setProcesandoFavorito] = useState(false);
   const [filtros, setFiltros] = useState({
     nombre_proveedor: "",
     ubicacion: "",
@@ -21,9 +23,31 @@ function Home() {
 
   useEffect(() => {
     cargarProveedoresDestacados();
-    cargarCategorias();
+    cargarTiposEventos();
     cargarCiudades();
   }, []);
+
+  useEffect(() => {
+    if (user && user.rol === "cliente") {
+      cargarFavoritos();
+    }
+  }, [user]);
+
+  const cargarFavoritos = async () => {
+    try {
+      const response = await clienteService.obtenerListaFavoritos();
+      const proveedoresFavoritos = response.data.data.proveedores || [];
+      
+      const favoritosMap = {};
+      proveedoresFavoritos.forEach((fav) => {
+        favoritosMap[fav.id_proveedor] = fav.id_lista_proveedor;
+      });
+      
+      setFavoritos(favoritosMap);
+    } catch (error) {
+      console.error("Error al cargar favoritos:", error);
+    }
+  };
 
   const cargarCiudades = async () => {
     try {
@@ -35,13 +59,13 @@ function Home() {
     }
   };
 
-  const cargarCategorias = async () => {
+  const cargarTiposEventos = async () => {
     try {
-      const response = await clienteService.obtenerCategorias();
-      setCategorias(response.data.data || []);
+      const response = await api.get("/tipos-eventos");
+      setTiposEventos(response.data.data || []);
     } catch (error) {
-      console.error("Error al cargar categorías:", error);
-      setCategorias([]);
+      console.error("Error al cargar tipos de eventos:", error);
+      setTiposEventos([]);
     }
   };
 
@@ -50,11 +74,9 @@ function Home() {
       const response = await clienteService.buscarProveedores({ limite: 6 });
       const proveedoresData = response.data.data || [];
 
-      // Para cada proveedor, obtener su precio mínimo
       const proveedoresConPrecio = await Promise.all(
         proveedoresData.map(async (proveedor) => {
           try {
-            // Buscar servicios del proveedor
             const serviciosResponse = await api.get("/servicios/buscar", {
               params: {
                 id_proveedor: proveedor.id_proveedor,
@@ -63,13 +85,10 @@ function Home() {
             });
 
             const servicios = serviciosResponse.data.data || [];
-
-            // Filtrar solo servicios de este proveedor
             const serviciosProveedor = servicios.filter(
               (s) => s.id_proveedor === proveedor.id_proveedor,
             );
 
-            // Encontrar el precio mínimo
             let precioMinimo = null;
             if (serviciosProveedor.length > 0) {
               precioMinimo = Math.min(
@@ -101,8 +120,58 @@ function Home() {
     }
   };
 
+  const toggleFavorito = async (e, idProveedor) => {
+    e.stopPropagation();
+
+    if (!user || user.rol !== "cliente") {
+      navigate("/login", {
+        state: {
+          message: "Inicia sesión como cliente para guardar favoritos",
+        },
+      });
+      return;
+    }
+
+    if (procesandoFavorito) return;
+
+    try {
+      setProcesandoFavorito(true);
+
+      const esFavorito = favoritos[idProveedor];
+
+      if (esFavorito) {
+        await clienteService.eliminarDeFavoritos(favoritos[idProveedor]);
+        
+        setFavoritos((prev) => {
+          const newFavoritos = { ...prev };
+          delete newFavoritos[idProveedor];
+          return newFavoritos;
+        });
+      } else {
+        const response = await clienteService.agregarAFavoritos(idProveedor);
+        
+        setFavoritos((prev) => ({
+          ...prev,
+          [idProveedor]: response.data.data.id_lista_proveedor,
+        }));
+      }
+    } catch (error) {
+      console.error("Error al gestionar favorito:", error);
+      if (error.response?.status === 401) {
+        navigate("/login", {
+          state: {
+            message: "Tu sesión ha expirado. Inicia sesión nuevamente",
+          },
+        });
+      } else {
+        alert("Error al actualizar favoritos");
+      }
+    } finally {
+      setProcesandoFavorito(false);
+    }
+  };
+
   const handleBuscar = () => {
-    // Construir parámetros de búsqueda
     const params = new URLSearchParams();
 
     if (filtros.nombre_proveedor) {
@@ -115,12 +184,9 @@ function Home() {
       params.append("fecha", filtros.fecha);
     }
 
-    // Si está autenticado como cliente, ir directamente a explorar
     if (user && user.rol === "cliente") {
       navigate(`/cliente/explorar?${params.toString()}`);
     } else {
-      // Si no está autenticado, ir a explorar público o pedir login
-      // Por ahora, redirigir al login y luego a explorar
       navigate("/login", {
         state: {
           redirectTo: `/cliente/explorar?${params.toString()}`,
@@ -141,20 +207,16 @@ function Home() {
 
   const renderEstrellas = (calificacion) => {
     const estrellas = [];
-    // Convertir calificación de 0-1 a 0-5
     const calificacionEstrellas = parseFloat(calificacion || 0) * 5;
 
     for (let i = 1; i <= 5; i++) {
       if (calificacionEstrellas >= i) {
-        // Estrella completa
         estrellas.push(<FaStar key={i} className="estrella-llena-home" />);
       } else if (calificacionEstrellas >= i - 0.5) {
-        // Media estrella
         estrellas.push(
           <FaStarHalfAlt key={i} className="estrella-media-home" />,
         );
       } else {
-        // Estrella vacía
         estrellas.push(<FaRegStar key={i} className="estrella-vacia-home" />);
       }
     }
@@ -162,9 +224,9 @@ function Home() {
     return estrellas;
   };
 
-  const handleCategoriaClick = (categoria) => {
+  const handleTipoEventoClick = (tipoEvento) => {
     const params = new URLSearchParams();
-    params.append("tipo_servicio", categoria.nombre_categoria);
+    params.append("tipo_evento", tipoEvento.nombre_evento);
 
     if (user && user.rol === "cliente") {
       navigate(`/cliente/explorar?${params.toString()}`);
@@ -178,12 +240,10 @@ function Home() {
     }
   };
 
-  // Función para navegar al perfil del proveedor
   const handleVerPerfil = (idProveedor) => {
     navigate(`/perfil-proveedor/${idProveedor}`);
   };
 
-  // ← AGREGAR: Mostrar loading mientras verifica autenticación
   if (loading) {
     return (
       <div
@@ -214,8 +274,8 @@ function Home() {
                 <input
                   type="text"
                   name="nombre_proveedor"
-                  className="search-input "
-                  placeholder="Nombre"
+                  className="search-input"
+                  placeholder="Nombre del proveedor"
                   value={filtros.nombre_proveedor}
                   onChange={handleChangeFiltro}
                 />
@@ -251,6 +311,7 @@ function Home() {
                   value={filtros.fecha}
                   onChange={handleChangeFiltro}
                   className="search-input"
+                  min={new Date().toISOString().split("T")[0]}
                 />
               </div>
 
@@ -261,18 +322,18 @@ function Home() {
           </div>
         </section>
 
-        {/* Categorías de eventos */}
+        {/* Tipos de eventos */}
         <section className="categorias-section">
-          <h2>Explora por tipo de servicio</h2>
+          <h2>Explora por tipo de evento</h2>
           <div className="categorias-grid">
-            {categorias.map((categoria) => (
+            {tiposEventos.map((tipoEvento) => (
               <div
-                key={categoria.id_categoria}
+                key={tipoEvento.id_tipo_evento}
                 className="categoria-card"
-                onClick={() => handleCategoriaClick(categoria)}
+                onClick={() => handleTipoEventoClick(tipoEvento)}
               >
-                <div className="categoria-icon">{categoria.icono || "📋"}</div>
-                <h3>{categoria.nombre_categoria}</h3>
+                <div className="categoria-icon">{tipoEvento.icono || "🎉"}</div>
+                <h3>{tipoEvento.nombre_evento}</h3>
               </div>
             ))}
           </div>
@@ -280,13 +341,7 @@ function Home() {
 
         {/* Proveedores mejor calificados */}
         <section className="proveedores-destacados">
-          <div className="section-header">
-            <h2>Proveedores Mejor Calificados</h2>
-            <div className="carousel-controls">
-              <button className="carousel-btn">←</button>
-              <button className="carousel-btn">→</button>
-            </div>
-          </div>
+          <h2>Proveedores Mejor Calificados</h2>
 
           <div className="proveedores-carousel">
             {proveedores.length === 0 ? (
@@ -301,10 +356,10 @@ function Home() {
               </p>
             ) : (
               proveedores.slice(0, 3).map((proveedor) => {
-                // Convertir calificación de 0-1 a 0-5
                 const calificacion =
                   parseFloat(proveedor.calificacion_promedio) || 0;
                 const calificacionDe5 = calificacion * 5;
+                const esFavorito = !!favoritos[proveedor.id_proveedor];
 
                 return (
                   <div
@@ -326,13 +381,12 @@ function Home() {
                         }}
                       />
                       <button
-                        className="btn-favorito-home"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log("Agregado a favoritos");
-                        }}
+                        className={`btn-favorito-home ${esFavorito ? "favorito-activo" : ""}`}
+                        onClick={(e) => toggleFavorito(e, proveedor.id_proveedor)}
+                        disabled={procesandoFavorito}
+                        title={esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}
                       >
-                        ♡
+                        {esFavorito ? "♥" : "♡"}
                       </button>
                     </div>
 
@@ -369,10 +423,24 @@ function Home() {
               })
             )}
           </div>
+
+          {/* Controles del carousel - Abajo en el centro */}
+          <div className="carousel-navigation">
+            <button className="carousel-nav-btn" aria-label="Anterior">
+              <span>←</span>
+            </button>
+            <div className="carousel-dots">
+              <span className="dot active"></span>
+              <span className="dot"></span>
+              <span className="dot"></span>
+            </div>
+            <button className="carousel-nav-btn" aria-label="Siguiente">
+              <span>→</span>
+            </button>
+          </div>
         </section>
 
         {/* Call to Action */}
-
         <section className="cta-section">
           <div className="cta-content">
             <h2>TU EVENTO IDEAL EMPIEZA AQUÍ</h2>
