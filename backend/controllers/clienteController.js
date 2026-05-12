@@ -98,7 +98,7 @@ const loginCliente = async (req, res) => {
     if (cliente.estado_cuenta === 'bloqueado') {
       return res.status(403).json({
         success: false,
-        message: 'Cuenta bloqueada por múltiples intentos fallidos. Contacta al administrador.'
+        message: 'Cuenta bloqueada. Contacta al administrador.'
       });
     }
 

@@ -4,39 +4,56 @@ import { useAuth } from '../hooks/useAuth';
 function RoleBasedGuestRoute({ children, allowedFor = 'both', blockProveedores = false }) {
   const { user, loading } = useAuth();
 
+
   if (loading) {
     return <div>Cargando...</div>;
   }
 
-  // Si blockProveedores está activo (para Home)
-  if (blockProveedores && user && user.rol === 'proveedor') {
-    return <Navigate to="/proveedor/cuenta/informacion" />;
+  // --- CASO: ruta Home (blockProveedores=true) ---
+  // Solo redirigir proveedores y admins que SÍ tienen sesión activa
+  if (blockProveedores) {
+    if (user && user.rol === 'proveedor') {
+      return <Navigate to="/proveedor/cuenta/informacion" replace />;
+    }
+    if (user && user.rol === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    // cliente o sin sesión → mostrar Home
+    return children;
   }
 
-  // Si el usuario está autenticado
-  if (user) {
-    // Si es cliente tratando de acceder a rutas de proveedor (login-proveedor, register-proveedor)
-    if (user.rol === 'cliente' && allowedFor === 'proveedor') {
-      return <Navigate to="/" />;
-    }
-    
-    // Si es proveedor tratando de acceder a rutas de cliente (login, register)
-    if (user.rol === 'proveedor' && allowedFor === 'cliente') {
-      return <Navigate to="/proveedor/cuenta/informacion" />;
-    }
+  // --- CASO: rutas de login/register ---
+  // Si NO hay usuario, siempre mostrar la página (nunca redirigir)
+  if (!user) {
+    return children;
+  }
 
-    // Si ya está autenticado y está en login/register genérico, redirigir según rol
-    // SOLO si NO es la ruta Home (que tiene blockProveedores en vez de allowedFor)
-    if (!blockProveedores) {
-      if (user.rol === 'cliente' && allowedFor === 'cliente') {
-        return <Navigate to="/" />;
-      } else if (user.rol === 'proveedor' && allowedFor === 'proveedor') {
-        return <Navigate to="/proveedor/cuenta/informacion" />;
-      }
+  // Si HAY usuario, redirigir según su rol a su área
+  if (user.rol === 'cliente') {
+    if (allowedFor === 'cliente') {
+      // ya está logueado como cliente, no necesita estar en login de cliente
+      return <Navigate to="/" replace />;
+    }
+    if (allowedFor === 'proveedor') {
+      // cliente intentando ir a login de proveedor
+      return <Navigate to="/" replace />;
     }
   }
 
-  // Si no está autenticado o es cliente en Home, mostrar la página
+  if (user.rol === 'proveedor') {
+    if (allowedFor === 'cliente') {
+      return <Navigate to="/proveedor/cuenta/informacion" replace />;
+    }
+    if (allowedFor === 'proveedor') {
+      return <Navigate to="/proveedor/cuenta/informacion" replace />;
+    }
+  }
+
+  if (user.rol === 'admin') {
+    // Admin autenticado intentando ir a cualquier login → su dashboard
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
   return children;
 }
 

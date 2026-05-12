@@ -1,0 +1,248 @@
+.ru-container {
+  padding: 2rem;
+}
+
+.ru-titulo {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1a4d5c;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Mensajes ── */
+.ru-mensaje-exito {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.ru-mensaje-error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.ru-cargando {
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+/* ── Tabla ── */
+.ru-tabla-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.ru-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 0.95rem;
+}
+
+.ru-tabla thead tr {
+  background-color: #c5dde8;
+}
+
+.ru-tabla th {
+  padding: 0.9rem 1rem;
+  text-align: left;
+  color: #1a4d5c;
+  font-weight: 600;
+  border-bottom: 2px solid #5ba4c5;
+  white-space: nowrap;
+}
+
+.ru-tabla td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  color: #333;
+}
+
+.ru-fila {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.ru-fila:hover {
+  background-color: #f0f7fb;
+}
+
+.ru-fila-seleccionada {
+  background-color: #d6eaf8 !important;
+}
+
+.ru-sin-datos {
+  text-align: center;
+  color: #6c757d;
+  padding: 2rem !important;
+}
+
+/* ── Badges de estado ── */
+.ru-estado {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.ru-estado-activo {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.ru-estado-bloqueado {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* ── Acciones ── */
+.ru-acciones {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.ru-seleccionado-info {
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.ru-btn {
+  padding: 0.6rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.ru-btn:disabled {
+  background-color: #adb5bd;
+  color: white;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.ru-btn-bloquear {
+  background-color: #dc3545;
+  color: white;
+}
+
+.ru-btn-bloquear:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.ru-btn-desbloquear {
+  background-color: #28a745;
+  color: white;
+}
+
+.ru-btn-desbloquear:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+@media (max-width: 768px) {
+  .ru-container {
+    padding: 1rem;
+  }
+
+  .ru-tabla th,
+  .ru-tabla td {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.85rem;
+  }
+}
+/* ── Modal de confirmación ── */
+.ru-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.ru-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem 2rem 1.5rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  text-align: center;
+  animation: ruModalIn 0.18s ease;
+}
+
+@keyframes ruModalIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.ru-modal-icono {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ru-modal-titulo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1a4d5c;
+  margin: 0 0 0.6rem;
+}
+
+.ru-modal-desc {
+  font-size: 0.93rem;
+  color: #555;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.ru-modal-acciones {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.ru-modal-btn-cancelar {
+  background: #f0f0f0;
+  color: #444;
+  border: none;
+  border-radius: 20px;
+  padding: 0.5rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ru-modal-btn-cancelar:hover { background: #ddd; }
+
+.ru-modal-btn-confirmar {
+  border: none;
+  border-radius: 20px;
+  padding: 0.5rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+  transition: opacity 0.2s;
+}
+.ru-modal-btn-confirmar:hover { opacity: 0.88; }
+
+.ru-modal-btn-bloquear    { background-color: #dc3545; }
+.ru-modal-btn-desbloquear { background-color: #28a745; }

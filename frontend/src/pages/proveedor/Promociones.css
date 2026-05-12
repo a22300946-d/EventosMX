@@ -85,3 +85,78 @@
   color: #6c757d;
   text-align: center;
 }
+/* ── Modal de confirmación eliminar promoción ── */
+.promo-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.promo-confirm-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem 2rem 1.5rem;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  text-align: center;
+  animation: promoConfirmIn 0.18s ease;
+}
+
+@keyframes promoConfirmIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.promo-confirm-icono { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+.promo-confirm-titulo {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a4d5c;
+  margin: 0 0 0.6rem;
+}
+
+.promo-confirm-desc {
+  font-size: 0.93rem;
+  color: #555;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.promo-confirm-acciones {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.promo-confirm-btn-cancelar {
+  background: #f0f0f0;
+  color: #444;
+  border: none;
+  border-radius: 20px;
+  padding: 0.5rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.promo-confirm-btn-cancelar:hover { background: #ddd; }
+
+.promo-confirm-btn-eliminar {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 0.5rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.promo-confirm-btn-eliminar:hover { opacity: 0.88; }

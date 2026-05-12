@@ -31,12 +31,19 @@ import CalendarioDisponibilidad from "./pages/proveedor/CalendarioDisponibilidad
 import SolicitudesRecibidas from "./pages/proveedor/SolicitudesRecibidas";
 import ResenasCalificaciones from "./pages/proveedor/ResenasCalificaciones";
 
+// Páginas de administrador
+import RegistroUsuarios from "./pages/admin/RegistroUsuarios";
+import RegistroProveedores from "./pages/admin/RegistroProveedores";
+import SolicitudesProveedores from "./pages/admin/SolicitudesProveedores";
+import ModerarResenas from "./pages/admin/ModerarResenas";
+import NotificacionesGenerales from "./pages/admin/NotificacionesGenerales";
+
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Ruta principal - CLIENTES y NO autenticados (bloquea PROVEEDORES) */}
+          {/* Ruta principal - CLIENTES y NO autenticados (bloquea PROVEEDORES y ADMINS) */}
           <Route
             path="/"
             element={
@@ -74,7 +81,7 @@ function App() {
             }
           />
 
-          {/* Rutas de autenticación PROVEEDOR - SOLO para NO autenticados */}
+          {/* Rutas de autenticación PROVEEDOR/ADMIN - SOLO para NO autenticados */}
           <Route
             path="/login-proveedor"
             element={
@@ -91,6 +98,9 @@ function App() {
               </RoleBasedGuestRoute>
             }
           />
+
+          {/* Verificación de correo - ruta propia */}
+          <Route path="/verificar-correo" element={<VerificarCorreo />} />
 
           {/* Rutas de Cliente */}
           <Route
@@ -200,10 +210,51 @@ function App() {
             }
           />
 
-          {/* Verificación de correo */}
-          <Route 
-            path="/login" 
-            element={<VerificarCorreo />} />
+          {/* Rutas de Administrador */}
+          <Route
+            path="/admin/dashboard"
+            element={<Navigate to="/admin/usuarios" replace />}
+          />
+          <Route
+            path="/admin/usuarios"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <RegistroUsuarios />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/proveedores"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <RegistroProveedores />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/solicitudes"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <SolicitudesProveedores />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/resenas"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ModerarResenas />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/notificaciones"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <NotificacionesGenerales />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Ruta 404 */}
           <Route path="*" element={<Navigate to="/" />} />

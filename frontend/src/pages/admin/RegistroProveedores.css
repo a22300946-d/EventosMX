@@ -1,0 +1,223 @@
+.rp-container {
+  padding: 2rem;
+}
+
+.rp-titulo {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1a4d5c;
+  margin-bottom: 1.5rem;
+}
+
+.rp-mensaje-exito {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.rp-mensaje-error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.rp-cargando {
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+/* ── Tabla ── */
+.rp-tabla-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.rp-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 0.95rem;
+}
+
+.rp-tabla thead tr {
+  background-color: #c5dde8;
+}
+
+.rp-tabla th {
+  padding: 0.9rem 1rem;
+  text-align: left;
+  color: #1a4d5c;
+  font-weight: 600;
+  border-bottom: 2px solid #5ba4c5;
+  white-space: nowrap;
+}
+
+.rp-tabla td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  color: #333;
+  white-space: nowrap;
+}
+
+.rp-fila {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.rp-fila:hover {
+  background-color: #f0f7fb;
+}
+
+.rp-fila-seleccionada {
+  background-color: #d6eaf8 !important;
+}
+
+.rp-sin-datos {
+  text-align: center;
+  color: #6c757d;
+  padding: 2rem !important;
+}
+
+/* ── Badges ── */
+.rp-badge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.rp-activo        { background-color: #d4edda; color: #155724; }
+.rp-bloqueado     { background-color: #f8d7da; color: #721c24; }
+.rp-aprobacion-aprobado  { background-color: #d4edda; color: #155724; }
+.rp-aprobacion-pendiente { background-color: #fff3cd; color: #856404; }
+.rp-aprobacion-rechazado { background-color: #f8d7da; color: #721c24; }
+
+/* ── Acciones ── */
+.rp-acciones {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.rp-seleccionado-info {
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.rp-btn {
+  padding: 0.6rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.rp-btn:disabled {
+  background-color: #adb5bd;
+  color: white;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.rp-btn-bloquear    { background-color: #dc3545; color: white; }
+.rp-btn-desbloquear { background-color: #28a745; color: white; }
+
+.rp-btn-bloquear:hover:not(:disabled),
+.rp-btn-desbloquear:hover:not(:disabled) { opacity: 0.85; }
+
+@media (max-width: 768px) {
+  .rp-container { padding: 1rem; }
+  .rp-tabla th,
+  .rp-tabla td { padding: 0.65rem 0.75rem; font-size: 0.85rem; }
+}
+/* ── Modal de confirmación ── */
+.rp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.rp-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem 2rem 1.5rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  text-align: center;
+  animation: rpModalIn 0.18s ease;
+}
+
+@keyframes rpModalIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.rp-modal-icono { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+.rp-modal-titulo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1a4d5c;
+  margin: 0 0 0.6rem;
+}
+
+.rp-modal-desc {
+  font-size: 0.93rem;
+  color: #555;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.rp-modal-acciones {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.rp-modal-btn-cancelar {
+  background: #f0f0f0;
+  color: #444;
+  border: none;
+  border-radius: 20px;
+  padding: 0.5rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.rp-modal-btn-cancelar:hover { background: #ddd; }
+
+.rp-modal-btn-confirmar {
+  border: none;
+  border-radius: 20px;
+  padding: 0.5rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+  transition: opacity 0.2s;
+}
+.rp-modal-btn-confirmar:hover { opacity: 0.88; }
+
+.rp-modal-btn-bloquear    { background-color: #dc3545; }
+.rp-modal-btn-desbloquear { background-color: #28a745; }

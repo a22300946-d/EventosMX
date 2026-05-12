@@ -296,3 +296,37 @@
     padding: 0.85rem 1.25rem;
   }
 }
+/* ========== Admin badge en navbar ========== */
+.nav-admin-badge {
+  color: white;
+  font-size: 0.8rem;
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+/* ========== Botones sociales footer ========== */
+.footer-social-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a4d5c;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.footer-social-btn:nth-child(2) {
+  background-color: #1a4d5c;
+  color: white;
+}
+
+.footer-social-btn:hover {
+  transform: translateY(-3px);
+}

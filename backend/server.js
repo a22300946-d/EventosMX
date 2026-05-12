@@ -58,6 +58,7 @@ const resenaRoutes = require('./routes/resenaRoutes');
 const calendarioRoutes = require('./routes/calendarioRoutes'); 
 const listaRoutes = require('./routes/listaRoutes');
 const lugarRoutes = require('./routes/lugarRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 // Usar las rutas
 app.use('/api/clientes', clienteRoutes);
@@ -72,6 +73,7 @@ app.use('/api/resenas', resenaRoutes);
 app.use('/api/calendario', calendarioRoutes);
 app.use('/api/listas', listaRoutes);
 app.use('/api/lugar', lugarRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 // Manejo de rutas no encontradas
