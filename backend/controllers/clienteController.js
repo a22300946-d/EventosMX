@@ -324,11 +324,57 @@ const solicitarRecuperacion = async (req, res) => {
   res.json({ success: true, message: 'Si el correo existe, recibirás el enlace' });
 };
 
+const eliminarFotoPerfil = async (req, res) => {
+  try {
+    const id_cliente = req.usuario.id;
+ 
+    // Obtener el cliente para ver si tiene foto
+    const clienteActual = await Cliente.buscarPorId(id_cliente);
+ 
+    if (!clienteActual.foto_perfil) {
+      return res.status(400).json({
+        success: false,
+        message: 'No tienes una foto de perfil para eliminar'
+      });
+    }
+ 
+    // Eliminar de Cloudinary si existe
+    if (clienteActual.foto_perfil.includes('cloudinary')) {
+      const publicId = extraerPublicId(clienteActual.foto_perfil);
+      if (publicId) {
+        try {
+          await eliminarImagen(publicId);
+        } catch (error) {
+          console.error('Error al eliminar de Cloudinary:', error);
+          // Continuar aunque falle la eliminación de Cloudinary
+        }
+      }
+    }
+ 
+    // Actualizar en la base de datos (poner null)
+    await Cliente.actualizarFotoPerfil(id_cliente, null);
+ 
+    res.json({
+      success: true,
+      message: 'Foto de perfil eliminada exitosamente'
+    });
+ 
+  } catch (error) {
+    console.error('Error en eliminarFotoPerfil:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar foto de perfil',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   registrarCliente,
   loginCliente,
   obtenerPerfil,
   actualizarPerfil,
-  actualizarFotoPerfil, // ⭐ NUEVO
+  actualizarFotoPerfil, 
+  eliminarFotoPerfil, 
   solicitarRecuperacion
 };

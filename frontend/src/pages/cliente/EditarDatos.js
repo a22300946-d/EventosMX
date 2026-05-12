@@ -104,6 +104,46 @@ function EditarDatos() {
     }
   };
 
+  // ⭐ NUEVO: Handler para eliminar foto de perfil
+  const handleEliminarFoto = async () => {
+    if (!formData.foto_perfil) {
+      alert('No tienes una foto de perfil para eliminar');
+      return;
+    }
+
+    const confirmar = window.confirm('¿Estás seguro de que deseas eliminar tu foto de perfil?');
+    if (!confirmar) return;
+
+    try {
+      setUploadingFoto(true);
+
+      await clienteService.eliminarFotoPerfil();
+
+      // Limpiar la foto en el estado local
+      setFormData(prev => ({
+        ...prev,
+        foto_perfil: ""
+      }));
+
+      // Actualizar localStorage
+      const userStorage = JSON.parse(localStorage.getItem("user"));
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          ...userStorage,
+          foto_perfil: ""
+        })
+      );
+
+      alert('✅ Foto de perfil eliminada');
+    } catch (error) {
+      console.error('Error al eliminar foto:', error);
+      alert('Error al eliminar la foto de perfil');
+    } finally {
+      setUploadingFoto(false);
+    }
+  };
+
   // ========== VALIDACIONES ==========
 
   const validarNombreCompleto = (valor) => {
@@ -310,7 +350,7 @@ function EditarDatos() {
         <h1>Editar mis datos personales</h1>
 
         <div className="editar-datos-content">
-          {/* ⭐ AVATAR CLICKEABLE - IGUAL AL DEL PROVEEDOR */}
+          {/* ⭐ AVATAR CLICKEABLE CON BOTÓN ELIMINAR */}
           <div className="avatar-section">
             <div 
               className="avatar-circle-clickable"
@@ -343,7 +383,6 @@ function EditarDatos() {
                 </svg>
               )}
               
-              {/* Overlay que aparece al hacer hover */}
               <div className="avatar-overlay">
                 {uploadingFoto ? (
                   <span style={{ fontSize: '48px' }}>⏳</span>
@@ -363,7 +402,17 @@ function EditarDatos() {
               </div>
             </div>
             
-            {/* Input hidden */}
+            {/* ⭐ NUEVO: Botón para eliminar foto */}
+            {formData.foto_perfil && !uploadingFoto && (
+              <button
+                type="button"
+                onClick={handleEliminarFoto}
+                className="btn-eliminar-foto"
+              >
+                🗑️ Eliminar foto
+              </button>
+            )}
+            
             <input
               ref={fileInputRef}
               type="file"

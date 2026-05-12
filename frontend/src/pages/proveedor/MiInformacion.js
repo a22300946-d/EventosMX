@@ -186,6 +186,46 @@ function MiInformacion() {
     }
   };
 
+  // ⭐ NUEVO: Handler para eliminar foto de perfil
+  const handleEliminarFoto = async () => {
+    if (!formData.logo) {
+      alert('No tienes una foto de perfil para eliminar');
+      return;
+    }
+
+    const confirmar = window.confirm('¿Estás seguro de que deseas eliminar tu foto de perfil?');
+    if (!confirmar) return;
+
+    try {
+      setUploadingFoto(true);
+
+      await proveedorService.eliminarFotoPerfil();
+
+      // Limpiar la foto en el estado local
+      setFormData(prev => ({
+        ...prev,
+        logo: ""
+      }));
+
+      // Actualizar localStorage
+      const userStorage = JSON.parse(localStorage.getItem("user"));
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          ...userStorage,
+          logo: ""
+        })
+      );
+
+      alert('✅ Foto de perfil eliminada');
+    } catch (error) {
+      console.error('Error al eliminar foto:', error);
+      alert('Error al eliminar la foto de perfil');
+    } finally {
+      setUploadingFoto(false);
+    }
+  };
+
   // Validaciones (mantener las existentes)
   const validarNombreNegocio = (valor) => {
     if (!valor.trim()) {
@@ -418,57 +458,74 @@ function MiInformacion() {
         <div className="informacion-content">
           {/* ⭐ SECCIÓN DE AVATAR ACTUALIZADA */}
           <div className="avatar-section">
-            <div className="avatar-upload-wrapper">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFotoChange}
-                style={{ display: 'none' }}
-              />
-              
-              <div 
-                className="avatar-circle-clickable"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {formData.logo ? (
-                  <img 
-                    src={formData.logo} 
-                    alt="Foto de perfil" 
-                    className="avatar-image"
+            <div 
+              className="avatar-circle-clickable"
+              onClick={() => !uploadingFoto && fileInputRef.current?.click()}
+              style={{ cursor: uploadingFoto ? 'wait' : 'pointer' }}
+            >
+              {formData.logo ? (
+                <img 
+                  src={formData.logo} 
+                  alt="Foto de perfil"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '50%'
+                  }}
+                />
+              ) : (
+                <svg viewBox="0 0 100 100" width="200" height="200">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="48"
+                    fill="#8ba9b5"
+                    stroke="#6b8a96"
+                    strokeWidth="2"
                   />
-                ) : (
-                  <svg viewBox="0 0 100 100" width="200" height="200">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="48"
-                      fill="#8ba9b5"
-                      stroke="#6b8a96"
-                      strokeWidth="2"
-                    />
-                    <circle cx="50" cy="40" r="18" fill="white" />
-                    <path d="M 25 75 Q 25 55, 50 55 Q 75 55, 75 75" fill="white" />
-                  </svg>
-                )}
-                
-                {/* Overlay al hacer hover */}
-                <div className="avatar-overlay">
-                  {uploadingFoto ? (
-                    <span className="avatar-loading">⏳</span>
-                  ) : (
-                    <>
-                      <span className="avatar-icon">📷</span>
-                      <span className="avatar-text">Cambiar foto</span>
-                    </>
-                  )}
-                </div>
-              </div>
+                  <circle cx="50" cy="40" r="18" fill="white" />
+                  <path d="M 25 75 Q 25 55, 50 55 Q 75 55, 75 75" fill="white" />
+                </svg>
+              )}
               
-              <p className="avatar-hint">
-                Click para cambiar • JPG, PNG • Máx 2MB
-              </p>
+              <div className="avatar-overlay">
+                {uploadingFoto ? (
+                  <span style={{ fontSize: '48px' }}>⏳</span>
+                ) : (
+                  <>
+                    <span style={{ fontSize: '48px' }}>📷</span>
+                    <span style={{ 
+                      color: 'white', 
+                      fontSize: '14px', 
+                      fontWeight: '500',
+                      marginTop: '8px'
+                    }}>
+                      Cambiar foto
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
+            
+            {/* ⭐ NUEVO: Botón para eliminar foto */}
+            {formData.logo && !uploadingFoto && (
+              <button
+                type="button"
+                onClick={handleEliminarFoto}
+                className="btn-eliminar-foto"
+              >
+                🗑️ Eliminar foto
+              </button>
+            )}
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFotoChange}
+              style={{ display: 'none' }}
+            />
           </div>
 
           <form onSubmit={handleSubmit} className="informacion-form">

@@ -8,6 +8,7 @@ const {
   obtenerPerfil,
   actualizarPerfil,
   actualizarFotoPerfil,
+  eliminarFotoPerfil,
   solicitarRecuperacion
 } = require('../controllers/clienteController');
 
@@ -30,6 +31,12 @@ router.put(
   verificarRol('cliente'),
   uploadLogo, // ← Middleware de Cloudinary
   actualizarFotoPerfil
+);
+router.delete(
+  '/perfil/foto',
+  autenticar,
+  verificarRol('cliente'),
+  eliminarFotoPerfil
 );
 
 module.exports = router;

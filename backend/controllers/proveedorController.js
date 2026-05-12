@@ -373,12 +373,58 @@ const solicitarRecuperacion = async (req, res) => {
   res.json({ success: true, message: 'Si el correo existe, recibirás el enlace' });
 };
 
+const eliminarFotoPerfil = async (req, res) => {
+  try {
+    const id_proveedor = req.usuario.id;
+ 
+    // Obtener el proveedor para ver si tiene foto
+    const proveedorActual = await Proveedor.buscarPorId(id_proveedor);
+ 
+    if (!proveedorActual.logo) {
+      return res.status(400).json({
+        success: false,
+        message: 'No tienes una foto de perfil para eliminar'
+      });
+    }
+ 
+    // Eliminar de Cloudinary si existe
+    if (proveedorActual.logo.includes('cloudinary')) {
+      const publicId = extraerPublicId(proveedorActual.logo);
+      if (publicId) {
+        try {
+          await eliminarImagen(publicId);
+        } catch (error) {
+          console.error('Error al eliminar de Cloudinary:', error);
+          // Continuar aunque falle la eliminación de Cloudinary
+        }
+      }
+    }
+ 
+    // Actualizar en la base de datos (poner null)
+    await Proveedor.actualizarFotoPerfil(id_proveedor, null);
+ 
+    res.json({
+      success: true,
+      message: 'Foto de perfil eliminada exitosamente'
+    });
+ 
+  } catch (error) {
+    console.error('Error en eliminarFotoPerfil:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar foto de perfil',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   registrarProveedor,
   loginProveedor,
   obtenerPerfil,
   actualizarPerfil,
-  actualizarFotoPerfil, // ⭐ NUEVO
+  actualizarFotoPerfil, 
+  eliminarFotoPerfil,
   buscarProveedores,
   obtenerProveedorPublico,
   solicitarRecuperacion

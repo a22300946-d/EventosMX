@@ -10,13 +10,16 @@ export const clienteService = {
     return await api.put("/clientes/perfil", datos);
   },
 
-  // ⭐ NUEVO: Actualizar foto de perfil
+  // Actualizar foto de perfil
   actualizarFotoPerfil: (formData) => 
     api.put("/clientes/perfil/foto", formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     }),
+
+  // ⭐ NUEVO: Eliminar foto de perfil
+  eliminarFotoPerfil: () => api.delete("/clientes/perfil/foto"),
 
   // ========== SERVICIOS ==========
   buscarServicios: async (params) => {

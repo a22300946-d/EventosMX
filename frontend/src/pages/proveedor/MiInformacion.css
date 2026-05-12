@@ -448,3 +448,58 @@
     font-size: 0.875rem;
   }
 }
+
+/* ========== BOTÓN ELIMINAR FOTO - AGREGAR AL FINAL DEL CSS ========== */
+/* Funciona tanto para EditarDatos.css (cliente) como para MiInformacion.css (proveedor) */
+
+.btn-eliminar-foto {
+  margin-top: 12px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(231, 76, 60, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-eliminar-foto:hover {
+  background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+  box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-eliminar-foto:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(231, 76, 60, 0.2);
+}
+
+.btn-eliminar-foto:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Ajuste para centrar el botón con el avatar */
+.avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .btn-eliminar-foto {
+    font-size: 13px;
+    padding: 8px 16px;
+  }
+}

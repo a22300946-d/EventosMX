@@ -10,6 +10,8 @@ export const proveedorService = {
         'Content-Type': 'multipart/form-data'
       }
     }),
+  eliminarFotoPerfil: () => api.delete("/proveedores/perfil/foto"),
+
 
   // ========== LUGARES ==========
   obtenerLugares: () => api.get("/lugares"),

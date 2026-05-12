@@ -8,6 +8,7 @@ const {
   obtenerPerfil,
   actualizarPerfil,
   actualizarFotoPerfil,
+  eliminarFotoPerfil,
   buscarProveedores,
   obtenerProveedorPublico
 } = require('../controllers/proveedorController');
@@ -32,6 +33,12 @@ router.put(
   verificarRol('proveedor'),
   uploadLogo, // ← Middleware de Cloudinary
   actualizarFotoPerfil
+);
+router.delete(
+  '/perfil/foto',
+  autenticar,
+  verificarRol('proveedor'),
+  eliminarFotoPerfil
 );
 
 module.exports = router;
