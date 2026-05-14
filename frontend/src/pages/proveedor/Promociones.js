@@ -16,6 +16,12 @@ function Promociones() {
     fecha_fin: "",
   });
 
+  // Modal de confirmación para eliminar
+  const [modalConfirm, setModalConfirm] = useState({
+    visible: false,
+    promo: null,
+  });
+
   useEffect(() => {
     cargarPromociones();
   }, []);
@@ -32,10 +38,7 @@ function Promociones() {
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const crearPromocion = async (e) => {
@@ -57,15 +60,25 @@ function Promociones() {
     }
   };
 
-  const eliminarPromocion = async (id) => {
-    if (!window.confirm("¿Eliminar esta promoción?")) return;
+  // Pide confirmación antes de eliminar
+  const pedirEliminar = (promo) => {
+    setModalConfirm({ visible: true, promo });
+  };
 
+  const confirmarEliminar = async () => {
+    if (!modalConfirm.promo) return;
     try {
-      await proveedorService.eliminarPromocion(id);
+      await proveedorService.eliminarPromocion(modalConfirm.promo.id_promocion);
       cargarPromociones();
     } catch (error) {
       alert("Error al eliminar promoción");
+    } finally {
+      setModalConfirm({ visible: false, promo: null });
     }
+  };
+
+  const cerrarConfirm = () => {
+    setModalConfirm({ visible: false, promo: null });
   };
 
   return (
@@ -92,7 +105,7 @@ function Promociones() {
                     <button className="btn-editar-promo">Editar</button>
                     <button
                       className="btn-eliminar-promo"
-                      onClick={() => eliminarPromocion(promo.id_promocion)}
+                      onClick={() => pedirEliminar(promo)}
                     >
                       Eliminar
                     </button>
@@ -110,7 +123,7 @@ function Promociones() {
           )}
         </div>
 
-        {/* Modal */}
+        {/* Modal nueva promoción */}
         {showModal && (
           <div className="modal-overlay" onClick={() => setShowModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -179,6 +192,27 @@ function Promociones() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal confirmación eliminar */}
+        {modalConfirm.visible && (
+          <div className="promo-confirm-overlay" onClick={cerrarConfirm}>
+            <div className="promo-confirm-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="promo-confirm-icono">🗑️</div>
+              <h3 className="promo-confirm-titulo">¿Eliminar promoción?</h3>
+              <p className="promo-confirm-desc">
+                Vas a eliminar la promoción <strong>"{modalConfirm.promo?.titulo}"</strong>. Esta acción no se puede deshacer.
+              </p>
+              <div className="promo-confirm-acciones">
+                <button className="promo-confirm-btn-cancelar" onClick={cerrarConfirm}>
+                  Cancelar
+                </button>
+                <button className="promo-confirm-btn-eliminar" onClick={confirmarEliminar}>
+                  Sí, eliminar
+                </button>
+              </div>
             </div>
           </div>
         )}

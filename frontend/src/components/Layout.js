@@ -23,12 +23,15 @@ function Layout({ children, showNav = true }) {
     navigate('/');
   };
 
-  // Detectar cambio de tamaño de pantalla
+  const handleLogoutAdmin = () => {
+    logout();
+    navigate('/login-proveedor', { replace: true });
+  };
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
-    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -39,11 +42,8 @@ function Layout({ children, showNav = true }) {
         setShowDropdown(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
@@ -51,12 +51,11 @@ function Layout({ children, showNav = true }) {
       {showNav && (
         <nav className="navbar">
           <div className="navbar-content">
-            <Link to="/" className="logo">EventosMX</Link>
-            
+            <Link to={user?.rol === 'admin' ? '/admin/usuarios' : '/'} className="logo">EventosMX</Link>
+
             {/* ========== NAVBAR CLIENTE ========== */}
             {user && user.rol === 'cliente' && (
               <div className="nav-links">
-                {/* Mostrar enlaces solo en desktop */}
                 {!isMobile && (
                   <>
                     <Link to="/chat">Chat</Link>
@@ -64,7 +63,6 @@ function Layout({ children, showNav = true }) {
                     <Link to="/cliente/listas">Mis eventos</Link>
                   </>
                 )}
-                
                 <div className="nav-dropdown" ref={dropdownRef}>
                   <button
                     className="nav-dropdown-trigger"
@@ -72,28 +70,26 @@ function Layout({ children, showNav = true }) {
                   >
                     Mi cuenta <FaChevronDown size={12} />
                   </button>
-                  
                   {showDropdown && (
                     <div className="nav-dropdown-menu">
-                      {/* Mostrar enlaces en móvil dentro del menú */}
                       {isMobile && (
                         <>
-                          <Link 
-                            to="/chat" 
+                          <Link
+                            to="/chat"
                             className="dropdown-item"
                             onClick={() => setShowDropdown(false)}
                           >
                             Chat
                           </Link>
-                          <Link 
-                            to="/cliente/explorar" 
+                          <Link
+                            to="/cliente/explorar"
                             className="dropdown-item"
                             onClick={() => setShowDropdown(false)}
                           >
                             Explorar Servicios
                           </Link>
-                          <Link 
-                            to="/cliente/listas" 
+                          <Link
+                            to="/cliente/listas"
                             className="dropdown-item"
                             onClick={() => setShowDropdown(false)}
                           >
@@ -101,18 +97,10 @@ function Layout({ children, showNav = true }) {
                           </Link>
                         </>
                       )}
-                      
-                      <Link 
-                        to="/cliente/cuenta/datos" 
-                        className="dropdown-item"
-                        onClick={() => setShowDropdown(false)}
-                      >
+                      <Link to="/cliente/cuenta/datos" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                         Mi información
                       </Link>
-                      <button 
-                        onClick={handleLogout}
-                        className="dropdown-item dropdown-logout"
-                      >
+                      <button onClick={handleLogout} className="dropdown-item dropdown-logout">
                         Cerrar sesión
                       </button>
                     </div>
@@ -124,14 +112,12 @@ function Layout({ children, showNav = true }) {
             {/* ========== NAVBAR PROVEEDOR ========== */}
             {user && user.rol === 'proveedor' && (
               <div className="nav-links">
-                {/* Mostrar Chat y Solicitudes solo en desktop */}
                 {!isMobile && (
                   <>
                     <Link to="/chat">Chat</Link>
                     <Link to="/proveedor/cuenta/solicitudes">Solicitudes</Link>
                   </>
                 )}
-                
                 <div className="nav-dropdown" ref={dropdownRef}>
                   <button
                     className="nav-dropdown-trigger"
@@ -139,40 +125,50 @@ function Layout({ children, showNav = true }) {
                   >
                     Mi cuenta <FaChevronDown size={12} />
                   </button>
-                  
                   {showDropdown && (
                     <div className="nav-dropdown-menu">
-                      {/* Mostrar Chat y Solicitudes en móvil dentro del menú */}
                       {isMobile && (
                         <>
-                          <Link 
-                            to="/chat" 
+                          <Link
+                            to="/chat"
                             className="dropdown-item"
                             onClick={() => setShowDropdown(false)}
                           >
                             Chat
                           </Link>
-                          <Link 
-                            to="/proveedor/cuenta/solicitudes" 
-                            className="dropdown-item"
-                            onClick={() => setShowDropdown(false)}
-                          >
+                          <Link to="/proveedor/cuenta/solicitudes" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                             Solicitudes
                           </Link>
                         </>
                       )}
-                      
-                      <Link 
-                        to="/proveedor/cuenta/informacion" 
-                        className="dropdown-item"
-                        onClick={() => setShowDropdown(false)}
-                      >
+                      <Link to="/proveedor/cuenta/informacion" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                         Mi información
                       </Link>
-                      <button 
-                        onClick={handleLogout}
-                        className="dropdown-item dropdown-logout"
-                      >
+                      <button onClick={handleLogout} className="dropdown-item dropdown-logout">
+                        Cerrar sesión
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ========== NAVBAR ADMIN ========== */}
+            {user && user.rol === 'admin' && (
+              <div className="nav-links">
+                {!isMobile && (
+                  <span className="nav-admin-badge">Administrador</span>
+                )}
+                <div className="nav-dropdown" ref={dropdownRef}>
+                  <button
+                    className="nav-dropdown-trigger"
+                    onClick={() => setShowDropdown(prev => !prev)}
+                  >
+                    {user.nombre} <FaChevronDown size={12} />
+                  </button>
+                  {showDropdown && (
+                    <div className="nav-dropdown-menu">
+                      <button onClick={handleLogoutAdmin} className="dropdown-item dropdown-logout">
                         Cerrar sesión
                       </button>
                     </div>
@@ -201,16 +197,14 @@ function Layout({ children, showNav = true }) {
             <Link to="/register-proveedor">Registro de Profesionales</Link>
             <Link to="/terms">Condiciones del servicio</Link>
           </div>
-
           <div className="footer-bottom">
             <div className="footer-brand">EventosMX</div>
             <div className="footer-social">
-              <a href="#" aria-label="Twitter"><FaTwitter /></a>
-              <a href="#" aria-label="Facebook"><FaFacebook /></a>
-              <a href="#" aria-label="Instagram"><FaInstagram /></a>
+              <button aria-label="Twitter" className="footer-social-btn"><FaTwitter /></button>
+              <button aria-label="Facebook" className="footer-social-btn"><FaFacebook /></button>
+              <button aria-label="Instagram" className="footer-social-btn"><FaInstagram /></button>
             </div>
           </div>
-
           <div className="footer-copyright">
             2026. Todos los derechos reservados
           </div>

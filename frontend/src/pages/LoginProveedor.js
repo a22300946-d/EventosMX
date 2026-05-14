@@ -18,14 +18,24 @@ function LoginProveedor() {
     setError('');
     setLoading(true);
 
-    const result = await login(correo, contrasena, 'proveedor');
-
-    if (result.success) {
+    // 1. Intentar como proveedor
+    const resultProveedor = await login(correo, contrasena, 'proveedor');
+    if (resultProveedor.success) {
       navigate('/proveedor/cuenta/informacion');
-    } else {
-      setError(result.message);
+      setLoading(false);
+      return;
     }
 
+    // 2. Intentar como admin
+    const resultAdmin = await login(correo, contrasena, 'admin');
+    if (resultAdmin.success) {
+      navigate('/admin/usuarios');
+      setLoading(false);
+      return;
+    }
+
+    // 3. Ambos fallaron — mostrar error y quedarse en la página
+    setError('Correo o contraseña incorrectos');
     setLoading(false);
   };
 

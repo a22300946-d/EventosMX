@@ -17,14 +17,19 @@ function ProtectedRoute({ children, requiredRole }) {
     );
   }
 
+  // Sin sesión: redirigir al login correcto según la ruta que intentaba visitar
   if (!user) {
-    if (requiredRole === 'proveedor') {
+    if (requiredRole === 'proveedor' || requiredRole === 'admin') {
       return <Navigate to="/login-proveedor" replace />;
     }
     return <Navigate to="/login" replace />;
   }
 
+  // Tiene sesión pero con rol incorrecto para esta ruta
   if (requiredRole && user.rol !== requiredRole) {
+    if (user.rol === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
     if (user.rol === 'proveedor') {
       return <Navigate to="/proveedor/cuenta/informacion" replace />;
     }
@@ -33,4 +38,5 @@ function ProtectedRoute({ children, requiredRole }) {
 
   return children;
 }
+
 export default ProtectedRoute;

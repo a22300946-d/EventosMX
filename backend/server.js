@@ -53,7 +53,7 @@ app.get('/api/db-test', async (req, res) => {
   }
 });
 
-// Importar rutas DESPUÉS de definir middleware
+// Importar rutas
 const clienteRoutes = require('./routes/clienteRoutes');
 const proveedorRoutes = require('./routes/proveedorRoutes');
 const categoriaRoutes = require('./routes/categoriaRoutes');
@@ -65,10 +65,10 @@ const resenaRoutes = require('./routes/resenaRoutes');
 const calendarioRoutes = require('./routes/calendarioRoutes'); 
 const listaRoutes = require('./routes/listaRoutes');
 const lugarRoutes = require('./routes/lugarRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const proveedorEventoRoutes = require('./routes/proveedorEventoRoutes');
 const mensajeRoutes = require('./routes/mensajeRoutes');
 const tipoEventoRoutes = require('./routes/tipoEventoRoutes');
-
 
 // Usar las rutas
 app.use('/api/clientes', clienteRoutes);
@@ -83,6 +83,7 @@ app.use('/api/resenas', resenaRoutes);
 app.use('/api/calendario', calendarioRoutes);
 app.use('/api/listas', listaRoutes);
 app.use('/api/lugar', lugarRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/proveedor-eventos', proveedorEventoRoutes);
 app.use('/api/tipos-eventos', tipoEventoRoutes);
 
@@ -105,14 +106,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Iniciar servidor (usar 'server' en lugar de 'app')
+// Iniciar servidor
 server.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
   console.log(`🔌 WebSocket inicializado correctamente`);
   console.log(`📝 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-
-
 });
 
-// Exportar io para uso en otras partes de la aplicación si es necesario
 module.exports = { app, server };
