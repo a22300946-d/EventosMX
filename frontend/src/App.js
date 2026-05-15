@@ -42,14 +42,14 @@ import NotificacionesGenerales from "./pages/admin/NotificacionesGenerales";
 import GestionCatalogos from "./pages/admin/GestionCatalogos";
 
 // Página de chat
-import Chat from './pages/chat/Chat';
+import Chat from "./pages/chat/Chat";
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Ruta principal - CLIENTES y NO autenticados (bloquea PROVEEDORES y ADMINS) */}
+          {/* Ruta principal */}
           <Route
             path="/"
             element={
@@ -59,7 +59,7 @@ function App() {
             }
           />
 
-          {/* Perfil de Proveedor - SOLO para CLIENTES autenticados */}
+          {/* Perfil proveedor */}
           <Route
             path="/perfil-proveedor/:id"
             element={
@@ -69,7 +69,7 @@ function App() {
             }
           />
 
-          {/* Rutas de autenticación CLIENTE */}
+          {/* Auth cliente */}
           <Route
             path="/login"
             element={
@@ -87,7 +87,7 @@ function App() {
             }
           />
 
-          {/* Rutas de autenticación PROVEEDOR/ADMIN - SOLO para NO autenticados */}
+          {/* Auth proveedor */}
           <Route
             path="/login-proveedor"
             element={
@@ -105,10 +105,10 @@ function App() {
             }
           />
 
-          {/* Verificación de correo */}
+          {/* Verificación */}
           <Route path="/verificar-correo" element={<VerificarCorreo />} />
 
-          {/* Rutas de Cliente */}
+          {/* Cliente */}
           <Route
             path="/cliente/explorar"
             element={
@@ -161,7 +161,7 @@ function App() {
           <Route path="/cliente/listas/:id" element={<DetallesLista />} />
           <Route path="/cliente/favoritos" element={<Favoritos />} />
 
-          {/* Rutas de Proveedor */}
+          {/* Proveedor */}
           <Route
             path="/proveedor/cuenta/informacion"
             element={
@@ -219,7 +219,7 @@ function App() {
             }
           />
 
-          {/* Rutas de Administrador */}
+          {/* Admin */}
           <Route
             path="/admin/dashboard"
             element={<Navigate to="/admin/usuarios" replace />}
@@ -273,11 +273,11 @@ function App() {
             }
           />
 
-          {/* Rutas de chat - SOLO para CLIENTES y PROVEEDORES autenticados */}
+          {/* Chat */}
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/:id_solicitud" element={<Chat />} />
 
-          {/* Ruta 404 */}
+          {/* 404 */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>

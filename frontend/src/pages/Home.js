@@ -18,20 +18,117 @@ function Home() {
     ubicacion: "",
     fecha: "",
   });
+  // ⭐ NUEVO: Estados para recomendaciones
+  const [tienePreferencias, setTienePreferencias] = useState(false);
+  const [mostrandoRecomendaciones, setMostrandoRecomendaciones] = useState(false);
+  const [cargandoProveedores, setCargandoProveedores] = useState(true);
+  
   const navigate = useNavigate();
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    cargarProveedoresDestacados();
     cargarTiposEventos();
     cargarCiudades();
   }, []);
 
+  // ⭐ NUEVO: Detectar si el usuario tiene preferencias y cargar proveedores
   useEffect(() => {
     if (user && user.rol === "cliente") {
       cargarFavoritos();
+      verificarPreferenciasYCargarProveedores();
+    } else {
+      // Si no hay usuario o no es cliente, mostrar mejor calificados
+      cargarProveedoresDestacados();
     }
   }, [user]);
+
+  // ⭐ NUEVA FUNCIÓN: Verificar preferencias y decidir qué mostrar
+  const verificarPreferenciasYCargarProveedores = async () => {
+    try {
+      setCargandoProveedores(true);
+      
+      // Verificar si tiene preferencias configuradas
+      const prefResponse = await api.get("/recomendaciones/preferencias");
+      const tienePrefs = prefResponse.data.data !== null;
+      
+      setTienePreferencias(tienePrefs);
+
+      if (tienePrefs) {
+        // Tiene preferencias → Cargar recomendaciones
+        await cargarRecomendaciones();
+        setMostrandoRecomendaciones(true);
+      } else {
+        // No tiene preferencias → Cargar mejor calificados
+        await cargarProveedoresDestacados();
+        setMostrandoRecomendaciones(false);
+      }
+    } catch (error) {
+      console.error("Error al verificar preferencias:", error);
+      // Si hay error, mostrar mejor calificados por defecto
+      await cargarProveedoresDestacados();
+      setMostrandoRecomendaciones(false);
+    } finally {
+      setCargandoProveedores(false);
+    }
+  };
+
+  // ⭐ NUEVA FUNCIÓN: Cargar recomendaciones personalizadas
+  const cargarRecomendaciones = async () => {
+    try {
+      const response = await api.get("/recomendaciones?limite=6");
+      const recomendaciones = response.data.data || [];
+
+      // Agregar precios mínimos a las recomendaciones
+      const recomendacionesConPrecio = await Promise.all(
+        recomendaciones.map(async (proveedor) => {
+          try {
+            const serviciosResponse = await api.get("/servicios/buscar", {
+              params: {
+                id_proveedor: proveedor.id_proveedor,
+                limite: 100,
+              },
+            });
+
+            const servicios = serviciosResponse.data.data || [];
+            const serviciosProveedor = servicios.filter(
+              (s) => s.id_proveedor === proveedor.id_proveedor,
+            );
+
+            let precioMinimo = null;
+            if (serviciosProveedor.length > 0) {
+              precioMinimo = Math.min(
+                ...serviciosProveedor.map((s) => parseFloat(s.precio) || 0),
+              );
+            }
+
+            return {
+              ...proveedor,
+              precio_minimo: precioMinimo,
+              // ⭐ Asegurar que tenga calificacion_promedio
+              calificacion_promedio: proveedor.calificacion_promedio || 0,
+            };
+          } catch (error) {
+            console.error(
+              `Error al cargar servicios del proveedor ${proveedor.id_proveedor}:`,
+              error,
+            );
+            return {
+              ...proveedor,
+              precio_minimo: null,
+              calificacion_promedio: proveedor.calificacion_promedio || 0,
+            };
+          }
+        }),
+      );
+
+      setProveedores(recomendacionesConPrecio);
+    } catch (error) {
+      console.error("Error al cargar recomendaciones:", error);
+      // Si falla, cargar mejor calificados como fallback
+      await cargarProveedoresDestacados();
+      setMostrandoRecomendaciones(false);
+    }
+  };
 
   const cargarFavoritos = async () => {
     try {
@@ -71,6 +168,7 @@ function Home() {
 
   const cargarProveedoresDestacados = async () => {
     try {
+      setCargandoProveedores(true);
       const response = await clienteService.buscarProveedores({ limite: 6 });
       const proveedoresData = response.data.data || [];
 
@@ -117,6 +215,8 @@ function Home() {
     } catch (error) {
       console.error("Error al cargar proveedores:", error);
       setProveedores([]);
+    } finally {
+      setCargandoProveedores(false);
     }
   };
 
@@ -224,6 +324,13 @@ function Home() {
     return estrellas;
   };
 
+  // ⭐ NUEVA FUNCIÓN: Obtener color del badge según puntuación
+  const getPuntuacionColor = (puntuacion) => {
+    if (puntuacion >= 0.8) return "#27ae60"; // Verde
+    if (puntuacion >= 0.6) return "#f39c12"; // Naranja
+    return "#95a5a6"; // Gris
+  };
+
   const handleTipoEventoClick = (tipoEvento) => {
     const params = new URLSearchParams();
     params.append("tipo_evento", tipoEvento.nombre_evento);
@@ -242,6 +349,11 @@ function Home() {
 
   const handleVerPerfil = (idProveedor) => {
     navigate(`/perfil-proveedor/${idProveedor}`);
+  };
+
+  // ⭐ NUEVA FUNCIÓN: Navegar a preferencias
+  const irAPreferencias = () => {
+    navigate("/cliente/preferencias");
   };
 
   if (loading) {
@@ -339,105 +451,163 @@ function Home() {
           </div>
         </section>
 
-        {/* Proveedores mejor calificados */}
+        {/* ⭐ SECCIÓN MODIFICADA: Proveedores (Recomendaciones o Mejor Calificados) */}
         <section className="proveedores-destacados">
-          <h2>Proveedores Mejor Calificados</h2>
-
-          <div className="proveedores-carousel">
-            {proveedores.length === 0 ? (
-              <p
-                style={{
-                  gridColumn: "1 / -1",
-                  textAlign: "center",
-                  color: "#6c757d",
-                }}
-              >
-                No hay proveedores disponibles en este momento.
-              </p>
-            ) : (
-              proveedores.slice(0, 3).map((proveedor) => {
-                const calificacion =
-                  parseFloat(proveedor.calificacion_promedio) || 0;
-                const calificacionDe5 = calificacion * 5;
-                const esFavorito = !!favoritos[proveedor.id_proveedor];
-
-                return (
-                  <div
-                    key={proveedor.id_proveedor}
-                    className="proveedor-card-home"
-                    onClick={() => handleVerPerfil(proveedor.id_proveedor)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <div className="proveedor-image-home">
-                      <img
-                        src={
-                          proveedor.logo ||
-                          "https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                        }
-                        alt={proveedor.nombre_negocio}
-                        onError={(e) => {
-                          e.target.src =
-                            "https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
-                        }}
-                      />
-                      <button
-                        className={`btn-favorito-home ${esFavorito ? "favorito-activo" : ""}`}
-                        onClick={(e) => toggleFavorito(e, proveedor.id_proveedor)}
-                        disabled={procesandoFavorito}
-                        title={esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}
-                      >
-                        {esFavorito ? "♥" : "♡"}
-                      </button>
-                    </div>
-
-                    <div className="proveedor-info-home">
-                      <div className="proveedor-rating-home">
-                        {renderEstrellas(calificacion)}
-                        <span className="rating-numero">
-                          {calificacionDe5.toFixed(1)}/5
-                        </span>
-                      </div>
-
-                      <h3>{proveedor.nombre_negocio}</h3>
-
-                      {proveedor.precio_minimo !== null &&
-                      proveedor.precio_minimo > 0 ? (
-                        <p className="proveedor-precio">
-                          Desde $
-                          {proveedor.precio_minimo.toLocaleString("es-MX")}
-                        </p>
-                      ) : (
-                        <p className="proveedor-sin-precio">
-                          Sin servicios disponibles
-                        </p>
-                      )}
-
-                      <div className="proveedor-footer-home">
-                        <span className="categoria-badge-home">
-                          {proveedor.tipo_servicio || "Servicio"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+          <div className="seccion-header">
+            <div className="seccion-titulo-wrapper">
+              <h2>
+                {mostrandoRecomendaciones 
+                  ? "🌟 Recomendaciones Personalizadas para Ti" 
+                  : "Proveedores Mejor Calificados"}
+              </h2>
+              {mostrandoRecomendaciones && (
+                <p className="seccion-subtitulo">
+                  Basadas en tus preferencias de eventos y servicios
+                </p>
+              )}
+            </div>
+            
+            {/* ⭐ Botón de preferencias (solo si es cliente con sesión) */}
+            {user && user.rol === "cliente" && (
+              <button onClick={irAPreferencias} className="btn-preferencias-home">
+                {tienePreferencias ? "⚙️ Ajustar preferencias" : "✨ Configurar preferencias"}
+              </button>
             )}
           </div>
 
-          {/* Controles del carousel - Abajo en el centro */}
-          <div className="carousel-navigation">
-            <button className="carousel-nav-btn" aria-label="Anterior">
-              <span>←</span>
-            </button>
-            <div className="carousel-dots">
-              <span className="dot active"></span>
-              <span className="dot"></span>
-              <span className="dot"></span>
+          {cargandoProveedores ? (
+            <div className="loading-proveedores">
+              <p>Cargando proveedores...</p>
             </div>
-            <button className="carousel-nav-btn" aria-label="Siguiente">
-              <span>→</span>
-            </button>
-          </div>
+          ) : (
+            <>
+              <div className="proveedores-carousel">
+                {proveedores.length === 0 ? (
+                  <p
+                    style={{
+                      gridColumn: "1 / -1",
+                      textAlign: "center",
+                      color: "#6c757d",
+                    }}
+                  >
+                    {mostrandoRecomendaciones 
+                      ? "No encontramos proveedores que coincidan con tus preferencias. Intenta ajustarlas."
+                      : "No hay proveedores disponibles en este momento."}
+                  </p>
+                ) : (
+                  proveedores.slice(0, 3).map((proveedor) => {
+                    const calificacion =
+                      parseFloat(proveedor.calificacion_promedio) || 0;
+                    const calificacionDe5 = calificacion * 5;
+                    const esFavorito = !!favoritos[proveedor.id_proveedor];
+
+                    return (
+                      <div
+                        key={proveedor.id_proveedor}
+                        className="proveedor-card-home"
+                        onClick={() => handleVerPerfil(proveedor.id_proveedor)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {/* ⭐ Badge de coincidencia (solo en recomendaciones) */}
+                        {mostrandoRecomendaciones && proveedor.puntuacion_recomendacion && (
+                          <div 
+                            className="badge-coincidencia-home"
+                            style={{ 
+                              backgroundColor: getPuntuacionColor(proveedor.puntuacion_recomendacion) 
+                            }}
+                          >
+                            {Math.round(proveedor.puntuacion_recomendacion * 100)}% match
+                          </div>
+                        )}
+
+                        <div className="proveedor-image-home">
+                          <img
+                            src={
+                              proveedor.logo ||
+                              "https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                            }
+                            alt={proveedor.nombre_negocio}
+                            onError={(e) => {
+                              e.target.src =
+                                "https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
+                            }}
+                          />
+                          <button
+                            className={`btn-favorito-home ${esFavorito ? "favorito-activo" : ""}`}
+                            onClick={(e) => toggleFavorito(e, proveedor.id_proveedor)}
+                            disabled={procesandoFavorito}
+                            title={esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}
+                          >
+                            {esFavorito ? "♥" : "♡"}
+                          </button>
+                        </div>
+
+                        <div className="proveedor-info-home">
+                          <div className="proveedor-rating-home">
+                            {renderEstrellas(calificacion)}
+                            <span className="rating-numero">
+                              {calificacionDe5.toFixed(1)}/5
+                            </span>
+                          </div>
+
+                          <h3>{proveedor.nombre_negocio}</h3>
+
+                          {/* ⭐ NUEVO: Ubicación */}
+                          {proveedor.ciudad && (
+                            <p className="proveedor-ubicacion-home">
+                              📍 {proveedor.ciudad}
+                            </p>
+                          )}
+
+                          {/* ⭐ NUEVO: Descripción */}
+                          {proveedor.descripcion && (
+                            <p className="proveedor-descripcion-home">
+                              {proveedor.descripcion.length > 80
+                                ? `${proveedor.descripcion.substring(0, 80)}...`
+                                : proveedor.descripcion}
+                            </p>
+                          )}
+
+                          {proveedor.precio_minimo !== null &&
+                          proveedor.precio_minimo > 0 ? (
+                            <p className="proveedor-precio">
+                              Desde $
+                              {proveedor.precio_minimo.toLocaleString("es-MX")}
+                            </p>
+                          ) : (
+                            <p className="proveedor-sin-precio">
+                              Sin servicios disponibles
+                            </p>
+                          )}
+
+                          <div className="proveedor-footer-home">
+                            <span className="categoria-badge-home">
+                              {proveedor.tipo_servicio || "Servicio"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Controles del carousel */}
+              <div className="carousel-navigation">
+                <button className="carousel-nav-btn" aria-label="Anterior">
+                  <span>←</span>
+                </button>
+                <div className="carousel-dots">
+                  <span className="dot active"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </div>
+                <button className="carousel-nav-btn" aria-label="Siguiente">
+                  <span>→</span>
+                </button>
+              </div>
+            </>
+          )}
         </section>
 
         {/* Call to Action */}
