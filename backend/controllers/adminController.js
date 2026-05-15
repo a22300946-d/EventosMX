@@ -205,6 +205,149 @@ const eliminarResena = async (req, res) => {
   }
 };
 
+// ── MÓDULO CATÁLOGOS ──────────────────────────────────────────
+
+// Ciudades (tabla: lugar)
+const obtenerCiudades = async (req, res) => {
+  try {
+    const resultado = await pool.query(
+      'SELECT id_lugar, ciudad AS nombre_ciudad, estado FROM lugares ORDER BY ciudad ASC'
+    );
+    res.json({ success: true, data: resultado.rows });
+  } catch (error) {
+    console.error('Error en obtenerCiudades:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener ciudades', error: error.message });
+  }
+};
+
+const crearCiudad = async (req, res) => {
+  try {
+    const { nombre_ciudad } = req.body;
+    if (!nombre_ciudad || !nombre_ciudad.trim()) {
+      return res.status(400).json({ success: false, message: 'El nombre de la ciudad es obligatorio' });
+    }
+    const resultado = await pool.query(
+      'INSERT INTO lugares (ciudad) VALUES ($1) RETURNING id_lugar, ciudad AS nombre_ciudad',
+      [nombre_ciudad.trim()]
+    );
+    res.status(201).json({ success: true, message: 'Ciudad creada correctamente', data: resultado.rows[0] });
+  } catch (error) {
+    console.error('Error en crearCiudad:', error);
+    res.status(500).json({ success: false, message: 'Error al crear ciudad', error: error.message });
+  }
+};
+
+const eliminarCiudad = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const resultado = await pool.query(
+      'DELETE FROM lugares WHERE id_lugar = $1 RETURNING id_lugar',
+      [id]
+    );
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Ciudad no encontrada' });
+    }
+    res.json({ success: true, message: 'Ciudad eliminada correctamente' });
+  } catch (error) {
+    console.error('Error en eliminarCiudad:', error);
+    res.status(500).json({ success: false, message: 'Error al eliminar ciudad', error: error.message });
+  }
+};
+
+// Categorías / Tipos de servicio (tabla: categoria)
+const obtenerCategoriasAdmin = async (req, res) => {
+  try {
+    const resultado = await pool.query(
+      'SELECT id_categoria, nombre_categoria, icono FROM categoria ORDER BY nombre_categoria ASC'
+    );
+    res.json({ success: true, data: resultado.rows });
+  } catch (error) {
+    console.error('Error en obtenerCategoriasAdmin:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener categorías', error: error.message });
+  }
+};
+
+const crearCategoriaAdmin = async (req, res) => {
+  try {
+    const { nombre_categoria, icono } = req.body;
+    if (!nombre_categoria || !nombre_categoria.trim()) {
+      return res.status(400).json({ success: false, message: 'El nombre de la categoría es obligatorio' });
+    }
+    const resultado = await pool.query(
+      'INSERT INTO categoria (nombre_categoria, icono) VALUES ($1, $2) RETURNING id_categoria, nombre_categoria, icono',
+      [nombre_categoria.trim(), icono ? icono.trim() : null]
+    );
+    res.status(201).json({ success: true, message: 'Categoría creada correctamente', data: resultado.rows[0] });
+  } catch (error) {
+    console.error('Error en crearCategoriaAdmin:', error);
+    res.status(500).json({ success: false, message: 'Error al crear categoría', error: error.message });
+  }
+};
+
+const eliminarCategoriaAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const resultado = await pool.query(
+      'DELETE FROM categoria WHERE id_categoria = $1 RETURNING id_categoria',
+      [id]
+    );
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Categoría no encontrada' });
+    }
+    res.json({ success: true, message: 'Categoría eliminada correctamente' });
+  } catch (error) {
+    console.error('Error en eliminarCategoriaAdmin:', error);
+    res.status(500).json({ success: false, message: 'Error al eliminar categoría', error: error.message });
+  }
+};
+
+// Tipos de evento (tabla: tipoevento)
+const obtenerTiposEventoAdmin = async (req, res) => {
+  try {
+    const resultado = await pool.query(
+      'SELECT id_tipo_evento, nombre_evento AS nombre_tipo, descripcion, icono, activo FROM tipoevento ORDER BY nombre_evento ASC'
+    );
+    res.json({ success: true, data: resultado.rows });
+  } catch (error) {
+    console.error('Error en obtenerTiposEventoAdmin:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener tipos de evento', error: error.message });
+  }
+};
+
+const crearTipoEventoAdmin = async (req, res) => {
+  try {
+    const { nombre_tipo } = req.body;
+    if (!nombre_tipo || !nombre_tipo.trim()) {
+      return res.status(400).json({ success: false, message: 'El nombre del tipo de evento es obligatorio' });
+    }
+    const resultado = await pool.query(
+      'INSERT INTO tipoevento (nombre_evento) VALUES ($1) RETURNING id_tipo_evento, nombre_evento AS nombre_tipo',
+      [nombre_tipo.trim()]
+    );
+    res.status(201).json({ success: true, message: 'Tipo de evento creado correctamente', data: resultado.rows[0] });
+  } catch (error) {
+    console.error('Error en crearTipoEventoAdmin:', error);
+    res.status(500).json({ success: false, message: 'Error al crear tipo de evento', error: error.message });
+  }
+};
+
+const eliminarTipoEventoAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const resultado = await pool.query(
+      'DELETE FROM tipoevento WHERE id_tipo_evento = $1 RETURNING id_tipo_evento',
+      [id]
+    );
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Tipo de evento no encontrado' });
+    }
+    res.json({ success: true, message: 'Tipo de evento eliminado correctamente' });
+  } catch (error) {
+    console.error('Error en eliminarTipoEventoAdmin:', error);
+    res.status(500).json({ success: false, message: 'Error al eliminar tipo de evento', error: error.message });
+  }
+};
+
 module.exports = {
   loginAdmin,
   obtenerPerfil,
@@ -216,4 +359,14 @@ module.exports = {
   resolverSolicitudProveedor,
   obtenerResenasNoPositivas,
   eliminarResena,
+  // Catálogos
+  obtenerCiudades,
+  crearCiudad,
+  eliminarCiudad,
+  obtenerCategoriasAdmin,
+  crearCategoriaAdmin,
+  eliminarCategoriaAdmin,
+  obtenerTiposEventoAdmin,
+  crearTipoEventoAdmin,
+  eliminarTipoEventoAdmin,
 };

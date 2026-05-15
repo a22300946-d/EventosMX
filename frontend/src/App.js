@@ -39,6 +39,7 @@ import RegistroProveedores from "./pages/admin/RegistroProveedores";
 import SolicitudesProveedores from "./pages/admin/SolicitudesProveedores";
 import ModerarResenas from "./pages/admin/ModerarResenas";
 import NotificacionesGenerales from "./pages/admin/NotificacionesGenerales";
+import GestionCatalogos from "./pages/admin/GestionCatalogos";
 
 // Página de chat
 import Chat from "./pages/chat/Chat";
@@ -48,7 +49,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Ruta principal - CLIENTES y NO autenticados (bloquea PROVEEDORES y ADMINS) */}
+          {/* Ruta principal */}
           <Route
             path="/"
             element={
@@ -58,7 +59,7 @@ function App() {
             }
           />
 
-          {/* Perfil de Proveedor - SOLO para CLIENTES autenticados */}
+          {/* Perfil proveedor */}
           <Route
             path="/perfil-proveedor/:id"
             element={
@@ -68,7 +69,7 @@ function App() {
             }
           />
 
-          {/* Rutas de autenticación CLIENTE */}
+          {/* Auth cliente */}
           <Route
             path="/login"
             element={
@@ -86,7 +87,7 @@ function App() {
             }
           />
 
-          {/* Rutas de autenticación PROVEEDOR/ADMIN - SOLO para NO autenticados */}
+          {/* Auth proveedor */}
           <Route
             path="/login-proveedor"
             element={
@@ -104,10 +105,10 @@ function App() {
             }
           />
 
-          {/* Verificación de correo */}
+          {/* Verificación */}
           <Route path="/verificar-correo" element={<VerificarCorreo />} />
 
-          {/* Rutas de Cliente */}
+          {/* Cliente */}
           <Route
             path="/cliente/explorar"
             element={
@@ -160,7 +161,7 @@ function App() {
           <Route path="/cliente/listas/:id" element={<DetallesLista />} />
           <Route path="/cliente/favoritos" element={<Favoritos />} />
 
-          {/* Rutas de Proveedor */}
+          {/* Proveedor */}
           <Route
             path="/proveedor/cuenta/informacion"
             element={
@@ -217,17 +218,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* Preferencias del cliente */}
-          <Route
-            path="/cliente/preferencias"
-            element={
-              <ProtectedRoute requiredRole="cliente">
-                <Preferencias />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* Rutas de Administrador */}
+          {/* Admin */}
           <Route
             path="/admin/dashboard"
             element={<Navigate to="/admin/usuarios" replace />}
@@ -272,11 +264,21 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/catalogos"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <GestionCatalogos />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Chat */}
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/:id_solicitud" element={<Chat />} />
 
-          {/* Ruta 404 */}
-          <Route path="*" element={<Navigate to="/" /> } />
+          {/* 404 */}
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
