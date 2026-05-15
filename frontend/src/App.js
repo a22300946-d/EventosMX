@@ -39,6 +39,7 @@ import RegistroProveedores from "./pages/admin/RegistroProveedores";
 import SolicitudesProveedores from "./pages/admin/SolicitudesProveedores";
 import ModerarResenas from "./pages/admin/ModerarResenas";
 import NotificacionesGenerales from "./pages/admin/NotificacionesGenerales";
+import GestionCatalogos from "./pages/admin/GestionCatalogos";
 
 // Página de chat
 import Chat from './pages/chat/Chat';
@@ -263,13 +264,21 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/catalogos"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <GestionCatalogos />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Rutas de chat - SOLO para CLIENTES y PROVEEDORES autenticados */}
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/:id_solicitud" element={<Chat />} />
 
           {/* Ruta 404 */}
-          <Route path="*" element={<Navigate to="/" /> } />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

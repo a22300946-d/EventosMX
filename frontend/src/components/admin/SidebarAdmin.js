@@ -6,11 +6,12 @@ function SidebarAdmin() {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/admin/usuarios',              label: 'Registro de usuarios' },
-    { path: '/admin/proveedores',           label: 'Registro de proveedores' },
-    { path: '/admin/solicitudes',           label: 'Solicitudes de proveedores' },
-    { path: '/admin/resenas',               label: 'Moderar reseñas' },
-    { path: '/admin/notificaciones',        label: 'Notificaciones generales' },
+    { path: '/admin/usuarios',     label: 'Registro usuarios' },
+    { path: '/admin/proveedores',  label: 'Registro proveedores' },
+    { path: '/admin/solicitudes',  label: 'Solicitudes proveedores' },
+    { path: '/admin/resenas',      label: 'Moderar reseñas' },
+    { path: '/admin/notificaciones', label: 'Notificaciones generales' },
+    { path: '/admin/catalogos',    label: 'Gestión de catálogos' },
   ];
 
   return (

@@ -12,6 +12,16 @@ const {
   resolverSolicitudProveedor,
   obtenerResenasNoPositivas,
   eliminarResena,
+  // Catálogos
+  obtenerCiudades,
+  crearCiudad,
+  eliminarCiudad,
+  obtenerCategoriasAdmin,
+  crearCategoriaAdmin,
+  eliminarCategoriaAdmin,
+  obtenerTiposEventoAdmin,
+  crearTipoEventoAdmin,
+  eliminarTipoEventoAdmin,
 } = require('../controllers/adminController');
 
 const soloAdmin = [autenticar, verificarRol('admin')];
@@ -35,5 +45,20 @@ router.patch('/solicitudes-proveedores/:id/decision', ...soloAdmin, resolverSoli
 // Módulo moderar reseñas
 router.get('/resenas', ...soloAdmin, obtenerResenasNoPositivas);
 router.delete('/resenas/:id', ...soloAdmin, eliminarResena);
+
+// Módulo catálogos — Ciudades
+router.get('/catalogos/ciudades',           ...soloAdmin, obtenerCiudades);
+router.post('/catalogos/ciudades',          ...soloAdmin, crearCiudad);
+router.delete('/catalogos/ciudades/:id',    ...soloAdmin, eliminarCiudad);
+
+// Módulo catálogos — Tipos de servicio (categorías)
+router.get('/catalogos/categorias',         ...soloAdmin, obtenerCategoriasAdmin);
+router.post('/catalogos/categorias',        ...soloAdmin, crearCategoriaAdmin);
+router.delete('/catalogos/categorias/:id',  ...soloAdmin, eliminarCategoriaAdmin);
+
+// Módulo catálogos — Tipos de evento
+router.get('/catalogos/tipos-evento',        ...soloAdmin, obtenerTiposEventoAdmin);
+router.post('/catalogos/tipos-evento',       ...soloAdmin, crearTipoEventoAdmin);
+router.delete('/catalogos/tipos-evento/:id', ...soloAdmin, eliminarTipoEventoAdmin);
 
 module.exports = router;
