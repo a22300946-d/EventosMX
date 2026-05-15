@@ -41,7 +41,7 @@ import ModerarResenas from "./pages/admin/ModerarResenas";
 import NotificacionesGenerales from "./pages/admin/NotificacionesGenerales";
 
 // Página de chat
-import Chat from './pages/chat/Chat';
+import Chat from "./pages/chat/Chat";
 
 function App() {
   return (
@@ -217,6 +217,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Preferencias del cliente */}
+          <Route
+            path="/cliente/preferencias"
+            element={
+              <ProtectedRoute requiredRole="cliente">
+                <Preferencias />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Rutas de Administrador */}
           <Route
@@ -263,8 +272,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* Rutas de chat - SOLO para CLIENTES y PROVEEDORES autenticados */}
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/:id_solicitud" element={<Chat />} />
 
