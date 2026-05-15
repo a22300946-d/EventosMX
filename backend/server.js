@@ -68,6 +68,7 @@ const lugarRoutes = require('./routes/lugarRoutes');
 const proveedorEventoRoutes = require('./routes/proveedorEventoRoutes');
 const mensajeRoutes = require('./routes/mensajeRoutes');
 const tipoEventoRoutes = require('./routes/tipoEventoRoutes');
+const recomendacionRoutes = require('./routes/recomendacionRoutes');
 
 
 // Usar las rutas
@@ -85,6 +86,8 @@ app.use('/api/listas', listaRoutes);
 app.use('/api/lugar', lugarRoutes);
 app.use('/api/proveedor-eventos', proveedorEventoRoutes);
 app.use('/api/tipos-eventos', tipoEventoRoutes);
+app.use('/api/recomendaciones', recomendacionRoutes);
+
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {

@@ -34,7 +34,7 @@ import SolicitudesRecibidas from "./pages/proveedor/SolicitudesRecibidas";
 import ResenasCalificaciones from "./pages/proveedor/ResenasCalificaciones";
 
 // Página de chat
-import Chat from './pages/chat/Chat';
+import Chat from "./pages/chat/Chat";
 
 function App() {
   return (
@@ -207,12 +207,20 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Preferencias del cliente */}
+          <Route
+            path="/cliente/preferencias"
+            element={
+              <ProtectedRoute requiredRole="cliente">
+                <Preferencias />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Verificación de correo */}
           <Route path="/verificar-correo" element={<VerificarCorreo />} />
 
-    
-           {/*Rutas de chat - SOLO para CLIENTES y PROVEEDORES autenticados*/} 
+          {/*Rutas de chat - SOLO para CLIENTES y PROVEEDORES autenticados*/}
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/:id_solicitud" element={<Chat />} />
 
