@@ -1,20 +1,5 @@
 const pool = require('../config/database');
 
-/**
- * ALGORITMO DE RECOMENDACIONES BASADO EN PESOS
- * 
- * Fórmula: Puntuación Total = (w1 × D) + (w2 × S) + (w3 × Pr) + (w4 × F) + (w5 × U)
- * 
- * Pesos:
- * - Descripción (D): 0.15
- * - Servicios (S): 0.25
- * - Precios (Pr): 0.25
- * - Fotos (F): 0.10
- * - Ubicación (U): 0.25
- * 
- * Retorna un valor entre 0 y 1
- */
-
 class RecomendacionService {
   
   // Pesos del algoritmo
@@ -48,7 +33,7 @@ class RecomendacionService {
           const puntuacion = await this.calcularPuntuacion(proveedor, preferencias);
           return {
             ...proveedor,
-            // ⭐ Asegurar que calificacion_promedio sea número o null
+            //  Asegurar que calificacion_promedio sea número o null
             calificacion_promedio: proveedor.calificacion_promedio 
               ? parseFloat(proveedor.calificacion_promedio) 
               : null,
@@ -327,7 +312,7 @@ class RecomendacionService {
       
       const resultado = await pool.query(query, [limite]);
       
-      // ⭐ Asegurar que calificacion_promedio sea número o null
+      //  Asegurar que calificacion_promedio sea número o null
       return resultado.rows.map(proveedor => ({
         ...proveedor,
         calificacion_promedio: proveedor.calificacion_promedio 

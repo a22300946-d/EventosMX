@@ -233,10 +233,32 @@ const eliminarMiResena = async (req, res) => {
   }
 };
 
+const obtenerMisResenas = async (req, res) => {
+  try {
+    const id_cliente = req.usuario.id;
+
+    const resenas = await Resena.obtenerPorCliente(id_cliente);
+
+    res.json({
+      success: true,
+      data: resenas
+    });
+
+  } catch (error) {
+    console.error('Error en obtenerMisResenas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener tus reseñas',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   crearResena,
   obtenerResenasProveedor,
   obtenerResenaPorId,
+  obtenerMisResenas,
   reportarResena,
   eliminarMiResena
 };
