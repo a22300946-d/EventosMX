@@ -115,7 +115,7 @@ function ModerarResenas() {
   return (
     <AdminLayout>
       <div className="mr-container">
-        <h1 className="mr-titulo">Reseñas</h1>
+        <h1 className="mr-titulo">Reseñas Reportadas</h1>
 
         {mensaje && <div className="mr-mensaje-exito">{mensaje}</div>}
         {error   && <div className="mr-mensaje-error">{error}</div>}
@@ -124,7 +124,7 @@ function ModerarResenas() {
           <p className="mr-cargando">Cargando reseñas...</p>
         ) : resenas.length === 0 ? (
           <div className="mr-vacio">
-            <p>No hay reseñas negativas o neutras para moderar.</p>
+            <p>No hay reseñas reportadas pendientes de moderación.</p>
           </div>
         ) : (
           <div className="mr-lista">

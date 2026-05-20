@@ -1,3 +1,9 @@
+.promociones-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .promociones-container h1 {
   color: #1a4d5c;
   margin-bottom: 2rem;
@@ -15,19 +21,12 @@
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
 }
 
-.promocion-imagen {
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-  background-color: #e0e0e0;
-}
-
-.promocion-imagen img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.promocion-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
 
 .promocion-info {
@@ -37,21 +36,53 @@
 .promocion-info h3 {
   color: #1a4d5c;
   margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  word-break: break-word;
 }
 
-.promocion-detalles {
-  color: #6c757d;
+.promocion-descripcion {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
   margin-bottom: 1rem;
 }
 
-.btn-editar-promo, .btn-eliminar-promo {
+.promocion-precios {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.promocion-precio-original {
+  color: #aaa;
+  font-size: 0.95rem;
+  text-decoration: line-through;
+}
+
+.promocion-precio-promo {
+  color: #1a4d5c;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.promocion-fechas {
+  color: #6c757d;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.btn-editar-promo,
+.btn-eliminar-promo {
   width: 100%;
   padding: 0.75rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 25px;
   cursor: pointer;
   margin-top: 0.5rem;
   font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s;
 }
 
 .btn-editar-promo {
@@ -59,9 +90,21 @@
   color: white;
 }
 
+.btn-editar-promo:hover {
+  background-color: #143d4a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+}
+
 .btn-eliminar-promo {
   background-color: #dc3545;
   color: white;
+}
+
+.btn-eliminar-promo:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
 .promocion-placeholder {
@@ -84,7 +127,118 @@
 .promocion-placeholder p {
   color: #6c757d;
   text-align: center;
+  padding: 0 1rem;
 }
+
+/* ── Modal nueva promoción ── */
+.promociones-container .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 1rem;
+}
+
+.promociones-container .modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 550px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  margin: auto;
+  position: relative;
+}
+
+.promociones-container .modal-content h2 {
+  color: #1a4d5c;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.promociones-container .modal-content .form-input,
+.promociones-container .modal-content select,
+.promociones-container .modal-content textarea {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.promociones-container .modal-content textarea {
+  min-height: 100px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.promociones-container .modal-content .form-input:focus,
+.promociones-container .modal-content select:focus,
+.promociones-container .modal-content textarea:focus {
+  outline: none;
+  border-color: #1a4d5c;
+  box-shadow: 0 0 0 4px rgba(26, 77, 92, 0.1);
+}
+
+.promociones-container .modal-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e0e0e0;
+  flex-wrap: wrap;
+}
+
+.promociones-container .modal-buttons .btn-cancelar,
+.promociones-container .modal-buttons .btn-crear {
+  padding: 0.875rem 2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.promociones-container .modal-buttons .btn-cancelar {
+  background-color: #6c757d;
+  color: white;
+}
+
+.promociones-container .modal-buttons .btn-cancelar:hover {
+  background-color: #5a6268;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+.promociones-container .modal-buttons .btn-crear {
+  background-color: #1a4d5c;
+  color: white;
+}
+
+.promociones-container .modal-buttons .btn-crear:hover {
+  background-color: #143d4a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.4);
+}
+
 /* ── Modal de confirmación eliminar promoción ── */
 .promo-confirm-overlay {
   position: fixed;
@@ -93,7 +247,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 10001;
   padding: 1rem;
 }
 
@@ -160,3 +314,188 @@
   transition: opacity 0.2s;
 }
 .promo-confirm-btn-eliminar:hover { opacity: 0.88; }
+
+/* ========== Diseño Responsivo ========== */
+
+@media (max-width: 1024px) {
+  .promociones-container {
+    padding: 1.5rem;
+  }
+
+  .promociones-container h1 {
+    font-size: 2rem;
+  }
+
+  .promociones-grid {
+    gap: 1.5rem;
+  }
+
+  .promociones-container .modal-content {
+    max-width: 90%;
+    padding: 1.75rem;
+  }
+
+  .promociones-container .modal-content h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .promociones-container {
+    padding: 1rem;
+  }
+
+  .promociones-container h1 {
+    font-size: 1.8rem;
+    text-align: center;
+  }
+
+  .promociones-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .promocion-card {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .promociones-container .modal-overlay {
+    padding: 1rem;
+  }
+
+  .promociones-container .modal-content {
+    max-width: 95%;
+    max-height: 88vh;
+    padding: 1.5rem;
+  }
+
+  .promociones-container .modal-content h2 {
+    font-size: 1.4rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .promociones-container .modal-content .form-input,
+  .promociones-container .modal-content select,
+  .promociones-container .modal-content textarea {
+    margin-bottom: 1rem;
+  }
+
+  .promociones-container .modal-buttons {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .promociones-container .modal-buttons .btn-cancelar,
+  .promociones-container .modal-buttons .btn-crear {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .promociones-container {
+    padding: 0.75rem;
+  }
+
+  .promociones-container h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .promocion-card {
+    border-radius: 8px;
+  }
+
+  .promocion-info {
+    padding: 1rem;
+  }
+
+  .promocion-info h3 {
+    font-size: 1.1rem;
+  }
+
+  .promociones-container .modal-content {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .promociones-container .modal-content h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .promociones-container .modal-content .form-input,
+  .promociones-container .modal-content select,
+  .promociones-container .modal-content textarea {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.95rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .promociones-container .modal-content textarea {
+    min-height: 80px;
+  }
+
+  .promociones-container .modal-buttons {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  .promociones-container .modal-buttons .btn-cancelar,
+  .promociones-container .modal-buttons .btn-crear {
+    width: 100%;
+    min-width: unset;
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .promociones-container .modal-overlay {
+    padding: 0.5rem;
+    padding-top: 1rem;
+  }
+
+  .promociones-container .modal-content {
+    padding: 1rem;
+    max-height: 94vh;
+  }
+
+  .promociones-container .modal-content h2 {
+    font-size: 1.15rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .promociones-container .modal-content .form-input,
+  .promociones-container .modal-content select,
+  .promociones-container .modal-content textarea {
+    padding: 0.7rem 0.8rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .promociones-container .modal-buttons .btn-cancelar,
+  .promociones-container .modal-buttons .btn-crear {
+    padding: 0.8rem 0.875rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* ── Labels de fechas en modal ── */
+.promo-fecha-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  color: #6c757d;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.promo-fecha-label .form-input {
+  margin-bottom: 1.25rem;
+}
