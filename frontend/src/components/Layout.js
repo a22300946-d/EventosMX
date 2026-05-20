@@ -10,6 +10,7 @@ function Layout({ children, showNav = true }) {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [modalContacto, setModalContacto] = useState(false);
   const dropdownRef = useRef(null);
 
   const hideAuthButtons =
@@ -196,6 +197,7 @@ function Layout({ children, showNav = true }) {
             <Link to="/about">¿Quiénes somos?</Link>
             <Link to="/register-proveedor">Registro de Profesionales</Link>
             <Link to="/terms">Condiciones del servicio</Link>
+            <button className="footer-link-btn" onClick={() => setModalContacto(true)}>Contáctanos</button>
           </div>
           <div className="footer-bottom">
             <div className="footer-brand">EventosMX</div>
@@ -210,6 +212,31 @@ function Layout({ children, showNav = true }) {
           </div>
         </div>
       </footer>
+      {modalContacto && (
+        <div className="contacto-modal-overlay" onClick={() => setModalContacto(false)}>
+          <div className="contacto-modal" onClick={e => e.stopPropagation()}>
+            <div className="contacto-modal-icono">✉️</div>
+            <h2 className="contacto-modal-titulo">Contáctanos</h2>
+            <p className="contacto-modal-desc">
+              Para comunicarte con el administrador, envíanos un correo a:
+            </p>
+            <a
+              className="contacto-modal-email"
+              href="https://mail.google.com/mail/?view=cm&fs=1&to=admin@eventosmx.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              >
+              admin@eventosmx.com
+              </a>
+            <p className="contacto-modal-nota">
+              Nos pondremos en contacto contigo a la brevedad posible.
+            </p>
+            <button className="contacto-modal-btn" onClick={() => setModalContacto(false)}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

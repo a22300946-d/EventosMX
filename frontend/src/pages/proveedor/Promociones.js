@@ -7,6 +7,9 @@ function Promociones() {
   const [promociones, setPromociones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  
   const [formData, setFormData] = useState({
     titulo: "",
     descripcion: "",
@@ -41,10 +44,55 @@ function Promociones() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const crearPromocion = async (e) => {
+  const abrirModalCrear = () => {
+    setIsEditing(false);
+    setEditingId(null);
+    setFormData({
+      titulo: "",
+      descripcion: "",
+      precio_original: "",
+      precio_promocional: "",
+      fecha_inicio: "",
+      fecha_fin: "",
+    });
+    setShowModal(true);
+  };
+
+  const abrirModalEditar = (promo) => {
+    setIsEditing(true);
+    setEditingId(promo.id_promocion);
+    
+    // Formatear las fechas a YYYY-MM-DD para que el input type="date" las cargue bien
+    const formatearFecha = (fechaStr) => {
+      if (!fechaStr) return "";
+      const d = new Date(fechaStr);
+      const mes = `${d.getMonth() + 1}`.padStart(2, '0');
+      const dia = `${d.getDate()}`.padStart(2, '0');
+      const anio = d.getFullYear();
+      return [anio, mes, dia].join('-');
+    };
+
+    setFormData({
+      titulo: promo.titulo || "",
+      descripcion: promo.descripcion || "",
+      precio_original: promo.precio_original || "",
+      precio_promocional: promo.precio_promocional || "",
+      fecha_inicio: formatearFecha(promo.fecha_inicio),
+      fecha_fin: formatearFecha(promo.fecha_fin),
+    });
+    setShowModal(true);
+  };
+
+  const guardarPromocion = async (e) => {
     e.preventDefault();
     try {
-      await proveedorService.crearPromocion(formData);
+      if (isEditing) {
+        // Suponiendo que el backend usa este método en tu proveedorService
+        await proveedorService.actualizarPromocion(editingId, formData);
+      } else {
+        await proveedorService.crearPromocion(formData);
+      }
+      
       setShowModal(false);
       setFormData({
         titulo: "",
@@ -56,7 +104,7 @@ function Promociones() {
       });
       cargarPromociones();
     } catch (error) {
-      alert(error.response?.data?.message || "Error al crear promoción");
+      alert(error.response?.data?.message || `Error al ${isEditing ? "actualizar" : "crear"} promoción`);
     }
   };
 
@@ -93,16 +141,24 @@ function Promociones() {
             <>
               {promociones.map((promo) => (
                 <div key={promo.id_promocion} className="promocion-card">
-                  <div className="promocion-imagen">
-                    <img
-                      src="https://via.placeholder.com/300x200"
-                      alt={promo.titulo}
-                    />
-                  </div>
                   <div className="promocion-info">
                     <h3>{promo.titulo}</h3>
-                    <p className="promocion-detalles">*Detalles*</p>
-                    <button className="btn-editar-promo">Editar</button>
+                    {promo.descripcion && (
+                      <p className="promocion-descripcion">{promo.descripcion}</p>
+                    )}
+                    <div className="promocion-precios">
+                      <span className="promocion-precio-original">${parseFloat(promo.precio_original).toLocaleString()}</span>
+                      <span className="promocion-precio-promo">${parseFloat(promo.precio_promocional).toLocaleString()}</span>
+                    </div>
+                    <div className="promocion-fechas">
+                      <span>Del {new Date(promo.fecha_inicio).toLocaleDateString('es-MX')} al {new Date(promo.fecha_fin).toLocaleDateString('es-MX')}</span>
+                    </div>
+                    <button 
+                      className="btn-editar-promo"
+                      onClick={() => abrirModalEditar(promo)}
+                    >
+                      Editar
+                    </button>
                     <button
                       className="btn-eliminar-promo"
                       onClick={() => pedirEliminar(promo)}
@@ -115,7 +171,7 @@ function Promociones() {
 
               <div
                 className="promocion-placeholder"
-                onClick={() => setShowModal(true)}
+                onClick={abrirModalCrear}
               >
                 <p>Haz clic para agregar nueva promoción</p>
               </div>
@@ -123,12 +179,12 @@ function Promociones() {
           )}
         </div>
 
-        {/* Modal nueva promoción */}
+        {/* Modal Único (Nueva / Editar) */}
         {showModal && (
           <div className="modal-overlay" onClick={() => setShowModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <h2>Nueva Promoción</h2>
-              <form onSubmit={crearPromocion}>
+              <h2>{isEditing ? "Editar Promoción" : "Nueva Promoción"}</h2>
+              <form onSubmit={guardarPromocion}>
                 <input
                   type="text"
                   name="titulo"
@@ -148,7 +204,7 @@ function Promociones() {
                 <input
                   type="number"
                   name="precio_original"
-                  placeholder="Precio Original"
+                  placeholder="Precio original"
                   value={formData.precio_original}
                   onChange={handleChange}
                   required
@@ -157,28 +213,34 @@ function Promociones() {
                 <input
                   type="number"
                   name="precio_promocional"
-                  placeholder="Precio Promocional"
+                  placeholder="Precio promocional"
                   value={formData.precio_promocional}
                   onChange={handleChange}
                   required
                   className="form-input"
                 />
-                <input
-                  type="date"
-                  name="fecha_inicio"
-                  value={formData.fecha_inicio}
-                  onChange={handleChange}
-                  required
-                  className="form-input"
-                />
-                <input
-                  type="date"
-                  name="fecha_fin"
-                  value={formData.fecha_fin}
-                  onChange={handleChange}
-                  required
-                  className="form-input"
-                />
+                <label className="promo-fecha-label">
+                  Fecha de inicio
+                  <input
+                    type="date"
+                    name="fecha_inicio"
+                    value={formData.fecha_inicio}
+                    onChange={handleChange}
+                    required
+                    className="form-input"
+                  />
+                </label>
+                <label className="promo-fecha-label">
+                  Fecha de fin
+                  <input
+                    type="date"
+                    name="fecha_fin"
+                    value={formData.fecha_fin}
+                    onChange={handleChange}
+                    required
+                    className="form-input"
+                  />
+                </label>
                 <div className="modal-buttons">
                   <button
                     type="button"
@@ -188,7 +250,7 @@ function Promociones() {
                     Cancelar
                   </button>
                   <button type="submit" className="btn-crear">
-                    Crear
+                    {isEditing ? "Guardar" : "Crear"}
                   </button>
                 </div>
               </form>

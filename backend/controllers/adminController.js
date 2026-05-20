@@ -173,9 +173,9 @@ const obtenerResenasNoPositivas = async (req, res) => {
       FROM resena r
       JOIN cliente c ON c.id_cliente = r.id_cliente
       JOIN proveedor p ON p.id_proveedor = r.id_proveedor
-      WHERE r.sentimiento IN ('neutro', 'negativo')
+      WHERE r.reportada = true
         AND r.visible = true
-      ORDER BY r.reportada DESC, r.fecha_publicacion DESC
+      ORDER BY r.fecha_publicacion DESC
     `;
     const resultado = await pool.query(query);
     res.json({ success: true, data: resultado.rows });

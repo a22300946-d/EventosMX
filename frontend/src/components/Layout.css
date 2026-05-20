@@ -330,3 +330,120 @@
 .footer-social-btn:hover {
   transform: translateY(-3px);
 }
+
+/* ========== Footer link como botón ========== */
+.footer-link-btn {
+  background: none;
+  border: none;
+  color: #2c3e50;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.3s;
+  font-family: inherit;
+}
+
+.footer-link-btn:hover {
+  color: #1a4d5c;
+}
+
+/* ========== Modal Contáctanos ========== */
+.contacto-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.contacto-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 2.5rem 2rem 2rem;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.contacto-modal-cerrar {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #6c757d;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.contacto-modal-cerrar:hover {
+  background: #f0f0f0;
+  color: #2c3e50;
+}
+
+.contacto-modal-icono {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.contacto-modal-titulo {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1a4d5c;
+  margin: 0 0 0.75rem;
+}
+
+.contacto-modal-desc {
+  color: #5a6a72;
+  font-size: 0.95rem;
+  margin: 0 0 0.75rem;
+}
+
+.contacto-modal-email {
+  display: inline-block;
+  color: #1a4d5c;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  background: #c5dde8;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  transition: background 0.2s;
+}
+
+.contacto-modal-email:hover {
+  background: #aecfde;
+}
+
+.contacto-modal-nota {
+  color: #8a9aa3;
+  font-size: 0.85rem;
+  margin: 0 0 1.5rem;
+}
+
+.contacto-modal-btn {
+  background: #1a4d5c;
+  color: white;
+  border: none;
+  padding: 0.65rem 2rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.contacto-modal-btn:hover {
+  background: #15404d;
+}
