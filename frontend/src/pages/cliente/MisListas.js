@@ -2,6 +2,22 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
 import { clienteService } from "../../services/clienteService";
+import {
+  FaPlus,
+  FaHeart,
+  FaChevronRight,
+  FaEllipsisV,
+  FaPencilAlt,
+  FaCopy,
+  FaTrash,
+  FaBox,
+  FaCheck,
+  FaClock,
+  FaClipboardList,
+  FaCheckCircle,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+import { MdClose } from "react-icons/md";
 import "./MisListas.css";
 
 function MisListas() {
@@ -26,29 +42,23 @@ function MisListas() {
     cargarListas();
   }, []);
 
-  // Cerrar menú al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('.lista-menu-container')) {
+      if (!e.target.closest(".lista-menu-container")) {
         setMostrarMenuLista(null);
       }
     };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
   const cargarListas = async () => {
     try {
       setLoading(true);
       const response = await clienteService.obtenerMisListas();
-      
-      console.log('Datos de listas:', response.data.data); // Debug
-      
       const listasFiltradas = (response.data.data || []).filter(
         (lista) => lista.nombre_lista !== "Favoritos"
       );
-      
       setListas(listasFiltradas);
     } catch (error) {
       console.error("Error al cargar listas:", error);
@@ -58,41 +68,27 @@ function MisListas() {
   };
 
   const validarNombreLista = (nombre) => {
-    if (!nombre.trim()) {
-      return "El nombre del evento es obligatorio";
-    }
-    if (nombre.length < 3) {
-      return "El nombre debe tener al menos 3 caracteres";
-    }
-    if (nombre.length > 100) {
-      return "El nombre no puede exceder 100 caracteres";
-    }
-    if (nombre.trim().toLowerCase() === "favoritos") {
+    if (!nombre.trim()) return "El nombre del evento es obligatorio";
+    if (nombre.length < 3) return "El nombre debe tener al menos 3 caracteres";
+    if (nombre.length > 100) return "El nombre no puede exceder 100 caracteres";
+    if (nombre.trim().toLowerCase() === "favoritos")
       return 'El nombre "Favoritos" está reservado para el sistema';
-    }
     return "";
   };
 
   const crearLista = async () => {
     const errorValidacion = validarNombreLista(nombreNuevaLista);
-    if (errorValidacion) {
-      setError(errorValidacion);
-      return;
-    }
-
+    if (errorValidacion) { setError(errorValidacion); return; }
     try {
       setCreandoLista(true);
       setError("");
-
       await clienteService.crearLista({
         nombre_lista: nombreNuevaLista.trim(),
         descripcion: descripcionNuevaLista.trim() || null,
       });
-
       setNombreNuevaLista("");
       setDescripcionNuevaLista("");
       setShowModal(false);
-
       await cargarListas();
     } catch (error) {
       console.error("Error al crear lista:", error);
@@ -114,25 +110,18 @@ function MisListas() {
 
   const renombrarLista = async () => {
     const errorValidacion = validarNombreLista(nuevoNombreLista);
-    if (errorValidacion) {
-      setErrorRenombrar(errorValidacion);
-      return;
-    }
-
+    if (errorValidacion) { setErrorRenombrar(errorValidacion); return; }
     try {
       setRenombrandoLista(true);
       setErrorRenombrar("");
-
       await clienteService.actualizarLista(listaARenombrar.id_lista, {
         nombre_lista: nuevoNombreLista.trim(),
         descripcion: nuevaDescripcionLista.trim() || null,
       });
-
       setShowRenombrarModal(false);
       setListaARenombrar(null);
       await cargarListas();
-      
-      alert("✅ Lista actualizada correctamente");
+      alert("Lista actualizada correctamente");
     } catch (error) {
       console.error("Error al renombrar lista:", error);
       setErrorRenombrar(error.response?.data?.message || "Error al actualizar la lista");
@@ -142,77 +131,55 @@ function MisListas() {
   };
 
   const duplicarLista = async (lista, e) => {
-  e.stopPropagation();
-  setMostrarMenuLista(null);
-
-  try {
-    setProcesando((prev) => ({ ...prev, [lista.id_lista]: true }));
-
-    // Generar nombre único
-    let nuevoNombre = `${lista.nombre_lista} (Copia)`;
-    let contador = 1;
-
-    while (listas.some((l) => l.nombre_lista === nuevoNombre)) {
-      contador++;
-      nuevoNombre = `${lista.nombre_lista} (Copia ${contador})`;
-    }
-
-    // Crear la nueva lista
-    const responseNuevaLista = await clienteService.crearLista({
-      nombre_lista: nuevoNombre,
-      descripcion: lista.descripcion || null,
-    });
-
-    const idNuevaLista = responseNuevaLista.data.data.id_lista;
-
-    // Obtener los proveedores de la lista original
-    const responseProveedores = await clienteService.obtenerListaPorId(lista.id_lista);
-    const proveedoresOriginales = responseProveedores.data.data.proveedores || [];
-
-    // Copiar cada proveedor a la nueva lista
-    if (proveedoresOriginales.length > 0) {
-      await Promise.all(
-        proveedoresOriginales.map((proveedor) =>
-          clienteService.agregarProveedorALista(
-            idNuevaLista,
-            proveedor.id_proveedor
+    e.stopPropagation();
+    setMostrarMenuLista(null);
+    try {
+      setProcesando((prev) => ({ ...prev, [lista.id_lista]: true }));
+      let nuevoNombre = `${lista.nombre_lista} (Copia)`;
+      let contador = 1;
+      while (listas.some((l) => l.nombre_lista === nuevoNombre)) {
+        contador++;
+        nuevoNombre = `${lista.nombre_lista} (Copia ${contador})`;
+      }
+      const responseNuevaLista = await clienteService.crearLista({
+        nombre_lista: nuevoNombre,
+        descripcion: lista.descripcion || null,
+      });
+      const idNuevaLista = responseNuevaLista.data.data.id_lista;
+      const responseProveedores = await clienteService.obtenerListaPorId(lista.id_lista);
+      const proveedoresOriginales = responseProveedores.data.data.proveedores || [];
+      if (proveedoresOriginales.length > 0) {
+        await Promise.all(
+          proveedoresOriginales.map((proveedor) =>
+            clienteService.agregarProveedorALista(idNuevaLista, proveedor.id_proveedor)
           )
-        )
-      );
+        );
+      }
+      await cargarListas();
+      alert(`Lista "${nuevoNombre}" creada con ${proveedoresOriginales.length} proveedor(es) copiado(s)`);
+    } catch (error) {
+      console.error("Error al duplicar lista:", error);
+      alert("Error al duplicar la lista");
+    } finally {
+      setProcesando((prev) => ({ ...prev, [lista.id_lista]: false }));
     }
-
-    await cargarListas();
-    alert(
-      `✅ Lista "${nuevoNombre}" creada exitosamente con ${proveedoresOriginales.length} proveedor(es) copiado(s)`
-    );
-  } catch (error) {
-    console.error("Error al duplicar lista:", error);
-    alert("❌ Error al duplicar la lista");
-  } finally {
-    setProcesando((prev) => ({ ...prev, [lista.id_lista]: false }));
-  }
-};
+  };
 
   const eliminarLista = async (lista, e) => {
     e.stopPropagation();
     setMostrarMenuLista(null);
-
     const confirmacion = window.confirm(
       `¿Estás seguro de eliminar "${lista.nombre_lista}"?\n\nEsta acción no se puede deshacer.`
     );
-
     if (!confirmacion) return;
-
     try {
       setProcesando((prev) => ({ ...prev, [lista.id_lista]: true }));
-
       await clienteService.eliminarLista(lista.id_lista);
-
       setListas(listas.filter((l) => l.id_lista !== lista.id_lista));
-      alert("✅ Lista eliminada correctamente");
+      alert("Lista eliminada correctamente");
     } catch (error) {
       console.error("Error al eliminar lista:", error);
-      alert("❌ Error al eliminar la lista");
+      alert("Error al eliminar la lista");
     } finally {
       setProcesando((prev) => ({ ...prev, [lista.id_lista]: false }));
     }
@@ -223,19 +190,13 @@ function MisListas() {
     setMostrarMenuLista(mostrarMenuLista === idLista ? null : idLista);
   };
 
-  const verDetallesLista = (idLista) => {
-    navigate(`/cliente/listas/${idLista}`);
-  };
-
-  const verProveedoresGuardados = () => {
-    navigate("/cliente/favoritos");
-  };
+  const verDetallesLista = (idLista) => navigate(`/cliente/listas/${idLista}`);
+  const verProveedoresGuardados = () => navigate("/cliente/favoritos");
 
   const getEstadoBadge = (estado) => {
-    if (estado === "completo") {
-      return { class: "badge-success", text: "✓ Evento completo" };
-    }
-    return { class: "badge-warning", text: "⏳ En progreso" };
+    if (estado === "completo")
+      return { class: "badge-success", text: "Evento completo", icon: <FaCheckCircle style={{ marginRight: 4 }} /> };
+    return { class: "badge-warning", text: "En progreso", icon: <FaClock style={{ marginRight: 4 }} /> };
   };
 
   return (
@@ -244,7 +205,8 @@ function MisListas() {
         <div className="listas-header">
           <h1>Mis Eventos</h1>
           <button className="btn-crear-evento" onClick={() => setShowModal(true)}>
-            + Crear Evento
+            <FaPlus style={{ marginRight: 6 }} />
+            Crear Evento
           </button>
         </div>
 
@@ -255,7 +217,7 @@ function MisListas() {
           </div>
         ) : (
           <div className="listas-grid">
-            {/* Proveedores Guardados */}
+             {/* Proveedores Guardados */}
             <div className="lista-card lista-favoritos" onClick={verProveedoresGuardados}>
               <div className="lista-icon">
                 <span className="icon-favorito">♡</span>
@@ -270,24 +232,24 @@ function MisListas() {
             {/* Listas creadas */}
             {listas.length === 0 ? (
               <div className="empty-state-card">
-                <div className="empty-icon">📋</div>
+                <div className="empty-icon">
+                  <FaClipboardList size={48} />
+                </div>
                 <h3>No tienes eventos creados</h3>
                 <p>Crea tu primer evento para organizar proveedores</p>
                 <button className="btn-crear-primero" onClick={() => setShowModal(true)}>
-                  + Crear mi primer evento
+                  <FaPlus style={{ marginRight: 6 }} />
+                  Crear mi primer evento
                 </button>
               </div>
             ) : (
               listas.map((lista) => {
-                // Cálculo robusto del progreso
                 const totalProveedores = Number(lista.total_proveedores) || 0;
                 const proveedoresAdquiridos = Number(lista.proveedores_adquiridos) || 0;
-                
                 let progreso = 0;
                 if (totalProveedores > 0) {
                   progreso = Math.round((proveedoresAdquiridos / totalProveedores) * 100);
                 }
-
                 const estado =
                   proveedoresAdquiridos === totalProveedores && totalProveedores > 0
                     ? "completo"
@@ -301,37 +263,27 @@ function MisListas() {
                     className={`lista-card ${estaProcesando ? "lista-procesando" : ""}`}
                     onClick={() => !estaProcesando && verDetallesLista(lista.id_lista)}
                   >
-                    {/* Botón de menú */}
                     <div className="lista-menu-container">
                       <button
                         className="btn-menu-lista"
                         onClick={(e) => toggleMenu(lista.id_lista, e)}
                         disabled={estaProcesando}
                       >
-                        ⋮
+                        <FaEllipsisV />
                       </button>
 
                       {mostrarMenuLista === lista.id_lista && (
                         <div className="menu-desplegable">
-                          <button
-                            className="menu-item"
-                            onClick={(e) => abrirModalRenombrar(lista, e)}
-                          >
-                            <span className="menu-icon">✏️</span>
+                          <button className="menu-item" onClick={(e) => abrirModalRenombrar(lista, e)}>
+                            <FaPencilAlt className="menu-icon" />
                             Renombrar
                           </button>
-                          <button
-                            className="menu-item"
-                            onClick={(e) => duplicarLista(lista, e)}
-                          >
-                            <span className="menu-icon">📋</span>
+                          <button className="menu-item" onClick={(e) => duplicarLista(lista, e)}>
+                            <FaCopy className="menu-icon" />
                             Duplicar
                           </button>
-                          <button
-                            className="menu-item menu-item-danger"
-                            onClick={(e) => eliminarLista(lista, e)}
-                          >
-                            <span className="menu-icon">🗑️</span>
+                          <button className="menu-item menu-item-danger" onClick={(e) => eliminarLista(lista, e)}>
+                            <FaTrash className="menu-icon" />
                             Eliminar
                           </button>
                         </div>
@@ -340,7 +292,10 @@ function MisListas() {
 
                     <div className="lista-header-card">
                       <h3>{lista.nombre_lista}</h3>
-                      <span className={`badge ${badge.class}`}>{badge.text}</span>
+                      <span className={`badge ${badge.class}`}>
+                        {badge.icon}
+                        {badge.text}
+                      </span>
                     </div>
 
                     {lista.descripcion && (
@@ -356,26 +311,26 @@ function MisListas() {
 
                     <div className="lista-stats">
                       <div className="stat-item">
-                        <span className="stat-icon">📦</span>
+                        <FaBox className="stat-icon" />
                         <span className="stat-value">{totalProveedores}</span>
                         <span className="stat-label">Proveedores</span>
                       </div>
                       <div className="stat-item">
-                        <span className="stat-icon">✓</span>
+                        <FaCheck className="stat-icon" />
                         <span className="stat-value">{proveedoresAdquiridos}</span>
                         <span className="stat-label">Adquiridos</span>
                       </div>
                       <div className="stat-item">
-                        <span className="stat-icon">⏳</span>
-                        <span className="stat-value">
-                          {totalProveedores - proveedoresAdquiridos}
-                        </span>
+                        <FaClock className="stat-icon" />
+                        <span className="stat-value">{totalProveedores - proveedoresAdquiridos}</span>
                         <span className="stat-label">Pendientes</span>
                       </div>
                     </div>
 
                     <button className="btn-ver-detalles">
-                      {estaProcesando ? "Procesando..." : "Ver detalles →"}
+                      {estaProcesando ? "Procesando..." : (
+                        <>Ver detalles <FaChevronRight style={{ marginLeft: 6 }} /></>
+                      )}
                     </button>
                   </div>
                 );
@@ -390,9 +345,10 @@ function MisListas() {
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>Crear Nuevo Evento</h2>
-                <button className="btn-cerrar-modal" onClick={() => setShowModal(false)}>✕</button>
+                <button className="btn-cerrar-modal" onClick={() => setShowModal(false)}>
+                  <MdClose size={20} />
+                </button>
               </div>
-
               <div className="modal-body">
                 <div className="form-group">
                   <label htmlFor="nombre_lista">
@@ -404,16 +360,17 @@ function MisListas() {
                     className={`form-input ${error ? "input-error" : ""}`}
                     placeholder="Ej: Mi Boda 2026"
                     value={nombreNuevaLista}
-                    onChange={(e) => {
-                      setNombreNuevaLista(e.target.value);
-                      setError("");
-                    }}
+                    onChange={(e) => { setNombreNuevaLista(e.target.value); setError(""); }}
                     maxLength="100"
                   />
-                  {error && <span className="error-message">⚠️ {error}</span>}
+                  {error && (
+                    <span className="error-message">
+                      <FaExclamationTriangle style={{ marginRight: 5 }} />
+                      {error}
+                    </span>
+                  )}
                   <small className="field-hint">{nombreNuevaLista.length}/100 caracteres</small>
                 </div>
-
                 <div className="form-group">
                   <label htmlFor="descripcion_lista">Descripción (opcional)</label>
                   <textarea
@@ -428,7 +385,6 @@ function MisListas() {
                   <small className="field-hint">{descripcionNuevaLista.length}/500 caracteres</small>
                 </div>
               </div>
-
               <div className="modal-footer">
                 <button className="btn-cancelar" onClick={() => setShowModal(false)} disabled={creandoLista}>
                   Cancelar
@@ -438,7 +394,8 @@ function MisListas() {
                   onClick={crearLista}
                   disabled={creandoLista || !nombreNuevaLista.trim()}
                 >
-                  {creandoLista ? "Creando..." : "✓ Crear Evento"}
+                  <FaCheckCircle style={{ marginRight: 6 }} />
+                  {creandoLista ? "Creando..." : "Crear Evento"}
                 </button>
               </div>
             </div>
@@ -451,9 +408,10 @@ function MisListas() {
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>Renombrar Evento</h2>
-                <button className="btn-cerrar-modal" onClick={() => setShowRenombrarModal(false)}>✕</button>
+                <button className="btn-cerrar-modal" onClick={() => setShowRenombrarModal(false)}>
+                  <MdClose size={20} />
+                </button>
               </div>
-
               <div className="modal-body">
                 <div className="form-group">
                   <label htmlFor="nuevo_nombre_lista">
@@ -465,16 +423,17 @@ function MisListas() {
                     className={`form-input ${errorRenombrar ? "input-error" : ""}`}
                     placeholder="Ej: Mi Boda 2026"
                     value={nuevoNombreLista}
-                    onChange={(e) => {
-                      setNuevoNombreLista(e.target.value);
-                      setErrorRenombrar("");
-                    }}
+                    onChange={(e) => { setNuevoNombreLista(e.target.value); setErrorRenombrar(""); }}
                     maxLength="100"
                   />
-                  {errorRenombrar && <span className="error-message">⚠️ {errorRenombrar}</span>}
+                  {errorRenombrar && (
+                    <span className="error-message">
+                      <FaExclamationTriangle style={{ marginRight: 5 }} />
+                      {errorRenombrar}
+                    </span>
+                  )}
                   <small className="field-hint">{nuevoNombreLista.length}/100 caracteres</small>
                 </div>
-
                 <div className="form-group">
                   <label htmlFor="nueva_descripcion_lista">Descripción (opcional)</label>
                   <textarea
@@ -489,7 +448,6 @@ function MisListas() {
                   <small className="field-hint">{nuevaDescripcionLista.length}/500 caracteres</small>
                 </div>
               </div>
-
               <div className="modal-footer">
                 <button
                   className="btn-cancelar"
@@ -503,7 +461,8 @@ function MisListas() {
                   onClick={renombrarLista}
                   disabled={renombrandoLista || !nuevoNombreLista.trim()}
                 >
-                  {renombrandoLista ? "Guardando..." : "✓ Guardar Cambios"}
+                  <FaCheckCircle style={{ marginRight: 6 }} />
+                  {renombrandoLista ? "Guardando..." : "Guardar Cambios"}
                 </button>
               </div>
             </div>

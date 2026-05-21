@@ -3,6 +3,10 @@ import api from "../../services/api";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
 import "./Preferencias.css";
 
+// React Icons
+import { FiCalendar, FiTarget, FiMapPin, FiDollarSign, FiTrash2, FiCheck, FiLoader } from "react-icons/fi";
+import { MdOutlineStorefront } from "react-icons/md";
+
 function Preferencias() {
   const [formData, setFormData] = useState({
     tipos_eventos: [],
@@ -14,8 +18,7 @@ function Preferencias() {
   const [loading, setLoading] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState({ tipo: "", texto: "" });
-  
-  // Catálogos
+
   const [tiposEventosDisponibles, setTiposEventosDisponibles] = useState([]);
   const [categoriasDisponibles, setCategoriasDisponibles] = useState([]);
   const [ciudades, setCiudades] = useState([]);
@@ -27,8 +30,7 @@ function Preferencias() {
   const cargarDatos = async () => {
     try {
       setCargando(true);
-      
-      // Cargar preferencias existentes
+
       const prefResponse = await api.get("/recomendaciones/preferencias");
       if (prefResponse.data.data) {
         const pref = prefResponse.data.data;
@@ -41,22 +43,20 @@ function Preferencias() {
         });
       }
 
-      // Cargar catálogos - CORREGIDAS LAS RUTAS
       const [eventosRes, categoriasRes, ciudadesRes] = await Promise.all([
-        api.get("/tipos-eventos"),  // ✅ CORREGIDO: era /tipo-evento
+        api.get("/tipos-eventos"),
         api.get("/categorias"),
-        api.get("/lugar")
+        api.get("/lugar"),
       ]);
 
       setTiposEventosDisponibles(eventosRes.data.data || []);
       setCategoriasDisponibles(categoriasRes.data.data || []);
       setCiudades(ciudadesRes.data.data || []);
-
     } catch (error) {
       console.error("Error al cargar datos:", error);
       setMensaje({
         tipo: "error",
-        texto: "Error al cargar las preferencias"
+        texto: "Error al cargar las preferencias",
       });
     } finally {
       setCargando(false);
@@ -64,24 +64,18 @@ function Preferencias() {
   };
 
   const toggleSeleccion = (campo, valor) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const array = Array.isArray(prev[campo]) ? prev[campo] : [];
       const existe = array.includes(valor);
-      
       return {
         ...prev,
-        [campo]: existe 
-          ? array.filter(item => item !== valor)
-          : [...array, valor]
+        [campo]: existe ? array.filter((item) => item !== valor) : [...array, valor],
       };
     });
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -91,16 +85,15 @@ function Preferencias() {
 
     try {
       await api.post("/recomendaciones/preferencias", formData);
-
       setMensaje({
         tipo: "success",
-        texto: "✓ Preferencias guardadas exitosamente. Esto mejorará tus recomendaciones.",
+        texto: "Preferencias guardadas exitosamente. Esto mejorará tus recomendaciones.",
       });
     } catch (error) {
       console.error("Error al guardar preferencias:", error);
       setMensaje({
         tipo: "error",
-        texto: error.response?.data?.message || "❌ Error al guardar preferencias",
+        texto: error.response?.data?.message || "Error al guardar preferencias",
       });
     } finally {
       setLoading(false);
@@ -108,14 +101,11 @@ function Preferencias() {
   };
 
   const handleLimpiar = async () => {
-    if (!window.confirm("¿Estás seguro de que deseas eliminar todas tus preferencias?")) {
-      return;
-    }
+    if (!window.confirm("¿Estás seguro de que deseas eliminar todas tus preferencias?")) return;
 
     try {
       setLoading(true);
       await api.delete("/recomendaciones/preferencias");
-      
       setFormData({
         tipos_eventos: [],
         servicios_preferidos: [],
@@ -123,17 +113,10 @@ function Preferencias() {
         precio_min: "",
         precio_max: "",
       });
-
-      setMensaje({
-        tipo: "success",
-        texto: "✓ Preferencias eliminadas"
-      });
+      setMensaje({ tipo: "success", texto: "Preferencias eliminadas" });
     } catch (error) {
       console.error("Error al eliminar preferencias:", error);
-      setMensaje({
-        tipo: "error",
-        texto: "Error al eliminar preferencias"
-      });
+      setMensaje({ tipo: "error", texto: "Error al eliminar preferencias" });
     } finally {
       setLoading(false);
     }
@@ -160,25 +143,23 @@ function Preferencias() {
         </div>
 
         <form onSubmit={handleSubmit} className="preferencias-form">
-          
+
           {/* ========== TIPOS DE EVENTOS ========== */}
           <div className="form-section">
-            <h3>📅 Tipos de eventos de interés</h3>
+            <h3><FiCalendar /> Tipos de eventos de interés</h3>
             <p className="section-hint">Selecciona los tipos de eventos que te interesan</p>
-            
+
             <div className="opciones-grid">
               {tiposEventosDisponibles.map((tipo) => (
                 <button
                   key={tipo.id_tipo_evento}
                   type="button"
                   className={`opcion-card ${
-                    formData.tipos_eventos.includes(tipo.nombre_evento)
-                      ? "seleccionado"
-                      : ""
+                    formData.tipos_eventos.includes(tipo.nombre_evento) ? "seleccionado" : ""
                   }`}
                   onClick={() => toggleSeleccion("tipos_eventos", tipo.nombre_evento)}
                 >
-                  <span className="opcion-icono">{tipo.icono || "📍"}</span>
+                  <span className="opcion-icono"><FiMapPin /></span>
                   <span className="opcion-nombre">{tipo.nombre_evento}</span>
                 </button>
               ))}
@@ -187,22 +168,20 @@ function Preferencias() {
 
           {/* ========== SERVICIOS PREFERIDOS ========== */}
           <div className="form-section">
-            <h3>🎯 Servicios preferidos</h3>
+            <h3><FiTarget /> Servicios preferidos</h3>
             <p className="section-hint">¿Qué tipo de servicios buscas normalmente?</p>
-            
+
             <div className="opciones-grid">
               {categoriasDisponibles.map((categoria) => (
                 <button
                   key={categoria.id_categoria}
                   type="button"
                   className={`opcion-card ${
-                    formData.servicios_preferidos.includes(categoria.nombre_categoria)
-                      ? "seleccionado"
-                      : ""
+                    formData.servicios_preferidos.includes(categoria.nombre_categoria) ? "seleccionado" : ""
                   }`}
                   onClick={() => toggleSeleccion("servicios_preferidos", categoria.nombre_categoria)}
                 >
-                  <span className="opcion-icono">🎪</span>
+                  <span className="opcion-icono"><MdOutlineStorefront /></span>
                   <span className="opcion-nombre">{categoria.nombre_categoria}</span>
                 </button>
               ))}
@@ -211,9 +190,9 @@ function Preferencias() {
 
           {/* ========== UBICACIÓN ========== */}
           <div className="form-section">
-            <h3>📍 Ubicación preferida</h3>
+            <h3><FiMapPin /> Ubicación preferida</h3>
             <p className="section-hint">¿En qué ciudad prefieres buscar proveedores?</p>
-            
+
             <select
               name="ubicacion_preferida"
               className="form-input form-select"
@@ -231,9 +210,9 @@ function Preferencias() {
 
           {/* ========== RANGO DE PRECIOS ========== */}
           <div className="form-section">
-            <h3>💰 Rango de precios</h3>
+            <h3><FiDollarSign /> Rango de precios</h3>
             <p className="section-hint">Define tu presupuesto aproximado por servicio</p>
-            
+
             <div className="precio-inputs">
               <div className="precio-field">
                 <label>Mínimo</label>
@@ -247,9 +226,9 @@ function Preferencias() {
                   min="0"
                 />
               </div>
-              
+
               <span className="precio-separador">-</span>
-              
+
               <div className="precio-field">
                 <label>Máximo</label>
                 <input
@@ -268,6 +247,7 @@ function Preferencias() {
           {/* ========== MENSAJES ========== */}
           {mensaje.texto && (
             <div className={`mensaje mensaje-${mensaje.tipo}`}>
+              {mensaje.tipo === "success" ? <FiCheck /> : null}
               {mensaje.texto}
             </div>
           )}
@@ -280,15 +260,15 @@ function Preferencias() {
               className="btn-limpiar"
               disabled={loading}
             >
-              🗑️ Eliminar preferencias
+              <FiTrash2 /> Eliminar preferencias
             </button>
-            
+
             <button
               type="submit"
               className="btn-guardar"
               disabled={loading}
             >
-              {loading ? "Guardando..." : "✓ Guardar preferencias"}
+              {loading ? <><FiLoader /> Guardando...</> : <><FiCheck /> Guardar preferencias</>}
             </button>
           </div>
         </form>

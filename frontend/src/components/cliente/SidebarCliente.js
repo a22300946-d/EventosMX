@@ -9,7 +9,7 @@ function SidebarCliente() {
     { path: '/cliente/cuenta/datos', label: 'Mis datos' },
     { path: '/cliente/cuenta/preferencias', label: 'Preferencias' },
     { path: '/cliente/cuenta/listas', label: 'Mis listas' },
-    { path: '/cliente/cuenta/historial', label: 'Historial de búsquedas' },
+    { path: '/cliente/cuenta/historial', label: 'Historial de solicitudes' },
     { path: '/cliente/cuenta/resenas', label: 'Reseñas publicadas' }
   ];
 
