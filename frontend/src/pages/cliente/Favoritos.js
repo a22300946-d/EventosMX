@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
 import { clienteService } from "../../services/clienteService";
+import { FaHeartBroken, FaTrash, FaStar, FaMapMarkerAlt, FaRegHeart } from "react-icons/fa";
+import { IoArrowBack } from "react-icons/io5";
 import "./Favoritos.css";
 
 function Favoritos() {
@@ -75,12 +77,12 @@ function Favoritos() {
     <ClienteLayout>
       <div className="favoritos-container">
         <button className="btn-volver-simple" onClick={() => navigate("/cliente/listas")}>
-          ← Volver a mis eventos
+          <IoArrowBack /> Volver a mis eventos
         </button>
 
         <div className="favoritos-header-section">
           <div className="favoritos-info">
-            <h1>♡ Proveedores Guardados</h1>
+            <h1><FaRegHeart /> Proveedores Guardados</h1>
             <p className="favoritos-desc">
               Todos tus proveedores favoritos en un solo lugar
             </p>
@@ -96,7 +98,9 @@ function Favoritos() {
 
         {favoritos.length === 0 ? (
           <div className="empty-favoritos">
-            <div className="empty-icon">💔</div>
+            <div className="empty-icon">
+              <FaHeartBroken />
+            </div>
             <h3>No tienes proveedores guardados</h3>
             <p>Explora y guarda tus proveedores favoritos</p>
             <button
@@ -126,10 +130,13 @@ function Favoritos() {
                   <div className="favorito-info-detalle">
                     <h3>{favorito.nombre_negocio}</h3>
                     <p className="favorito-tipo">{favorito.tipo_servicio}</p>
-                    <p className="favorito-ciudad">📍 {favorito.ciudad}</p>
+                    <p className="favorito-ciudad">
+                      <FaMapMarkerAlt /> {favorito.ciudad}
+                    </p>
+
                     {favorito.calificacion_promedio && (
                       <div className="favorito-rating">
-                        ⭐ {Number(favorito.calificacion_promedio * 5).toFixed(1)}
+                        <FaStar /> {Number(favorito.calificacion_promedio * 5).toFixed(1)}
                       </div>
                     )}
                   </div>
@@ -151,7 +158,7 @@ function Favoritos() {
                       disabled={eliminando}
                       title="Eliminar de favoritos"
                     >
-                      🗑️
+                      <FaTrash />
                     </button>
                   </div>
                 </div>

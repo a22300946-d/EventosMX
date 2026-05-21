@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
 import { clienteService } from "../../services/clienteService";
+import { FaArrowLeft, FaMapMarkerAlt, FaTrash, FaUser, FaCompass } from "react-icons/fa";
+import { MdInbox } from "react-icons/md";
 import "./DetallesLista.css";
 
 function DetallesLista() {
@@ -20,7 +22,6 @@ function DetallesLista() {
     try {
       setLoading(true);
       const response = await clienteService.obtenerListaPorId(id);
-      
       setLista(response.data.data.lista);
       setProveedores(response.data.data.proveedores || []);
     } catch (error) {
@@ -36,17 +37,12 @@ function DetallesLista() {
   const cambiarEstado = async (idListaProveedor, nuevoEstado) => {
     try {
       setActualizando(true);
-
       await clienteService.cambiarEstadoProveedor(idListaProveedor, nuevoEstado);
-
-      // Actualizar localmente
       setProveedores(proveedores.map(p =>
         p.id_lista_proveedor === idListaProveedor
           ? { ...p, estado: nuevoEstado }
           : p
       ));
-
-      // Recargar para actualizar estadísticas
       await cargarDetalles();
     } catch (error) {
       console.error("Error al cambiar estado:", error);
@@ -57,19 +53,11 @@ function DetallesLista() {
   };
 
   const eliminarProveedor = async (idListaProveedor, nombreProveedor) => {
-    if (!window.confirm(`¿Eliminar "${nombreProveedor}" de esta lista?`)) {
-      return;
-    }
-
+    if (!window.confirm(`¿Eliminar "${nombreProveedor}" de esta lista?`)) return;
     try {
       setActualizando(true);
-
       await clienteService.eliminarProveedorDeLista(idListaProveedor);
-
-      // Actualizar localmente
       setProveedores(proveedores.filter(p => p.id_lista_proveedor !== idListaProveedor));
-
-      // Recargar para actualizar estadísticas
       await cargarDetalles();
     } catch (error) {
       console.error("Error al eliminar proveedor:", error);
@@ -111,7 +99,8 @@ function DetallesLista() {
     <ClienteLayout>
       <div className="detalles-lista-container">
         <button className="btn-volver-simple" onClick={() => navigate("/cliente/listas")}>
-          ← Volver a mis eventos
+          <FaArrowLeft style={{ marginRight: 6 }} />
+          Volver a mis eventos
         </button>
 
         <div className="lista-header-section">
@@ -119,7 +108,7 @@ function DetallesLista() {
             <h1>{lista.nombre_lista}</h1>
             {lista.descripcion && <p className="lista-desc">{lista.descripcion}</p>}
           </div>
-          
+
           <div className="lista-resumen">
             <div className="resumen-item">
               <span className="resumen-numero">{proveedores.length}</span>
@@ -127,13 +116,13 @@ function DetallesLista() {
             </div>
             <div className="resumen-item success">
               <span className="resumen-numero">
-                {proveedores.filter(p => p.estado === 'Adquirido').length}
+                {proveedores.filter(p => p.estado === "Adquirido").length}
               </span>
               <span className="resumen-label">Adquiridos</span>
             </div>
             <div className="resumen-item warning">
               <span className="resumen-numero">
-                {proveedores.filter(p => p.estado === 'Pendiente').length}
+                {proveedores.filter(p => p.estado === "Pendiente").length}
               </span>
               <span className="resumen-label">Pendientes</span>
             </div>
@@ -142,13 +131,13 @@ function DetallesLista() {
 
         {proveedores.length === 0 ? (
           <div className="empty-proveedores">
-            <div className="empty-icon">📭</div>
+            <div className="empty-icon">
+              <MdInbox size={52} />
+            </div>
             <h3>No hay proveedores en este evento</h3>
             <p>Explora proveedores y agrégalos a esta lista</p>
-            <button
-              className="btn-explorar"
-              onClick={() => navigate("/cliente/explorar")}
-            >
+            <button className="btn-explorar" onClick={() => navigate("/cliente/explorar")}>
+              <FaCompass style={{ marginRight: 6 }} />
               Explorar proveedores
             </button>
           </div>
@@ -169,7 +158,10 @@ function DetallesLista() {
                 <div className="proveedor-info">
                   <h3>{proveedor.nombre_negocio}</h3>
                   <p className="proveedor-tipo">{proveedor.tipo_servicio}</p>
-                  <p className="proveedor-ciudad">📍 {proveedor.ciudad}</p>
+                  <p className="proveedor-ciudad">
+                    <FaMapMarkerAlt style={{ marginRight: 4, color: "#e74c3c" }} />
+                    {proveedor.ciudad}
+                  </p>
                 </div>
 
                 <div className="proveedor-acciones">
@@ -179,14 +171,15 @@ function DetallesLista() {
                     onChange={(e) => cambiarEstado(proveedor.id_lista_proveedor, e.target.value)}
                     disabled={actualizando}
                   >
-                    <option value="Pendiente">⏳ Pendiente</option>
-                    <option value="Adquirido">✓ Adquirido</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Adquirido">Adquirido</option>
                   </select>
 
                   <button
                     className="btn-ver-perfil"
                     onClick={() => verPerfilProveedor(proveedor.id_proveedor)}
                   >
+                    <FaUser style={{ marginRight: 5 }} />
                     Ver perfil
                   </button>
 
@@ -196,7 +189,7 @@ function DetallesLista() {
                     disabled={actualizando}
                     title="Eliminar de la lista"
                   >
-                    🗑️
+                    <FaTrash />
                   </button>
                 </div>
               </div>

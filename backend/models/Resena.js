@@ -194,6 +194,26 @@ class Resena {
     const resultado = await pool.query(query, valores);
     return resultado.rows[0];
   }
+
+  static async obtenerPorCliente(id_cliente) {
+  const query = `
+    SELECT 
+      r.id_resena,
+      r.comentario,
+      r.calificacion,
+      r.sentimiento,
+      r.fecha_publicacion AS fecha_creacion,
+      r.id_proveedor,
+      p.nombre_negocio
+    FROM resena r
+    INNER JOIN proveedor p ON r.id_proveedor = p.id_proveedor
+    WHERE r.id_cliente = $1
+    ORDER BY r.fecha_publicacion DESC
+  `;
+  const { rows } = await pool.query(query, [id_cliente]);
+  return rows;
+}
+
 }
 
 module.exports = Resena;
