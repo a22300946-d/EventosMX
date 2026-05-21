@@ -187,6 +187,25 @@ const reportarResena = async (req, res) => {
       });
     }
 
+    // Notificar al admin por socket sobre la reseña reportada
+    try {
+      const { getIO } = require('../config/socket');
+      const io = getIO();
+      if (io) {
+        io.emit('admin_resena_reportada', {
+          tipo: 'resena_reportada',
+          id_resena: resenaReportada.id_resena,
+          motivo,
+          comentario: resenaReportada.comentario,
+          calificacion: resenaReportada.calificacion,
+          sentimiento: resenaReportada.sentimiento,
+          fecha: resenaReportada.fecha_publicacion,
+        });
+      }
+    } catch (socketError) {
+      console.error('Error al emitir socket de reseña reportada:', socketError);
+    }
+
     res.json({
       success: true,
       message: 'Reseña reportada exitosamente. Será revisada por un administrador.',

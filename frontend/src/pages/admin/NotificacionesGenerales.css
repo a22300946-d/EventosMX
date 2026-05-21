@@ -198,3 +198,24 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ── Alerta de resultado ── */
+.ng-alerta {
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.ng-alerta-ok {
+  background: #d1fadf;
+  color: #1a7a40;
+  border: 1px solid #a3d9b5;
+}
+
+.ng-alerta-error {
+  background: #ffe3e3;
+  color: #c0392b;
+  border: 1px solid #f5b7b1;
+}

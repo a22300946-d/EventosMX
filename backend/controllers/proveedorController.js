@@ -59,6 +59,26 @@ const registrarProveedor = async (req, res) => {
       rol: 'proveedor'
     });
 
+    // Notificar al admin por socket sobre el nuevo registro
+    try {
+      const { getIO } = require('../config/socket');
+      const io = getIO();
+      if (io) {
+        io.emit('admin_nueva_solicitud_proveedor', {
+          tipo: 'nuevo_proveedor',
+          id_proveedor: nuevoProveedor.id_proveedor,
+          nombre_negocio: nuevoProveedor.nombre_negocio,
+          correo: nuevoProveedor.correo,
+          telefono: nuevoProveedor.telefono || null,
+          ciudad: nuevoProveedor.ciudad || null,
+          tipo_servicio: nuevoProveedor.tipo_servicio,
+          fecha_registro: nuevoProveedor.fecha_registro,
+        });
+      }
+    } catch (socketError) {
+      console.error('Error al emitir socket de nuevo proveedor:', socketError);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Proveedor registrado exitosamente. Pendiente de aprobación.',
