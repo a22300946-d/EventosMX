@@ -347,108 +347,6 @@
   color: #1a4d5c;
 }
 
-/* ========== Modal Contáctanos ========== */
-.contacto-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  padding: 1rem;
-}
-
-.contacto-modal {
-  background: white;
-  border-radius: 16px;
-  padding: 2.5rem 2rem 2rem;
-  max-width: 420px;
-  width: 100%;
-  text-align: center;
-  position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-}
-
-.contacto-modal-cerrar {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  font-size: 1.1rem;
-  color: #6c757d;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  transition: background 0.2s, color 0.2s;
-}
-
-.contacto-modal-cerrar:hover {
-  background: #f0f0f0;
-  color: #2c3e50;
-}
-
-.contacto-modal-icono {
-  font-size: 2.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.contacto-modal-titulo {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #1a4d5c;
-  margin: 0 0 0.75rem;
-}
-
-.contacto-modal-desc {
-  color: #5a6a72;
-  font-size: 0.95rem;
-  margin: 0 0 0.75rem;
-}
-
-.contacto-modal-email {
-  display: inline-block;
-  color: #1a4d5c;
-  font-weight: 600;
-  font-size: 1rem;
-  text-decoration: none;
-  background: #c5dde8;
-  padding: 0.5rem 1.25rem;
-  border-radius: 8px;
-  margin-bottom: 0.75rem;
-  transition: background 0.2s;
-}
-
-.contacto-modal-email:hover {
-  background: #aecfde;
-}
-
-.contacto-modal-nota {
-  color: #8a9aa3;
-  font-size: 0.85rem;
-  margin: 0 0 1.5rem;
-}
-
-.contacto-modal-btn {
-  background: #1a4d5c;
-  color: white;
-  border: none;
-  padding: 0.65rem 2rem;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  font-family: inherit;
-}
-
-.contacto-modal-btn:hover {
-  background: #15404d;
-}
-
-/* ========== Campana de Notificaciones ========== */
 .nav-notif-wrapper {
   position: relative;
 }
@@ -645,10 +543,15 @@
 }
 
 /* ========== Modal Detalle de Notificación ========== */
-.notif-detalle-overlay {
+
+/* ════════════════════════════════════════════════
+   MODALES HOMOGÉNEOS  –  Sistema unificado
+   ════════════════════════════════════════════════ */
+
+.modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.48);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -656,29 +559,148 @@
   padding: 1rem;
 }
 
-.notif-detalle-modal {
-  background: white;
+.modal-card {
+  background: #fff;
   border-radius: 16px;
-  padding: 2.5rem 2rem 2rem;
-  max-width: 500px;
+  padding: 2rem 2rem 1.75rem;
+  max-width: 440px;
   width: 100%;
-  text-align: center;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
+  animation: modalIn 0.18s ease;
 }
 
-.notif-detalle-icono {
+.modal-card--ancho {
+  max-width: 520px;
+  align-items: flex-start;
+  text-align: left;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-icono {
   font-size: 2.5rem;
+  line-height: 1;
 }
 
-.notif-detalle-titulo {
-  font-size: 1.3rem;
+.modal-titulo {
+  font-size: 1.25rem;
   font-weight: 700;
   color: #1a4d5c;
   margin: 0;
+  text-align: center;
+}
+
+.modal-card--ancho .modal-titulo { text-align: left; }
+
+.modal-descripcion {
+  font-size: 0.93rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.6;
+  text-align: center;
+  width: 100%;
+}
+
+.modal-card--ancho .modal-descripcion { text-align: left; }
+
+.modal-nota {
+  font-size: 0.82rem;
+  color: #888;
+  margin: 0.25rem 0 0;
+  text-align: center;
+}
+
+.modal-acciones {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.modal-card--ancho .modal-acciones { justify-content: flex-end; }
+
+/* Botones del modal */
+.modal-btn {
+  border: none;
+  border-radius: 25px;
+  padding: 0.55rem 1.5rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, background 0.2s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.modal-btn--primario {
+  background: #1a4d5c;
+  color: white;
+}
+.modal-btn--primario:hover { background: #15404d; }
+
+.modal-btn--accion {
+  background: #1a4d5c;
+  color: white;
+  flex: 1;
+  min-width: 140px;
+}
+.modal-btn--accion:hover { background: #15404d; }
+
+.modal-btn--secundario {
+  background: #f0f0f0;
+  color: #444;
+}
+.modal-btn--secundario:hover { background: #ddd; }
+
+.modal-btn--peligro {
+  background: #dc3545;
+  color: white;
+}
+.modal-btn--peligro:hover { opacity: 0.88; }
+
+.modal-btn--advertencia {
+  background: #e67e00;
+  color: white;
+}
+.modal-btn--advertencia:hover { opacity: 0.88; }
+
+/* Cuerpo contacto */
+.modal-contacto-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.modal-email-link {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a4d5c;
+  text-decoration: none;
+  background: #e8f4f8;
+  padding: 0.45rem 1.25rem;
+  border-radius: 8px;
+  display: inline-block;
+  transition: background 0.2s;
+}
+.modal-email-link:hover { background: #cde8f0; }
+
+/* Cuerpo notif detalle */
+.modal-notif-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
 }
 
 .notif-detalle-mensaje {
@@ -699,32 +721,7 @@
   align-self: flex-end;
 }
 
-.notif-detalle-btn {
-  margin-top: 0.5rem;
-  background: #1a4d5c;
-  color: white;
-  border: none;
-  padding: 0.65rem 2.5rem;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  font-family: inherit;
-}
-
-.notif-detalle-btn:hover {
-  background: #15404d;
-}
-
-/* ========== Modal Admin Detalle ========== */
-.notif-detalle-modal--admin {
-  max-width: 540px;
-  text-align: left;
-  align-items: flex-start;
-  padding: 2rem 2rem 1.5rem;
-}
-
+/* Info admin en modal */
 .notif-admin-info {
   width: 100%;
   display: flex;
@@ -749,49 +746,70 @@
   flex-shrink: 0;
 }
 
-.notif-admin-acciones {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+/* Info proveedor en modal cotización */
+.notif-prov-info {
   width: 100%;
-  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 1rem;
 }
 
-.notif-detalle-btn--accion {
-  background: #1a4d5c;
-  flex: 1;
-  min-width: 160px;
-}
+/* ════════════════════════════════════════════════
+   RESPONSIVIDAD GLOBAL
+   ════════════════════════════════════════════════ */
 
-.notif-detalle-btn--accion:hover {
-  background: #15404d;
-}
+@media (max-width: 768px) {
+  .navbar-content {
+    padding: 0 0.75rem;
+    gap: 0.5rem;
+  }
 
-.notif-detalle-btn--cerrar {
-  background: #6c757d;
-  flex-shrink: 0;
-}
+  .logo { font-size: 1.1rem; }
 
-.notif-detalle-btn--cerrar:hover {
-  background: #5a6268;
+  .nav-links {
+    gap: 0.4rem;
+  }
+
+  .modal-card {
+    padding: 1.5rem 1.25rem 1.25rem;
+    border-radius: 12px;
+  }
+
+  .modal-acciones {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-card--ancho .modal-acciones { flex-direction: column; }
+
+  .modal-btn--accion,
+  .modal-btn--primario,
+  .modal-btn--secundario {
+    width: 100%;
+    text-align: center;
+  }
+
+  .notif-admin-label { min-width: 100px; }
+
+  .modal-card--ancho {
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 480px) {
-  .notif-detalle-modal--admin {
-    padding: 1.5rem 1rem 1.25rem;
+  .modal-card {
+    padding: 1.25rem 1rem 1rem;
   }
 
-  .notif-admin-label {
-    min-width: 100px;
-  }
+  .modal-titulo { font-size: 1.1rem; }
+  .modal-icono  { font-size: 2rem; }
 
-  .notif-admin-acciones {
-    flex-direction: column;
-  }
-
-  .notif-detalle-btn--accion,
-  .notif-detalle-btn--cerrar {
-    width: 100%;
+  .nav-notif-panel {
+    right: 0.25rem;
+    left: 0.25rem;
+    width: auto;
   }
 }

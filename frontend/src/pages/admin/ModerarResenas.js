@@ -9,9 +9,10 @@ function ModerarResenas() {
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
 
-  // Modal de confirmación genérico
+  // Modal de confirmación homogéneo
   const [modal, setModal] = useState({
     visible: false,
+    icono: '',
     titulo: '',
     descripcion: '',
     textoConfirmar: '',
@@ -19,9 +20,7 @@ function ModerarResenas() {
     onConfirmar: null,
   });
 
-  useEffect(() => {
-    cargarResenas();
-  }, []);
+  useEffect(() => { cargarResenas(); }, []);
 
   const cargarResenas = async () => {
     setCargando(true);
@@ -29,36 +28,30 @@ function ModerarResenas() {
     try {
       const res = await api.get('/admin/resenas');
       setResenas(res.data.data);
-    } catch (err) {
+    } catch {
       setError('No se pudieron cargar las reseñas.');
     } finally {
       setCargando(false);
     }
   };
 
-  const confirmar = (opciones) => {
-    setModal({ visible: true, ...opciones });
-  };
-
-  const cerrarModal = () => {
-    setModal({ visible: false, titulo: '', descripcion: '', textoConfirmar: '', tipo: '', onConfirmar: null });
-  };
+  const confirmar = (opciones) => setModal({ visible: true, ...opciones });
+  const cerrarModal = () =>
+    setModal({ visible: false, icono: '', titulo: '', descripcion: '', textoConfirmar: '', tipo: '', onConfirmar: null });
 
   const ejecutarConfirmacion = async () => {
     if (modal.onConfirmar) await modal.onConfirmar();
     cerrarModal();
   };
 
-  // Eliminar reseña
-  const pedirEliminar = (resena) => {
-    confirmar({
-      titulo: '¿Eliminar reseña?',
-      descripcion: `Vas a eliminar la reseña de "${resena.nombre_cliente}" sobre "${resena.nombre_negocio}". Esta acción ocultará la reseña permanentemente.`,
-      textoConfirmar: 'Sí, eliminar',
-      tipo: 'peligro',
-      onConfirmar: () => eliminar(resena.id_resena),
-    });
-  };
+  const pedirEliminar = (resena) => confirmar({
+    icono: '🗑️',
+    titulo: '¿Eliminar reseña?',
+    descripcion: `Vas a eliminar la reseña de "${resena.nombre_cliente}" sobre "${resena.nombre_negocio}". Esta acción ocultará la reseña permanentemente.`,
+    textoConfirmar: 'Sí, eliminar',
+    tipo: 'peligro',
+    onConfirmar: () => eliminar(resena.id_resena),
+  });
 
   const eliminar = async (id) => {
     try {
@@ -66,47 +59,43 @@ function ModerarResenas() {
       setMensaje('Reseña eliminada correctamente.');
       await cargarResenas();
       setTimeout(() => setMensaje(''), 3000);
-    } catch (err) {
+    } catch {
       setError('Error al eliminar la reseña.');
       setTimeout(() => setError(''), 3000);
     }
   };
 
-  // Bloquear usuario desde reseña
-  const pedirBloquearUsuario = (resena) => {
-    confirmar({
-      titulo: '¿Bloquear usuario?',
-      descripcion: `Vas a bloquear la cuenta de "${resena.nombre_cliente}" (ID: ${resena.id_cliente}). El usuario no podrá iniciar sesión hasta que sea desbloqueado.`,
-      textoConfirmar: 'Sí, bloquear',
-      tipo: 'advertencia',
-      onConfirmar: () => bloquearUsuario(resena.id_cliente, resena.nombre_cliente),
-    });
-  };
+  const pedirBloquearUsuario = (resena) => confirmar({
+    icono: '🚫',
+    titulo: '¿Bloquear usuario?',
+    descripcion: `Vas a bloquear la cuenta de "${resena.nombre_cliente}" (ID: ${resena.id_cliente}). El usuario no podrá iniciar sesión hasta que sea desbloqueado.`,
+    textoConfirmar: 'Sí, bloquear',
+    tipo: 'advertencia',
+    onConfirmar: () => bloquearUsuario(resena.id_cliente, resena.nombre_cliente),
+  });
 
   const bloquearUsuario = async (idCliente, nombreCliente) => {
     try {
       await api.patch(`/admin/clientes/${idCliente}/estado`, { estado: 'bloqueado' });
       setMensaje(`Usuario "${nombreCliente}" bloqueado correctamente.`);
       setTimeout(() => setMensaje(''), 3000);
-    } catch (err) {
+    } catch {
       setError('Error al bloquear el usuario.');
       setTimeout(() => setError(''), 3000);
     }
   };
 
-  const calcularEstrellas = (calificacion) => {
-    if (calificacion === null || calificacion === undefined) return 0;
-    return Math.round(parseFloat(calificacion) * 4) + 1;
+  const calcularEstrellas = (cal) => {
+    if (cal === null || cal === undefined) return 0;
+    return Math.round(parseFloat(cal) * 4) + 1;
   };
 
-  const renderEstrellas = (calificacion) => {
-    const estrellas = calcularEstrellas(calificacion);
+  const renderEstrellas = (cal) => {
+    const n = calcularEstrellas(cal);
     return (
       <div className="mr-estrellas">
         {[1, 2, 3, 4, 5].map(i => (
-          <span key={i} className={i <= estrellas ? 'mr-estrella-llena' : 'mr-estrella-vacia'}>
-            ★
-          </span>
+          <span key={i} className={i <= n ? 'mr-estrella-llena' : 'mr-estrella-vacia'}>★</span>
         ))}
       </div>
     );
@@ -136,17 +125,10 @@ function ModerarResenas() {
                     {renderEstrellas(r.calificacion)}
                   </div>
                   <div className="mr-header-der">
-                    <button
-                      className="mr-btn-bloquear"
-                      onClick={() => pedirBloquearUsuario(r)}
-                      title={`Bloquear a ${r.nombre_cliente}`}
-                    >
+                    <button className="mr-btn-bloquear" onClick={() => pedirBloquearUsuario(r)}>
                       🚫 Bloquear usuario
                     </button>
-                    <button
-                      className="mr-btn-eliminar"
-                      onClick={() => pedirEliminar(r)}
-                    >
+                    <button className="mr-btn-eliminar" onClick={() => pedirEliminar(r)}>
                       Eliminar
                     </button>
                     <span className={`mr-badge mr-badge-${r.sentimiento}`}>
@@ -154,7 +136,6 @@ function ModerarResenas() {
                     </span>
                   </div>
                 </div>
-
                 <div className="mr-card-body">
                   <p className="mr-comentario">{r.comentario}</p>
                   <p className="mr-autor">
@@ -169,21 +150,19 @@ function ModerarResenas() {
         )}
       </div>
 
-      {/* Modal de confirmación */}
+      {/* ── Modal de confirmación homogéneo ── */}
       {modal.visible && (
-        <div className="mr-modal-overlay" onClick={cerrarModal}>
-          <div className="mr-modal" onClick={e => e.stopPropagation()}>
-            <div className={`mr-modal-icono mr-modal-icono-${modal.tipo}`}>
-              {modal.tipo === 'peligro' ? '🗑️' : '⚠️'}
-            </div>
-            <h3 className="mr-modal-titulo">{modal.titulo}</h3>
-            <p className="mr-modal-desc">{modal.descripcion}</p>
-            <div className="mr-modal-acciones">
-              <button className="mr-modal-btn-cancelar" onClick={cerrarModal}>
+        <div className="modal-overlay-mr" onClick={cerrarModal}>
+          <div className="modal-card-mr" onClick={e => e.stopPropagation()}>
+            {modal.icono && <div className="modal-icono-mr">{modal.icono}</div>}
+            <h3 className="modal-titulo-mr">{modal.titulo}</h3>
+            <p className="modal-desc-mr">{modal.descripcion}</p>
+            <div className="modal-acciones-mr">
+              <button className="modal-btn-mr modal-btn-cancelar-mr" onClick={cerrarModal}>
                 Cancelar
               </button>
               <button
-                className={`mr-modal-btn-confirmar mr-modal-btn-${modal.tipo}`}
+                className={`modal-btn-mr modal-btn-confirmar-mr modal-btn-${modal.tipo}-mr`}
                 onClick={ejecutarConfirmacion}
               >
                 {modal.textoConfirmar}

@@ -278,3 +278,92 @@
     flex-direction: column;
   }
 }
+
+/* ── Modal homogéneo (prefijo -mr para evitar conflictos) ── */
+.modal-overlay-mr {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-card-mr {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem 2rem 1.75rem;
+  max-width: 430px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  animation: modalInMr 0.18s ease;
+}
+
+@keyframes modalInMr {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-icono-mr  { font-size: 2.5rem; line-height: 1; }
+
+.modal-titulo-mr {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1a4d5c;
+  margin: 0;
+}
+
+.modal-desc-mr {
+  font-size: 0.93rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.modal-acciones-mr {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.modal-btn-mr {
+  border: none;
+  border-radius: 25px;
+  padding: 0.55rem 1.5rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, background 0.2s;
+  font-family: inherit;
+}
+
+.modal-btn-cancelar-mr {
+  background: #f0f0f0;
+  color: #444;
+}
+.modal-btn-cancelar-mr:hover { background: #ddd; }
+
+.modal-btn-confirmar-mr {
+  color: white;
+}
+
+.modal-btn-peligro-mr    { background: #dc3545; }
+.modal-btn-peligro-mr:hover { opacity: 0.88; }
+
+.modal-btn-advertencia-mr { background: #e67e00; }
+.modal-btn-advertencia-mr:hover { opacity: 0.88; }
+
+@media (max-width: 480px) {
+  .modal-card-mr { padding: 1.5rem 1.1rem 1.25rem; }
+  .modal-acciones-mr { flex-direction: column; }
+  .modal-btn-mr { width: 100%; }
+}
