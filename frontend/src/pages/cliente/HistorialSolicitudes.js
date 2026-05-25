@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaClipboardList, FaCalendarAlt, FaUsers, FaMoneyBillWave,
-  FaBuilding, FaTag, FaInbox, FaExclamationTriangle,
+  FaTag, FaInbox, FaExclamationTriangle,
   FaChevronLeft, FaChevronRight, FaSpinner, FaRedo,
   FaFilter, FaSortAmountDown, FaEye, FaCheckCircle,
-  FaHourglassHalf, FaTimesCircle, FaCommentDots, FaSearch,
+  FaHourglassHalf, FaTimesCircle, FaCommentDots,
   FaChartBar, FaMapMarkerAlt, FaStar,
+  FaEnvelopeOpenText, FaBan, FaUserTie, FaInfoCircle,
 } from "react-icons/fa";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
 import { clienteService } from "../../services/clienteService";
@@ -14,18 +15,27 @@ import "./HistorialSolicitudes.css";
 
 const POR_PAGINA = 10;
 
+const ESTADOS = [
+  { key: "todos",      label: "Todas",         icono: <FaClipboardList /> },
+  { key: "Pendiente",  label: "Pendientes",     icono: <FaHourglassHalf /> },
+  { key: "Respondida", label: "Con respuesta",  icono: <FaEnvelopeOpenText /> },
+  { key: "Aceptada",   label: "Aceptadas",      icono: <FaCheckCircle /> },
+  { key: "Rechazada",  label: "Rechazadas",     icono: <FaBan /> },
+];
+
 function HistorialSolicitudes() {
   const [solicitudes, setSolicitudes]           = useState([]);
   const [loading, setLoading]                   = useState(true);
   const [error, setError]                       = useState(null);
   const [filtroEstado, setFiltroEstado]         = useState("todos");
-  const [ordenSolicitudes, setOrdenSolicitudes] = useState("recientes");
+  const [orden, setOrden]                       = useState("recientes");
   const [paginaActual, setPaginaActual]         = useState(1);
+  const [expandidas, setExpandidas]             = useState({});
 
   const navigate = useNavigate();
 
   useEffect(() => { cargarSolicitudes(); }, []);
-  useEffect(() => { setPaginaActual(1); }, [filtroEstado, ordenSolicitudes]);
+  useEffect(() => { setPaginaActual(1); }, [filtroEstado, orden]);
 
   const cargarSolicitudes = async () => {
     try {
@@ -41,35 +51,35 @@ function HistorialSolicitudes() {
     }
   };
 
-  // ── Filtrado y orden ──────────────────────────────────────────────────────
+  const toggleExpandida = (id) =>
+    setExpandidas((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  const contarPorEstado = (estado) => {
-    if (estado === "todos") return solicitudes.length;
-    return solicitudes.filter((s) => s.estado === estado).length;
+  // ── Filtrado y orden ───────────────────────────────────────────
+
+  const contarPorEstado = (estado) =>
+    estado === "todos"
+      ? solicitudes.length
+      : solicitudes.filter((s) => s.estado === estado).length;
+
+  const getSolicitudesFiltradas = () => {
+    let lista = [...solicitudes];
+    if (filtroEstado !== "todos")
+      lista = lista.filter((s) => s.estado === filtroEstado);
+
+    if (orden === "recientes")
+      lista.sort((a, b) => new Date(b.fecha_envio) - new Date(a.fecha_envio));
+    else if (orden === "antiguos")
+      lista.sort((a, b) => new Date(a.fecha_envio) - new Date(b.fecha_envio));
+    else if (orden === "evento")
+      lista.sort((a, b) => new Date(a.fecha_evento) - new Date(b.fecha_evento));
+
+    return lista;
   };
 
-  const obtenerSolicitudesFiltradas = () => {
-    let filtradas = [...solicitudes];
-
-    if (filtroEstado !== "todos") {
-      filtradas = filtradas.filter((s) => s.estado === filtroEstado);
-    }
-
-    if (ordenSolicitudes === "recientes") {
-      filtradas.sort((a, b) => new Date(b.fecha_envio) - new Date(a.fecha_envio));
-    } else if (ordenSolicitudes === "antiguos") {
-      filtradas.sort((a, b) => new Date(a.fecha_envio) - new Date(b.fecha_envio));
-    } else if (ordenSolicitudes === "evento") {
-      filtradas.sort((a, b) => new Date(a.fecha_evento) - new Date(b.fecha_evento));
-    }
-
-    return filtradas;
-  };
-
-  const todasFiltradas  = obtenerSolicitudesFiltradas();
-  const totalPaginas    = Math.ceil(todasFiltradas.length / POR_PAGINA);
-  const inicio          = (paginaActual - 1) * POR_PAGINA;
-  const solicitudesPag  = todasFiltradas.slice(inicio, inicio + POR_PAGINA);
+  const todasFiltradas = getSolicitudesFiltradas();
+  const totalPaginas   = Math.max(1, Math.ceil(todasFiltradas.length / POR_PAGINA));
+  const inicio         = (paginaActual - 1) * POR_PAGINA;
+  const paginadas      = todasFiltradas.slice(inicio, inicio + POR_PAGINA);
 
   const irAPagina = (n) => {
     if (n < 1 || n > totalPaginas) return;
@@ -77,57 +87,60 @@ function HistorialSolicitudes() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ── Helpers UI ────────────────────────────────────────────────────────────
+  const getPaginas = () => {
+    if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, i) => i + 1);
+    const p = [];
+    if (paginaActual <= 4) {
+      p.push(1, 2, 3, 4, 5, "...", totalPaginas);
+    } else if (paginaActual >= totalPaginas - 3) {
+      p.push(1, "...", totalPaginas - 4, totalPaginas - 3, totalPaginas - 2, totalPaginas - 1, totalPaginas);
+    } else {
+      p.push(1, "...", paginaActual - 1, paginaActual, paginaActual + 1, "...", totalPaginas);
+    }
+    return p;
+  };
+
+  // ── Helpers ────────────────────────────────────────────────────
 
   const getEstadoInfo = (estado) => {
     switch (estado) {
-      case "Aceptada":
-        return { clase: "badge-aceptada", texto: "Cotización aceptada",    icono: <FaCheckCircle /> };
-      case "Pendiente":
-        return { clase: "badge-pendiente", texto: "En espera de respuesta", icono: <FaHourglassHalf /> };
-      case "Respondida":
-        return { clase: "badge-respondida", texto: "Propuesta recibida",    icono: <FaCommentDots /> };
-      case "Rechazada":
-        return { clase: "badge-rechazada", texto: "Solicitud rechazada",    icono: <FaTimesCircle /> };
-      case "Cancelada":
-        return { clase: "badge-cancelada", texto: "Solicitud cancelada",    icono: <FaTimesCircle /> };
-      default:
-        return { clase: "badge-default", texto: estado,                     icono: <FaClipboardList /> };
+      case "Aceptada":   return { clase: "sr-badge-aceptada",   texto: "Aceptada",      icono: <FaCheckCircle /> };
+      case "Pendiente":  return { clase: "sr-badge-pendiente",  texto: "Pendiente",     icono: <FaHourglassHalf /> };
+      case "Respondida": return { clase: "sr-badge-respondida", texto: "Con respuesta", icono: <FaEnvelopeOpenText /> };
+      case "Rechazada":  return { clase: "sr-badge-rechazada",  texto: "Rechazada",     icono: <FaBan /> };
+      case "Cancelada":  return { clase: "sr-badge-cancelada",  texto: "Cancelada",     icono: <FaTimesCircle /> };
+      default:           return { clase: "sr-badge-default",    texto: estado,          icono: <FaClipboardList /> };
     }
   };
 
-  const formatearFecha = (fecha) => {
-    if (!fecha) return "—";
-    return new Date(fecha).toLocaleDateString("es-MX", {
-      year: "numeric", month: "long", day: "numeric",
-    });
-  };
+  const fmt = (fecha) =>
+    fecha
+      ? new Date(fecha).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })
+      : "—";
 
-  const formatearFechaHora = (fecha) => {
-    if (!fecha) return "—";
-    return new Date(fecha).toLocaleDateString("es-MX", {
-      year: "numeric", month: "long", day: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    });
-  };
+  const fmtCorta = (fecha) =>
+    fecha
+      ? new Date(fecha).toLocaleDateString("es-MX", {
+          year: "numeric", month: "short", day: "numeric",
+          hour: "2-digit", minute: "2-digit",
+        })
+      : "—";
 
-  const formatearPresupuesto = (valor) => {
-    if (!valor) return null;
-    return parseFloat(valor).toLocaleString("es-MX", {
-      style: "currency", currency: "MXN", maximumFractionDigits: 0,
-    });
-  };
+  const fmtMXN = (valor) =>
+    valor
+      ? parseFloat(valor).toLocaleString("es-MX", {
+          style: "currency", currency: "MXN", maximumFractionDigits: 0,
+        })
+      : null;
 
-  // ── Renderizado condicional ───────────────────────────────────────────────
+  // ── Renders condicionales ──────────────────────────────────────
 
   if (loading) {
     return (
       <ClienteLayout>
-        <div className="historial-container">
-          <div className="loading-container">
-            <FaSpinner className="spinner-icon spin" />
-            <p>Cargando tu historial de solicitudes...</p>
-          </div>
+        <div className="sr-loading">
+          <FaSpinner className="sr-spinner" />
+          <p>Cargando tu historial de solicitudes...</p>
         </div>
       </ClienteLayout>
     );
@@ -136,106 +149,84 @@ function HistorialSolicitudes() {
   if (error) {
     return (
       <ClienteLayout>
-        <div className="historial-container">
-          <div className="error-container">
-            <FaExclamationTriangle className="error-icon" />
-            <h3>{error}</h3>
-            <button onClick={cargarSolicitudes} className="btn-reintentar">
-              <FaRedo /> Reintentar
-            </button>
-          </div>
+        <div className="sr-error">
+          <FaExclamationTriangle />
+          <h3>{error}</h3>
+          <button onClick={cargarSolicitudes} className="sr-btn-retry">
+            <FaRedo /> Reintentar
+          </button>
         </div>
       </ClienteLayout>
     );
   }
 
-  // ── Renderizado principal ─────────────────────────────────────────────────
+  // ── Render principal ───────────────────────────────────────────
 
   return (
     <ClienteLayout>
-      <div className="historial-container">
+      <div className="sr-root">
 
-        {/* Header */}
-        <div className="historial-header">
-          <div className="historial-header-titulo">
-            <FaClipboardList className="header-icon" />
+        {/* Encabezado */}
+        <header className="sr-header">
+          <div className="sr-header-left">
+            <FaClipboardList className="sr-header-icon" />
             <div>
               <h1>Historial de Solicitudes</h1>
-              <p className="historial-subtitle">
-                Consulta y gestiona todas las solicitudes que has enviado a proveedores
-              </p>
+              <p>Consulta y gestiona todas las solicitudes que has enviado a proveedores</p>
             </div>
           </div>
-        </div>
+          <div className="sr-header-stat">
+            <span className="sr-total-num">{solicitudes.length}</span>
+            <span className="sr-total-lbl">solicitudes</span>
+          </div>
+        </header>
 
         {solicitudes.length === 0 ? (
-          <div className="empty-state">
-            <FaInbox className="empty-icon" />
-            <h3>No tienes solicitudes aún</h3>
+          <div className="sr-empty">
+            <FaInbox className="sr-empty-icon" />
+            <h3>Sin solicitudes aún</h3>
             <p>Las solicitudes que envíes a proveedores aparecerán aquí</p>
           </div>
         ) : (
           <>
-            {/* Resumen */}
-            <div className="historial-info">
-              <FaChartBar className="info-icon" />
-              <p>
-                Tienes <strong>{solicitudes.length}</strong>{" "}
-                {solicitudes.length === 1 ? "solicitud registrada" : "solicitudes registradas"}
-              </p>
-            </div>
-
-            {/* Tarjetas de resumen por estado */}
-            <div className="resumen-estados">
-              {[
-                { estado: "Pendiente",  label: "Pendientes",  icono: <FaHourglassHalf /> },
-                { estado: "Respondida", label: "Con propuesta", icono: <FaCommentDots /> },
-                { estado: "Aceptada",   label: "Aceptadas",   icono: <FaCheckCircle /> },
-                { estado: "Rechazada",  label: "Rechazadas",  icono: <FaTimesCircle /> },
-              ].map(({ estado, label, icono }) => (
-                <div
-                  key={estado}
-                  className={`resumen-card resumen-${estado.toLowerCase()} ${filtroEstado === estado ? "resumen-activo" : ""}`}
-                  onClick={() => setFiltroEstado(filtroEstado === estado ? "todos" : estado)}
+            {/* Tarjetas resumen por estado */}
+            <div className="sr-resumen">
+              {ESTADOS.filter((e) => e.key !== "todos").map(({ key, label, icono }) => (
+                <button
+                  key={key}
+                  className={`sr-resumen-card sr-estado-${key.toLowerCase()} ${
+                    filtroEstado === key ? "sr-resumen-activo" : ""
+                  }`}
+                  onClick={() => setFiltroEstado(filtroEstado === key ? "todos" : key)}
                 >
-                  <span className="resumen-icono">{icono}</span>
-                  <span className="resumen-numero">{contarPorEstado(estado)}</span>
-                  <span className="resumen-label">{label}</span>
-                </div>
+                  <span className="sr-resumen-ico">{icono}</span>
+                  <span className="sr-resumen-num">{contarPorEstado(key)}</span>
+                  <span className="sr-resumen-lbl">{label}</span>
+                </button>
               ))}
             </div>
 
-            {/* Controles */}
-            <div className="historial-controles">
-              <div className="filtro-estado">
-                <FaFilter className="filtro-icon" />
-                <button
-                  className={`btn-filtro ${filtroEstado === "todos" ? "activo" : ""}`}
-                  onClick={() => setFiltroEstado("todos")}
-                >
-                  Todas ({contarPorEstado("todos")})
-                </button>
-                {["Pendiente", "Respondida", "Aceptada", "Rechazada"].map((estado) => {
-                  const info = getEstadoInfo(estado);
-                  return (
-                    <button
-                      key={estado}
-                      className={`btn-filtro btn-filtro-${estado.toLowerCase()} ${filtroEstado === estado ? "activo" : ""}`}
-                      onClick={() => setFiltroEstado(estado)}
-                    >
-                      {info.icono} {info.texto.split(" ")[0]} ({contarPorEstado(estado)})
-                    </button>
-                  );
-                })}
+            {/* Controles filtro/orden */}
+            <div className="sr-controles">
+              <div className="sr-filtros">
+                <FaFilter className="sr-ctrl-icon" />
+                {ESTADOS.map(({ key, label, icono }) => (
+                  <button
+                    key={key}
+                    className={`sr-pill ${filtroEstado === key ? "sr-pill-activo" : ""}`}
+                    onClick={() => setFiltroEstado(key)}
+                  >
+                    {icono} {label} ({contarPorEstado(key)})
+                  </button>
+                ))}
               </div>
 
-              <div className="filtro-ordenamiento">
-                <FaSortAmountDown className="filtro-icon" />
-                <label>Ordenar por:</label>
+              <div className="sr-orden">
+                <FaSortAmountDown className="sr-ctrl-icon" />
                 <select
-                  value={ordenSolicitudes}
-                  onChange={(e) => setOrdenSolicitudes(e.target.value)}
-                  className="select-ordenamiento"
+                  value={orden}
+                  onChange={(e) => setOrden(e.target.value)}
+                  className="sr-select"
                 >
                   <option value="recientes">Más recientes</option>
                   <option value="antiguos">Más antiguos</option>
@@ -246,192 +237,262 @@ function HistorialSolicitudes() {
 
             {/* Lista o vacío filtrado */}
             {todasFiltradas.length === 0 ? (
-              <div className="empty-state">
-                <FaSearch className="empty-icon" />
+              <div className="sr-empty">
+                <FaClipboardList className="sr-empty-icon" />
                 <h3>Sin resultados</h3>
-                <p>No hay solicitudes que coincidan con los filtros seleccionados</p>
+                <p>No hay solicitudes que coincidan con el filtro seleccionado</p>
               </div>
             ) : (
               <>
-                <div className="paginacion-info">
-                  <p>
-                    Mostrando <strong>{inicio + 1}–{Math.min(inicio + POR_PAGINA, todasFiltradas.length)}</strong> de{" "}
-                    <strong>{todasFiltradas.length}</strong> solicitudes
-                  </p>
-                </div>
+                <p className="sr-pag-info">
+                  Mostrando{" "}
+                  <strong>{inicio + 1}–{Math.min(inicio + POR_PAGINA, todasFiltradas.length)}</strong>
+                  {" "}de <strong>{todasFiltradas.length}</strong> solicitudes
+                </p>
 
-                <div className="solicitudes-list">
-                  {solicitudesPag.map((solicitud) => {
-                    const estadoInfo = getEstadoInfo(solicitud.estado);
+                <div className="sr-lista">
+                  {paginadas.map((sol) => {
+                    const est     = getEstadoInfo(sol.estado);
+                    const abierta = expandidas[sol.id_solicitud];
 
                     return (
-                      <div key={solicitud.id_solicitud} className={`solicitud-card estado-${solicitud.estado?.toLowerCase()}`}>
-
+                      <article
+                        key={sol.id_solicitud}
+                        className={`sr-card sr-card-${sol.estado?.toLowerCase()}`}
+                      >
                         {/* Header de la card */}
-                        <div className="solicitud-card-header">
-                          <div className="solicitud-proveedor-info">
-                            {solicitud.logo && (
+                        <div className="sr-card-top">
+                          <div className="sr-cliente-info">
+                            {sol.logo ? (
                               <img
-                                src={solicitud.logo}
-                                alt={solicitud.nombre_negocio}
-                                className="proveedor-logo"
+                                src={sol.logo}
+                                alt={sol.nombre_negocio}
+                                className="sr-avatar"
                                 onError={(e) => { e.target.style.display = "none"; }}
                               />
+                            ) : (
+                              <FaUserTie className="sr-avatar-placeholder" />
                             )}
                             <div>
-                              <h3
-                                className="proveedor-nombre-link"
-                                onClick={() => navigate(`/perfil-proveedor/${solicitud.id_proveedor}`)}
+                              <button
+                                className="sr-proveedor-nombre"
+                                onClick={() => navigate(`/perfil-proveedor/${sol.id_proveedor}`)}
                               >
-                                {solicitud.nombre_negocio}
-                              </h3>
-                              {solicitud.proveedor_ciudad && (
-                                <p className="proveedor-ciudad">
-                                  <FaMapMarkerAlt /> {solicitud.proveedor_ciudad}
-                                </p>
+                                <FaUserTie className="sr-np-ico" />
+                                {sol.nombre_negocio}
+                              </button>
+                              {sol.proveedor_ciudad && (
+                                <span className="sr-ciudad">
+                                  <FaMapMarkerAlt /> {sol.proveedor_ciudad}
+                                </span>
+                              )}
+                              {sol.calificacion_promedio > 0 && (
+                                <span className="sr-rating">
+                                  <FaStar />
+                                  {(parseFloat(sol.calificacion_promedio) * 5).toFixed(1)}
+                                </span>
                               )}
                             </div>
                           </div>
-                          <span className={`badge ${estadoInfo.clase}`}>
-                            {estadoInfo.icono} {estadoInfo.texto}
+                          <span className={`sr-badge ${est.clase}`}>
+                            {est.icono} {est.texto}
                           </span>
                         </div>
 
-                        {/* Categoría / tipo de servicio */}
-                        <div className="solicitud-categoria-row">
-                          <span className="categoria-badge">
-                            <FaTag /> {solicitud.tipo_servicio || "Servicio de eventos"}
-                          </span>
-                          {solicitud.calificacion_promedio > 0 && (
-                            <span className="proveedor-rating">
-                              <FaStar className="star-icon" />
-                              {parseFloat(solicitud.calificacion_promedio * 5).toFixed(1)}
+                        {/* Tags */}
+                        <div className="sr-card-tags">
+                          {sol.tipo_servicio && (
+                            <span className="sr-tag">
+                              <FaTag /> {sol.tipo_servicio}
+                            </span>
+                          )}
+                          {sol.tipo_evento && (
+                            <span className="sr-tag sr-tag-evento">
+                              <FaChartBar /> {sol.tipo_evento}
                             </span>
                           )}
                         </div>
 
-                        {/* Detalles del evento */}
-                        <div className="solicitud-detalles">
-                          <div className="detalle-item">
-                            <FaTag className="detalle-icon" />
+                        {/* Detalles principales */}
+                        <div className="sr-detalles-grid">
+                          <div className="sr-detalle">
+                            <FaCalendarAlt className="sr-d-ico" />
                             <div>
-                              <span className="detalle-label">Tipo de evento</span>
-                              <span className="detalle-valor">{solicitud.tipo_evento || "—"}</span>
+                              <span className="sr-d-lbl">Fecha del evento</span>
+                              <span className="sr-d-val">{fmt(sol.fecha_evento)}</span>
                             </div>
                           </div>
 
-                          <div className="detalle-item">
-                            <FaCalendarAlt className="detalle-icon" />
-                            <div>
-                              <span className="detalle-label">Fecha del evento</span>
-                              <span className="detalle-valor">{formatearFecha(solicitud.fecha_evento)}</span>
-                            </div>
-                          </div>
-
-                          {solicitud.numero_invitados && (
-                            <div className="detalle-item">
-                              <FaUsers className="detalle-icon" />
+                          {sol.numero_invitados && (
+                            <div className="sr-detalle">
+                              <FaUsers className="sr-d-ico" />
                               <div>
-                                <span className="detalle-label">Invitados</span>
-                                <span className="detalle-valor">{solicitud.numero_invitados} personas</span>
+                                <span className="sr-d-lbl">Invitados</span>
+                                <span className="sr-d-val">{sol.numero_invitados} personas</span>
                               </div>
                             </div>
                           )}
 
-                          {solicitud.presupuesto_estimado && (
-                            <div className="detalle-item">
-                              <FaMoneyBillWave className="detalle-icon" />
+                          {sol.presupuesto_estimado && (
+                            <div className="sr-detalle">
+                              <FaMoneyBillWave className="sr-d-ico" />
                               <div>
-                                <span className="detalle-label">Presupuesto estimado</span>
-                                <span className="detalle-valor presupuesto">
-                                  {formatearPresupuesto(solicitud.presupuesto_estimado)}
-                                </span>
+                                <span className="sr-d-lbl">Presupuesto estimado</span>
+                                <span className="sr-d-val sr-precio">{fmtMXN(sol.presupuesto_estimado)}</span>
                               </div>
                             </div>
                           )}
 
-                          <div className="detalle-item">
-                            <FaClipboardList className="detalle-icon" />
+                          {sol.lugar_evento && (
+                            <div className="sr-detalle">
+                              <FaMapMarkerAlt className="sr-d-ico" />
+                              <div>
+                                <span className="sr-d-lbl">Lugar</span>
+                                <span className="sr-d-val">{sol.lugar_evento}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="sr-detalle">
+                            <FaClipboardList className="sr-d-ico" />
                             <div>
-                              <span className="detalle-label">Solicitud enviada</span>
-                              <span className="detalle-valor">{formatearFechaHora(solicitud.fecha_envio)}</span>
+                              <span className="sr-d-lbl">Enviada el</span>
+                              <span className="sr-d-val">{fmtCorta(sol.fecha_envio)}</span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Propuesta del proveedor (si fue respondida) */}
-                        {solicitud.precio_propuesto && (
-                          <div className="propuesta-proveedor">
-                            <div className="propuesta-header">
-                              <FaCommentDots className="propuesta-icon" />
+                        {/* Detalle expandible */}
+                        {abierta && (
+                          <div className="sr-extra">
+                            <div className="sr-extra-grid">
+                              {sol.descripcion_solicitud && (
+                                <div className="sr-extra-item" style={{ gridColumn: "1 / -1" }}>
+                                  <span className="sr-extra-item-lbl">Descripción de la solicitud</span>
+                                  <span className="sr-extra-item-val">{sol.descripcion_solicitud}</span>
+                                </div>
+                              )}
+                              {sol.descripcion_evento && (
+                                <div className="sr-extra-item" style={{ gridColumn: "1 / -1" }}>
+                                  <span className="sr-extra-item-lbl">Descripción del evento</span>
+                                  <span className="sr-extra-item-val">{sol.descripcion_evento}</span>
+                                </div>
+                              )}
+                              {sol.mensaje_cliente && (
+                                <div className="sr-extra-item" style={{ gridColumn: "1 / -1" }}>
+                                  <span className="sr-extra-item-lbl">Tu mensaje al proveedor</span>
+                                  <span className="sr-extra-item-val">{sol.mensaje_cliente}</span>
+                                </div>
+                              )}
+                              {sol.detalles_servicio && (
+                                <div className="sr-extra-item" style={{ gridColumn: "1 / -1" }}>
+                                  <span className="sr-extra-item-lbl">Detalles del servicio</span>
+                                  <span className="sr-extra-item-val">{sol.detalles_servicio}</span>
+                                </div>
+                              )}
+                              {sol.fecha_respuesta && (
+                                <div className="sr-extra-item">
+                                  <span className="sr-extra-item-lbl">Fecha de respuesta</span>
+                                  <span className="sr-extra-item-val">{fmtCorta(sol.fecha_respuesta)}</span>
+                                </div>
+                              )}
+                              {sol.fecha_aceptacion && (
+                                <div className="sr-extra-item">
+                                  <span className="sr-extra-item-lbl">Fecha de aceptación</span>
+                                  <span className="sr-extra-item-val">{fmtCorta(sol.fecha_aceptacion)}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Propuesta del proveedor */}
+                        {sol.precio_propuesto && (
+                          <div className="sr-propuesta">
+                            <div className="sr-propuesta-header">
+                              <FaEnvelopeOpenText />
                               <span>Propuesta del proveedor</span>
                             </div>
-                            <div className="propuesta-precio">
+                            <div className="sr-propuesta-precio">
                               <FaMoneyBillWave />
-                              <strong>{formatearPresupuesto(solicitud.precio_propuesto)}</strong>
+                              <strong>{fmtMXN(sol.precio_propuesto)}</strong>
                             </div>
-                            {solicitud.mensaje_respuesta && (
-                              <p className="propuesta-mensaje">"{solicitud.mensaje_respuesta}"</p>
+                            {sol.mensaje_respuesta && (
+                              <p className="sr-propuesta-msg">{sol.mensaje_respuesta}</p>
                             )}
-                            {solicitud.fecha_disponible && (
-                              <p className="propuesta-fecha">
-                                <FaCalendarAlt /> Fecha propuesta: {formatearFecha(solicitud.fecha_disponible)}
+                            {sol.fecha_disponible && (
+                              <p className="sr-propuesta-fecha">
+                                <FaCalendarAlt /> Fecha propuesta: {fmt(sol.fecha_disponible)}
                               </p>
                             )}
                           </div>
                         )}
 
-                        {/* Footer */}
-                        <div className="solicitud-footer">
+                        {/* Footer de acciones */}
+                        <div className="sr-card-footer">
                           <button
-                            className="btn-ver-proveedor"
-                            onClick={() => navigate(`/perfil-proveedor/${solicitud.id_proveedor}`)}
+                            className="sr-btn-expandir"
+                            onClick={() => toggleExpandida(sol.id_solicitud)}
                           >
-                            <FaEye /> Ver perfil del proveedor
+                            <FaInfoCircle />
+                            {abierta ? "Ocultar detalles" : "Ver todos los detalles"}
                           </button>
-                          {solicitud.id_solicitud && (
+
+                          <div className="sr-acciones">
                             <button
-                              className="btn-abrir-chat"
-                              onClick={() => navigate(`/chat/${solicitud.id_solicitud}`)}
+                              className="sr-btn-perfil"
+                              onClick={() => navigate(`/perfil-proveedor/${sol.id_proveedor}`)}
+                            >
+                              <FaEye /> Ver perfil
+                            </button>
+                            <button
+                              className="sr-btn-chat"
+                              onClick={() => navigate(`/chat/${sol.id_solicitud}`)}
                             >
                               <FaCommentDots /> Abrir chat
                             </button>
-                          )}
+                          </div>
                         </div>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
 
                 {/* Paginación */}
                 {totalPaginas > 1 && (
-                  <div className="paginacion">
+                  <nav className="sr-paginacion">
                     <button
-                      className="btn-pagina btn-pagina-nav"
+                      className="sr-pag-btn sr-pag-nav"
                       onClick={() => irAPagina(paginaActual - 1)}
                       disabled={paginaActual === 1}
+                      aria-label="Página anterior"
                     >
                       <FaChevronLeft />
                     </button>
 
-                    {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((n) => (
-                      <button
-                        key={n}
-                        className={`btn-pagina ${paginaActual === n ? "activa" : ""}`}
-                        onClick={() => irAPagina(n)}
-                      >
-                        {n}
-                      </button>
-                    ))}
+                    {getPaginas().map((n, i) =>
+                      n === "..." ? (
+                        <span key={`ellipsis-${i}`} className="sr-pag-ellipsis">…</span>
+                      ) : (
+                        <button
+                          key={n}
+                          className={`sr-pag-btn ${paginaActual === n ? "sr-pag-activa" : ""}`}
+                          onClick={() => irAPagina(n)}
+                        >
+                          {n}
+                        </button>
+                      )
+                    )}
 
                     <button
-                      className="btn-pagina btn-pagina-nav"
+                      className="sr-pag-btn sr-pag-nav"
                       onClick={() => irAPagina(paginaActual + 1)}
                       disabled={paginaActual === totalPaginas}
+                      aria-label="Página siguiente"
                     >
                       <FaChevronRight />
                     </button>
-                  </div>
+                  </nav>
                 )}
               </>
             )}

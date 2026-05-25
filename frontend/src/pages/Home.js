@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
-import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
+import { FaStar, FaStarHalfAlt, FaRegStar, FaMapMarkerAlt, FaSlidersH, FaMagic, FaCog } from "react-icons/fa";
+import { MdCelebration } from "react-icons/md";
 import { clienteService } from "../services/clienteService";
 import { useAuth } from "../hooks/useAuth";
 import api from "../services/api";
@@ -18,7 +19,6 @@ function Home() {
     ubicacion: "",
     fecha: "",
   });
-  // ⭐ NUEVO: Estados para recomendaciones
   const [tienePreferencias, setTienePreferencias] = useState(false);
   const [mostrandoRecomendaciones, setMostrandoRecomendaciones] = useState(false);
   const [cargandoProveedores, setCargandoProveedores] = useState(true);
@@ -31,40 +31,33 @@ function Home() {
     cargarCiudades();
   }, []);
 
-  // ⭐ NUEVO: Detectar si el usuario tiene preferencias y cargar proveedores
   useEffect(() => {
     if (user && user.rol === "cliente") {
       cargarFavoritos();
       verificarPreferenciasYCargarProveedores();
     } else {
-      // Si no hay usuario o no es cliente, mostrar mejor calificados
       cargarProveedoresDestacados();
     }
   }, [user]);
 
-  // ⭐ NUEVA FUNCIÓN: Verificar preferencias y decidir qué mostrar
   const verificarPreferenciasYCargarProveedores = async () => {
     try {
       setCargandoProveedores(true);
       
-      // Verificar si tiene preferencias configuradas
       const prefResponse = await api.get("/recomendaciones/preferencias");
       const tienePrefs = prefResponse.data.data !== null;
       
       setTienePreferencias(tienePrefs);
 
       if (tienePrefs) {
-        // Tiene preferencias → Cargar recomendaciones
         await cargarRecomendaciones();
         setMostrandoRecomendaciones(true);
       } else {
-        // No tiene preferencias → Cargar mejor calificados
         await cargarProveedoresDestacados();
         setMostrandoRecomendaciones(false);
       }
     } catch (error) {
       console.error("Error al verificar preferencias:", error);
-      // Si hay error, mostrar mejor calificados por defecto
       await cargarProveedoresDestacados();
       setMostrandoRecomendaciones(false);
     } finally {
@@ -72,13 +65,11 @@ function Home() {
     }
   };
 
-  // ⭐ NUEVA FUNCIÓN: Cargar recomendaciones personalizadas
   const cargarRecomendaciones = async () => {
     try {
       const response = await api.get("/recomendaciones?limite=6");
       const recomendaciones = response.data.data || [];
 
-      // Agregar precios mínimos a las recomendaciones
       const recomendacionesConPrecio = await Promise.all(
         recomendaciones.map(async (proveedor) => {
           try {
@@ -104,7 +95,6 @@ function Home() {
             return {
               ...proveedor,
               precio_minimo: precioMinimo,
-              // ⭐ Asegurar que tenga calificacion_promedio
               calificacion_promedio: proveedor.calificacion_promedio || 0,
             };
           } catch (error) {
@@ -124,7 +114,6 @@ function Home() {
       setProveedores(recomendacionesConPrecio);
     } catch (error) {
       console.error("Error al cargar recomendaciones:", error);
-      // Si falla, cargar mejor calificados como fallback
       await cargarProveedoresDestacados();
       setMostrandoRecomendaciones(false);
     }
@@ -324,11 +313,10 @@ function Home() {
     return estrellas;
   };
 
-  // ⭐ NUEVA FUNCIÓN: Obtener color del badge según puntuación
   const getPuntuacionColor = (puntuacion) => {
-    if (puntuacion >= 0.8) return "#27ae60"; // Verde
-    if (puntuacion >= 0.6) return "#f39c12"; // Naranja
-    return "#95a5a6"; // Gris
+    if (puntuacion >= 0.8) return "#27ae60";
+    if (puntuacion >= 0.6) return "#f39c12";
+    return "#95a5a6";
   };
 
   const handleTipoEventoClick = (tipoEvento) => {
@@ -351,9 +339,8 @@ function Home() {
     navigate(`/perfil-proveedor/${idProveedor}`);
   };
 
-  // ⭐ NUEVA FUNCIÓN: Navegar a preferencias
   const irAPreferencias = () => {
-    navigate("/cliente/preferencias");
+    navigate("/cliente/cuenta/preferencias");
   };
 
   if (loading) {
@@ -444,21 +431,28 @@ function Home() {
                 className="categoria-card"
                 onClick={() => handleTipoEventoClick(tipoEvento)}
               >
-                <div className="categoria-icon">{tipoEvento.icono || "🎉"}</div>
+                <div className="categoria-icon">
+                  {tipoEvento.icono ? tipoEvento.icono : <MdCelebration />}
+                </div>
                 <h3>{tipoEvento.nombre_evento}</h3>
               </div>
             ))}
           </div>
         </section>
 
-        {/* ⭐ SECCIÓN MODIFICADA: Proveedores (Recomendaciones o Mejor Calificados) */}
+        {/* Proveedores (Recomendaciones o Mejor Calificados) */}
         <section className="proveedores-destacados">
           <div className="seccion-header">
             <div className="seccion-titulo-wrapper">
               <h2>
-                {mostrandoRecomendaciones 
-                  ? "🌟 Recomendaciones Personalizadas para Ti" 
-                  : "Proveedores Mejor Calificados"}
+                {mostrandoRecomendaciones ? (
+                  <>
+                    <FaStar style={{ marginRight: "8px", color: "#f39c12" }} />
+                    Recomendaciones Personalizadas para Ti
+                  </>
+                ) : (
+                  "Proveedores Mejor Calificados"
+                )}
               </h2>
               {mostrandoRecomendaciones && (
                 <p className="seccion-subtitulo">
@@ -467,10 +461,19 @@ function Home() {
               )}
             </div>
             
-            {/* ⭐ Botón de preferencias (solo si es cliente con sesión) */}
             {user && user.rol === "cliente" && (
               <button onClick={irAPreferencias} className="btn-preferencias-home">
-                {tienePreferencias ? "⚙️ Ajustar preferencias" : "✨ Configurar preferencias"}
+                {tienePreferencias ? (
+                  <>
+                    <FaCog style={{ marginRight: "6px" }} />
+                    Ajustar preferencias
+                  </>
+                ) : (
+                  <>
+                    <FaMagic style={{ marginRight: "6px" }} />
+                    Configurar preferencias
+                  </>
+                )}
               </button>
             )}
           </div>
@@ -508,7 +511,6 @@ function Home() {
                         onClick={() => handleVerPerfil(proveedor.id_proveedor)}
                         style={{ cursor: "pointer" }}
                       >
-                        {/* ⭐ Badge de coincidencia (solo en recomendaciones) */}
                         {mostrandoRecomendaciones && proveedor.puntuacion_recomendacion && (
                           <div 
                             className="badge-coincidencia-home"
@@ -516,6 +518,7 @@ function Home() {
                               backgroundColor: getPuntuacionColor(proveedor.puntuacion_recomendacion) 
                             }}
                           >
+                            <FaSlidersH style={{ marginRight: "4px", fontSize: "10px" }} />
                             {Math.round(proveedor.puntuacion_recomendacion * 100)}% match
                           </div>
                         )}
@@ -524,12 +527,12 @@ function Home() {
                           <img
                             src={
                               proveedor.logo ||
-                              "https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                              "https://res.cloudinary.com/eventosmx/image/upload/v1779458200/40af2d21-bdfb-4bbc-a9f6-a4f2f8f55180_bb9fek.jpg"
                             }
                             alt={proveedor.nombre_negocio}
                             onError={(e) => {
                               e.target.src =
-                                "https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
+                                "https://res.cloudinary.com/eventosmx/image/upload/v1779458200/40af2d21-bdfb-4bbc-a9f6-a4f2f8f55180_bb9fek.jpg";
                             }}
                           />
                           <button
@@ -552,14 +555,13 @@ function Home() {
 
                           <h3>{proveedor.nombre_negocio}</h3>
 
-                          {/* ⭐ NUEVO: Ubicación */}
                           {proveedor.ciudad && (
                             <p className="proveedor-ubicacion-home">
-                              📍 {proveedor.ciudad}
+                              <FaMapMarkerAlt style={{ marginRight: "4px", color: "#e74c3c" }} />
+                              {proveedor.ciudad}
                             </p>
                           )}
 
-                          {/* ⭐ NUEVO: Descripción */}
                           {proveedor.descripcion && (
                             <p className="proveedor-descripcion-home">
                               {proveedor.descripcion.length > 80
