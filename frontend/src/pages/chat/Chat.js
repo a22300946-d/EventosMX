@@ -9,7 +9,7 @@ import ConversacionesList from './ConversacionesList';
 import ModalSolicitud from './ModalSolicitud';
 import ModalResena from './ModalResena';
 import './Chat.css';
-import { FiPaperclip, FiSmile, FiSend } from 'react-icons/fi';
+import { FiPaperclip, FiSend } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 
 const Chat = () => {
@@ -451,13 +451,6 @@ const Chat = () => {
                       onClick={handleAbrirModal}
                     >
                       <FiPaperclip size={20} />
-                    </button>
-                    <button 
-                      type="button" 
-                      className="chat-input-btn"
-                      title="Emoji"
-                    >
-                      <FiSmile size={20} />
                     </button>
                     <button type="submit" className="chat-send-btn">
                       <FiSend size={20} />

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../services/api';
 import './GestionCatalogos.css';
+import { FiMapPin, FiTool, FiCalendar, FiTrash2, FiSmile, FiChevronUp, FiChevronDown, FiX } from 'react-icons/fi';
 
 // ── Emojis disponibles por categoría ──────────────────────────
 const EMOJIS_SERVICIO = {
@@ -33,7 +34,6 @@ function EmojiPicker({ grupos, valor, onChange, placeholder }) {
   const [grupoActivo, setGrupoActivo] = useState(Object.keys(grupos)[0]);
   const ref = useRef(null);
 
-  // Cierra al hacer click fuera
   useEffect(() => {
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setAbierto(false);
@@ -64,13 +64,17 @@ function EmojiPicker({ grupos, valor, onChange, placeholder }) {
           <>
             <span className="ep-trigger-emoji">{valor}</span>
             <span className="ep-trigger-label">Ícono seleccionado</span>
-            <button type="button" className="ep-clear" onClick={limpiar} title="Quitar ícono">×</button>
+            <button type="button" className="ep-clear" onClick={limpiar} title="Quitar ícono">
+              <FiX size={14} />
+            </button>
           </>
         ) : (
           <>
-            <span className="ep-trigger-placeholder-icon">😊</span>
+            <FiSmile className="ep-trigger-placeholder-icon" />
             <span className="ep-trigger-label ep-trigger-vacio">{placeholder || 'Seleccionar ícono'}</span>
-            <span className="ep-chevron">{abierto ? '▲' : '▼'}</span>
+            <span className="ep-chevron">
+              {abierto ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
+            </span>
           </>
         )}
       </button>
@@ -118,7 +122,7 @@ const SECCIONES = [
   {
     id: 'ciudades',
     label: 'Ciudades',
-    icono: '📍',
+    icono: <FiMapPin />,
     endpoint: '/admin/catalogos/ciudades',
     campoNombre: 'nombre_ciudad',
     campoId: 'id_lugar',
@@ -128,7 +132,7 @@ const SECCIONES = [
   {
     id: 'categorias',
     label: 'Tipos de servicio',
-    icono: '🛠️',
+    icono: <FiTool />,
     endpoint: '/admin/catalogos/categorias',
     campoNombre: 'nombre_categoria',
     campoId: 'id_categoria',
@@ -140,7 +144,7 @@ const SECCIONES = [
   {
     id: 'tiposEvento',
     label: 'Tipos de evento',
-    icono: '🎉',
+    icono: <FiCalendar />,
     endpoint: '/admin/catalogos/tipos-evento',
     campoNombre: 'nombre_tipo',
     campoId: 'id_tipo_evento',
@@ -157,7 +161,9 @@ function ModalConfirmar({ modal, onCancelar, onConfirmar }) {
   return (
     <div className="gc-modal-overlay" onClick={onCancelar}>
       <div className="gc-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="gc-modal-icono">🗑️</div>
+        <div className="gc-modal-icono">
+          <FiTrash2 size={28} />
+        </div>
         <h3 className="gc-modal-titulo">{modal.titulo}</h3>
         <p className="gc-modal-desc">{modal.descripcion}</p>
         <div className="gc-modal-acciones">
