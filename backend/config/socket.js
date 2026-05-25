@@ -23,11 +23,9 @@ const initializeSocket = (server) => {
         return next(new Error('No se proporcionó token de autenticación'));
       }
 
-      // Verificar el token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
       socket.userId = decoded.id;
-      // Soportar tanto 'tipo' como 'rol'
       socket.userType = decoded.tipo || decoded.rol;
       
       if (!socket.userType) {
@@ -43,14 +41,17 @@ const initializeSocket = (server) => {
     }
   });
 
-  // Manejar conexiones
   io.on('connection', (socket) => {
     console.log(`✅ Usuario conectado: ${socket.userType}_${socket.userId}`);
+
+    // ✅ Auto-unirse a la sala personal al conectarse (necesario para recibir notificaciones sin chat abierto)
+    const salaPersonal = `user_${socket.userType}_${socket.userId}`;
+    socket.join(salaPersonal);
+    console.log(`🏠 ${socket.userType}_${socket.userId} unido a sala personal: ${salaPersonal}`);
 
     // Unirse a una sala de conversación
     socket.on('join_conversation', async (id_solicitud) => {
       try {
-        // Verificar que el usuario tenga acceso
         const tieneAcceso = await Mensaje.verificarAcceso(
           id_solicitud,
           socket.userId,
@@ -62,12 +63,8 @@ const initializeSocket = (server) => {
           return;
         }
 
-        // Unirse a la sala
         const roomName = `solicitud_${id_solicitud}`;
         socket.join(roomName);
-        
-        // También unirse a sala personal para notificaciones
-        socket.join(`user_${socket.userType}_${socket.userId}`);
 
         console.log(`Usuario ${socket.userType}_${socket.userId} se unió a ${roomName}`);
         
@@ -91,7 +88,6 @@ const initializeSocket = (server) => {
       try {
         const { id_solicitud, contenido } = data;
 
-        // Verificar acceso
         const tieneAcceso = await Mensaje.verificarAcceso(
           id_solicitud,
           socket.userId,
@@ -103,7 +99,6 @@ const initializeSocket = (server) => {
           return;
         }
 
-        // Crear el mensaje en la base de datos
         const nuevoMensaje = await Mensaje.crear({
           id_solicitud,
           id_remitente: socket.userId,
@@ -111,7 +106,6 @@ const initializeSocket = (server) => {
           contenido
         });
 
-        // Emitir el mensaje a todos en la sala
         const roomName = `solicitud_${id_solicitud}`;
         io.to(roomName).emit('new_message', nuevoMensaje);
 
@@ -128,25 +122,20 @@ const initializeSocket = (server) => {
       try {
         const { id_solicitud } = data;
 
-        // Verificar acceso
         const tieneAcceso = await Mensaje.verificarAcceso(
           id_solicitud,
           socket.userId,
           socket.userType
         );
 
-        if (!tieneAcceso) {
-          return;
-        }
+        if (!tieneAcceso) return;
 
-        // Marcar como leídos
         await Mensaje.marcarTodosComoLeidos(
           id_solicitud,
           socket.userType,
           socket.userId
         );
 
-        // Notificar a la sala que los mensajes fueron leídos
         const roomName = `solicitud_${id_solicitud}`;
         io.to(roomName).emit('messages_read', {
           id_solicitud,
@@ -192,7 +181,7 @@ const initializeSocket = (server) => {
   return io;
 };
 
-// Función auxiliar para emitir notificaciones
+// Función auxiliar para emitir notificaciones a sala personal
 const emitNotification = (userId, userType, event, data) => {
   if (io) {
     io.to(`user_${userType}_${userId}`).emit(event, data);
@@ -203,4 +192,4 @@ module.exports = {
   initializeSocket,
   emitNotification,
   getIO: () => io
-}; 
+};
