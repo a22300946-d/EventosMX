@@ -348,6 +348,82 @@ const eliminarTipoEventoAdmin = async (req, res) => {
   }
 };
 
+// ── MÓDULO NOTIFICACIONES ─────────────────────────────────────
+
+const enviarNotificacion = async (req, res) => {
+  try {
+    const { destinatario, titulo, mensaje } = req.body;
+    if (!destinatario || !titulo?.trim() || !mensaje?.trim()) {
+      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+    }
+
+    // Insertar en DB
+    const insertQuery = `
+      INSERT INTO notificacion (destinatario, titulo, mensaje, fecha_envio)
+      VALUES ($1, $2, $3, NOW())
+      RETURNING *
+    `;
+    const resultado = await pool.query(insertQuery, [destinatario, titulo.trim(), mensaje.trim()]);
+    const notif = resultado.rows[0];
+
+    // Emitir por socket a todos los usuarios conectados según destinatario
+    const { getIO } = require('../config/socket');
+    const io = getIO();
+    if (io) {
+      const eventData = {
+        id: notif.id_notificacion,
+        titulo: notif.titulo,
+        mensaje: notif.mensaje,
+        fecha: notif.fecha_envio,
+        destinatario: notif.destinatario,
+      };
+      if (destinatario === 'todos') {
+        io.emit('nueva_notificacion', eventData);
+      } else if (destinatario === 'clientes' || destinatario === 'clientes_sin_contratacion') {
+        io.emit('nueva_notificacion_cliente', eventData);
+      } else if (
+        destinatario === 'proveedores' ||
+        destinatario === 'proveedores_pendientes' ||
+        destinatario === 'proveedores_sin_servicio'
+      ) {
+        io.emit('nueva_notificacion_proveedor', eventData);
+      }
+    }
+
+    res.json({ success: true, message: 'Notificación enviada correctamente', data: notif });
+  } catch (error) {
+    console.error('Error en enviarNotificacion:', error);
+    res.status(500).json({ success: false, message: 'Error al enviar notificación', error: error.message });
+  }
+};
+
+const obtenerNotificaciones = async (req, res) => {
+  try {
+    const { rol } = req.query; // 'cliente', 'proveedor', o vacío para todas
+    let whereClause = '';
+    const params = [];
+
+    if (rol === 'cliente') {
+      whereClause = `WHERE destinatario IN ('todos', 'clientes', 'clientes_sin_contratacion')`;
+    } else if (rol === 'proveedor') {
+      whereClause = `WHERE destinatario IN ('todos', 'proveedores', 'proveedores_pendientes', 'proveedores_sin_servicio')`;
+    }
+
+    const query = `
+      SELECT id_notificacion, destinatario, titulo, mensaje, fecha_envio
+      FROM notificacion
+      ${whereClause}
+      ORDER BY fecha_envio DESC
+      LIMIT 50
+    `;
+    const resultado = await pool.query(query);
+    res.json({ success: true, data: resultado.rows });
+  } catch (error) {
+    console.error('Error en obtenerNotificaciones:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener notificaciones', error: error.message });
+  }
+};
+
 module.exports = {
   loginAdmin,
   obtenerPerfil,
@@ -369,4 +445,7 @@ module.exports = {
   obtenerTiposEventoAdmin,
   crearTipoEventoAdmin,
   eliminarTipoEventoAdmin,
+  // Notificaciones
+  enviarNotificacion,
+  obtenerNotificaciones,
 };

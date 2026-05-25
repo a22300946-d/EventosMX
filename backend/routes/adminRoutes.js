@@ -22,6 +22,9 @@ const {
   obtenerTiposEventoAdmin,
   crearTipoEventoAdmin,
   eliminarTipoEventoAdmin,
+  // Notificaciones
+  enviarNotificacion,
+  obtenerNotificaciones,
 } = require('../controllers/adminController');
 
 const soloAdmin = [autenticar, verificarRol('admin')];
@@ -60,5 +63,9 @@ router.delete('/catalogos/categorias/:id',  ...soloAdmin, eliminarCategoriaAdmin
 router.get('/catalogos/tipos-evento',        ...soloAdmin, obtenerTiposEventoAdmin);
 router.post('/catalogos/tipos-evento',       ...soloAdmin, crearTipoEventoAdmin);
 router.delete('/catalogos/tipos-evento/:id', ...soloAdmin, eliminarTipoEventoAdmin);
+
+// Módulo notificaciones
+router.post('/notificaciones',  ...soloAdmin, enviarNotificacion);
+router.get('/notificaciones',   autenticar,   obtenerNotificaciones);
 
 module.exports = router;

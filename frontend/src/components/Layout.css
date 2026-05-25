@@ -447,3 +447,351 @@
 .contacto-modal-btn:hover {
   background: #15404d;
 }
+
+/* ========== Campana de Notificaciones ========== */
+.nav-notif-wrapper {
+  position: relative;
+}
+
+.nav-notif-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 0.3rem;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.nav-notif-btn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.nav-notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #e74c3c;
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 700;
+  border-radius: 99px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+}
+
+.nav-notif-panel {
+  position: fixed;
+  top: 60px;
+  right: 1rem;
+  width: 320px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+  z-index: 99999;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 480px) {
+  .nav-notif-panel {
+    right: 0.5rem;
+    left: 0.5rem;
+    width: auto;
+  }
+}
+
+.nav-notif-header {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1a4d5c;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.nav-notif-pagina-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #adb5bd;
+  background: #e9ecef;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+/* Barra de paginación */
+.nav-notif-paginacion {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+.nav-notif-pag-btn {
+  flex: 1;
+  background: none;
+  border: 1px solid #dee2e6;
+  color: #1a4d5c;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+
+.nav-notif-pag-btn:hover:not(:disabled) {
+  background: #e8f4f8;
+  border-color: #1a4d5c;
+}
+
+.nav-notif-pag-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.nav-notif-empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: #adb5bd;
+  font-size: 0.875rem;
+}
+
+.nav-notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.nav-notif-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 1rem 0.75rem 1.5rem;
+  border-bottom: 1px solid #f1f3f5;
+  transition: background 0.15s;
+  cursor: pointer;
+  position: relative;
+}
+
+.nav-notif-item:last-child {
+  border-bottom: none;
+}
+
+.nav-notif-item:hover {
+  background: #f0f6f9;
+}
+
+/* Punto indicador de no leída */
+.nav-notif-dot {
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e74c3c;
+  flex-shrink: 0;
+}
+
+/* Notificación ya leída: apariencia más tenue */
+.nav-notif-item--leida {
+  opacity: 0.6;
+}
+
+.nav-notif-titulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1a4d5c;
+}
+
+/* Vista previa recortada del mensaje */
+.nav-notif-preview {
+  font-size: 0.78rem;
+  color: #6c757d;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-notif-fecha {
+  font-size: 0.72rem;
+  color: #adb5bd;
+  margin-top: 0.1rem;
+}
+
+/* ========== Modal Detalle de Notificación ========== */
+.notif-detalle-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 1rem;
+}
+
+.notif-detalle-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 2.5rem 2rem 2rem;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.notif-detalle-icono {
+  font-size: 2.5rem;
+}
+
+.notif-detalle-titulo {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1a4d5c;
+  margin: 0;
+}
+
+.notif-detalle-mensaje {
+  font-size: 0.95rem;
+  color: #495057;
+  line-height: 1.6;
+  margin: 0;
+  text-align: left;
+  width: 100%;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.notif-detalle-fecha {
+  font-size: 0.8rem;
+  color: #adb5bd;
+  align-self: flex-end;
+}
+
+.notif-detalle-btn {
+  margin-top: 0.5rem;
+  background: #1a4d5c;
+  color: white;
+  border: none;
+  padding: 0.65rem 2.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.notif-detalle-btn:hover {
+  background: #15404d;
+}
+
+/* ========== Modal Admin Detalle ========== */
+.notif-detalle-modal--admin {
+  max-width: 540px;
+  text-align: left;
+  align-items: flex-start;
+  padding: 2rem 2rem 1.5rem;
+}
+
+.notif-admin-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.notif-admin-row {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.notif-admin-label {
+  font-weight: 700;
+  color: #1a4d5c;
+  min-width: 130px;
+  flex-shrink: 0;
+}
+
+.notif-admin-acciones {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.notif-detalle-btn--accion {
+  background: #1a4d5c;
+  flex: 1;
+  min-width: 160px;
+}
+
+.notif-detalle-btn--accion:hover {
+  background: #15404d;
+}
+
+.notif-detalle-btn--cerrar {
+  background: #6c757d;
+  flex-shrink: 0;
+}
+
+.notif-detalle-btn--cerrar:hover {
+  background: #5a6268;
+}
+
+@media (max-width: 480px) {
+  .notif-detalle-modal--admin {
+    padding: 1.5rem 1rem 1.25rem;
+  }
+
+  .notif-admin-label {
+    min-width: 100px;
+  }
+
+  .notif-admin-acciones {
+    flex-direction: column;
+  }
+
+  .notif-detalle-btn--accion,
+  .notif-detalle-btn--cerrar {
+    width: 100%;
+  }
+}
