@@ -1,6 +1,14 @@
+/**
+ * adminRoutes.js  (ACTUALIZADO)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Cambios: agrega rutas GET/PUT /timer-config para que el admin configure
+ * los umbrales de tiempo de las solicitudes.
+ */
+
 const express = require('express');
 const router = express.Router();
 const { autenticar, verificarRol } = require('../middleware/auth');
+
 const {
   loginAdmin,
   obtenerPerfil,
@@ -27,45 +35,54 @@ const {
   obtenerNotificaciones,
 } = require('../controllers/adminController');
 
+// ★ Nuevo: controlador de temporizadores
+const { obtenerConfigTimer, actualizarConfigTimer } = require('../controllers/timerController');
+
 const soloAdmin = [autenticar, verificarRol('admin')];
 
-// Autenticación
-router.post('/login', loginAdmin);
-router.get('/perfil', ...soloAdmin, obtenerPerfil);
+// ── Autenticación ─────────────────────────────────────────────────────────────
+router.post('/login',   loginAdmin);
+router.get('/perfil',   ...soloAdmin, obtenerPerfil);
 
-// Módulo clientes
-router.get('/clientes', ...soloAdmin, obtenerClientes);
-router.patch('/clientes/:id/estado', ...soloAdmin, cambiarEstadoCliente);
+// ── Módulo clientes ───────────────────────────────────────────────────────────
+router.get('/clientes',                 ...soloAdmin, obtenerClientes);
+router.patch('/clientes/:id/estado',    ...soloAdmin, cambiarEstadoCliente);
 
-// Módulo proveedores
-router.get('/proveedores', ...soloAdmin, obtenerProveedores);
+// ── Módulo proveedores ────────────────────────────────────────────────────────
+router.get('/proveedores',              ...soloAdmin, obtenerProveedores);
 router.patch('/proveedores/:id/estado', ...soloAdmin, cambiarEstadoProveedor);
 
-// Módulo solicitudes de proveedores
-router.get('/solicitudes-proveedores', ...soloAdmin, obtenerSolicitudesPendientes);
-router.patch('/solicitudes-proveedores/:id/decision', ...soloAdmin, resolverSolicitudProveedor);
+// ── Módulo solicitudes de proveedores ─────────────────────────────────────────
+router.get('/solicitudes-proveedores',                    ...soloAdmin, obtenerSolicitudesPendientes);
+router.patch('/solicitudes-proveedores/:id/decision',     ...soloAdmin, resolverSolicitudProveedor);
 
-// Módulo moderar reseñas
-router.get('/resenas', ...soloAdmin, obtenerResenasNoPositivas);
+// ── Módulo moderar reseñas ────────────────────────────────────────────────────
+router.get('/resenas',        ...soloAdmin, obtenerResenasNoPositivas);
 router.delete('/resenas/:id', ...soloAdmin, eliminarResena);
 
-// Módulo catálogos — Ciudades
-router.get('/catalogos/ciudades',           ...soloAdmin, obtenerCiudades);
-router.post('/catalogos/ciudades',          ...soloAdmin, crearCiudad);
-router.delete('/catalogos/ciudades/:id',    ...soloAdmin, eliminarCiudad);
+// ── Módulo catálogos — Ciudades ───────────────────────────────────────────────
+router.get('/catalogos/ciudades',          ...soloAdmin, obtenerCiudades);
+router.post('/catalogos/ciudades',         ...soloAdmin, crearCiudad);
+router.delete('/catalogos/ciudades/:id',   ...soloAdmin, eliminarCiudad);
 
-// Módulo catálogos — Tipos de servicio (categorías)
-router.get('/catalogos/categorias',         ...soloAdmin, obtenerCategoriasAdmin);
-router.post('/catalogos/categorias',        ...soloAdmin, crearCategoriaAdmin);
-router.delete('/catalogos/categorias/:id',  ...soloAdmin, eliminarCategoriaAdmin);
+// ── Módulo catálogos — Tipos de servicio ─────────────────────────────────────
+router.get('/catalogos/categorias',        ...soloAdmin, obtenerCategoriasAdmin);
+router.post('/catalogos/categorias',       ...soloAdmin, crearCategoriaAdmin);
+router.delete('/catalogos/categorias/:id', ...soloAdmin, eliminarCategoriaAdmin);
 
-// Módulo catálogos — Tipos de evento
-router.get('/catalogos/tipos-evento',        ...soloAdmin, obtenerTiposEventoAdmin);
-router.post('/catalogos/tipos-evento',       ...soloAdmin, crearTipoEventoAdmin);
-router.delete('/catalogos/tipos-evento/:id', ...soloAdmin, eliminarTipoEventoAdmin);
+// ── Módulo catálogos — Tipos de evento ───────────────────────────────────────
+router.get('/catalogos/tipos-evento',         ...soloAdmin, obtenerTiposEventoAdmin);
+router.post('/catalogos/tipos-evento',        ...soloAdmin, crearTipoEventoAdmin);
+router.delete('/catalogos/tipos-evento/:id',  ...soloAdmin, eliminarTipoEventoAdmin);
 
-// Módulo notificaciones
-router.post('/notificaciones',  ...soloAdmin, enviarNotificacion);
-router.get('/notificaciones',   autenticar,   obtenerNotificaciones);
+// ── Módulo notificaciones ─────────────────────────────────────────────────────
+router.post('/notificaciones', ...soloAdmin, enviarNotificacion);
+router.get('/notificaciones',  autenticar,   obtenerNotificaciones);
+
+// ★ ── Módulo configuración de temporizadores ──────────────────────────────────
+// GET  /api/admin/timer-config  → consultar umbrales actuales
+// PUT  /api/admin/timer-config  → actualizar umbrales
+router.get('/timer-config', ...soloAdmin, obtenerConfigTimer);
+router.put('/timer-config', ...soloAdmin, actualizarConfigTimer);
 
 module.exports = router;

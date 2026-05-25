@@ -6,23 +6,91 @@ import socketService from '../services/socketService';
 import api from '../services/api';
 import './Layout.css';
 
-// Clave de localStorage por usuario para IDs de notificaciones leídas
-function getLsKey(userId) {
-  return `notif_leidas_${userId}`;
-}
-
+// ── LocalStorage helpers ──
+function getLsKey(userId) { return `notif_leidas_${userId}`; }
 function getLeidas(userId) {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(getLsKey(userId)) || '[]'));
-  } catch {
-    return new Set();
-  }
+  try { return new Set(JSON.parse(localStorage.getItem(getLsKey(userId)) || '[]')); }
+  catch { return new Set(); }
 }
-
 function marcarLeida(id, userId) {
   const leidas = getLeidas(userId);
   leidas.add(id);
   localStorage.setItem(getLsKey(userId), JSON.stringify([...leidas]));
+}
+
+// ── Formatea fecha/hora ──
+function formatFecha(fechaStr) {
+  if (!fechaStr) return '';
+  const fecha = new Date(fechaStr);
+  return fecha.toLocaleDateString('es-MX', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+// ── Modal de confirmación homogéneo ──
+function ModalUnificado({ visible, icono, titulo, descripcion, acciones, onClose }) {
+  if (!visible) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        {icono && <div className="modal-icono">{icono}</div>}
+        <h2 className="modal-titulo">{titulo}</h2>
+        {descripcion && <p className="modal-descripcion">{descripcion}</p>}
+        <div className="modal-acciones">
+          {acciones}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Modal detalle nueva solicitud para proveedor ──
+function NotifProveedorDetalle({ notif, onCerrar, onIrChat }) {
+  if (!notif) return null;
+  return (
+    <div className="modal-overlay" onClick={onCerrar}>
+      <div className="modal-card modal-card--ancho" onClick={e => e.stopPropagation()}>
+        <div className="modal-icono">📋</div>
+        <h2 className="modal-titulo">Nueva solicitud de cotización</h2>
+        <div className="notif-prov-info">
+          {notif.tipo_evento && (
+            <div className="notif-admin-row">
+              <span className="notif-admin-label">Tipo de evento</span>
+              <span>{notif.tipo_evento}</span>
+            </div>
+          )}
+          {notif.fecha_evento && (
+            <div className="notif-admin-row">
+              <span className="notif-admin-label">Fecha del evento</span>
+              <span>{new Date(notif.fecha_evento).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+            </div>
+          )}
+          <div className="notif-admin-row">
+            <span className="notif-admin-label">Recibida</span>
+            <span>{formatFecha(notif.fecha_recepcion || notif.fecha_envio)}</span>
+          </div>
+          {notif.mensaje && (
+            <div className="notif-admin-row">
+              <span className="notif-admin-label">Mensaje</span>
+              <span>{notif.mensaje}</span>
+            </div>
+          )}
+        </div>
+        <div className="modal-acciones">
+          <button
+            className="modal-btn modal-btn--accion"
+            onClick={() => { onCerrar(); onIrChat(notif.id_solicitud); }}
+          >
+            💬 Ir al Chat
+          </button>
+          <button className="modal-btn modal-btn--secundario" onClick={onCerrar}>
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Layout({ children, showNav = true }) {
@@ -34,19 +102,27 @@ function Layout({ children, showNav = true }) {
   const [modalContacto, setModalContacto] = useState(false);
   const dropdownRef = useRef(null);
 
-  // ── Notificaciones ──
-  const [notificaciones, setNotificaciones] = useState([]);
-  const [showNotif, setShowNotif] = useState(false);
-  const [noLeidas, setNoLeidas] = useState(0);
-  const notifRef = useRef(null);
-
-  // Modal de detalle de notificación
-  const [notifDetalle, setNotifDetalle] = useState(null);
-  // Paginación del panel de notificaciones (3 por página)
   const NOTIF_POR_PAGINA = 3;
-  const [paginaNotif, setPaginaNotif] = useState(0);
+  const userIdGral = user?.id_usuario ?? user?.id_proveedor ?? user?.id_administrador;
 
-  // ── Notificaciones del Admin ──
+  // ── Notificaciones CLIENTE ──
+  const [notificacionesCliente, setNotificacionesCliente] = useState([]);
+  const [showNotifCliente, setShowNotifCliente] = useState(false);
+  const [noLeidasCliente, setNoLeidasCliente] = useState(0);
+  const notifClienteRef = useRef(null);
+  const [notifClienteDetalle, setNotifClienteDetalle] = useState(null);
+  const [paginaCliente, setPaginaCliente] = useState(0);
+
+  // ── Notificaciones PROVEEDOR ──
+  const [notificacionesProveedor, setNotificacionesProveedor] = useState([]);
+  const [showNotifProveedor, setShowNotifProveedor] = useState(false);
+  const [noLeidasProveedor, setNoLeidasProveedor] = useState(0);
+  const notifProveedorRef = useRef(null);
+  const [paginaProveedor, setPaginaProveedor] = useState(0);
+  const [notifAdminGralDetalle, setNotifAdminGralDetalle] = useState(null);
+  const [notifSolicDetalle, setNotifSolicDetalle] = useState(null);
+
+  // ── Notificaciones ADMIN ──
   const [notifAdmin, setNotifAdmin] = useState([]);
   const [noLeidasAdmin, setNoLeidasAdmin] = useState(0);
   const [showNotifAdmin, setShowNotifAdmin] = useState(false);
@@ -69,7 +145,7 @@ function Layout({ children, showNav = true }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Conectar socket en Layout para que esté disponible antes de ir al Chat
+  // ── Conectar socket ──
   useEffect(() => {
     if (!user) return;
     const token = localStorage.getItem('token');
@@ -80,80 +156,123 @@ function Layout({ children, showNav = true }) {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target))
-        setShowDropdown(false);
-      if (notifRef.current && !notifRef.current.contains(event.target))
-        setShowNotif(false);
-      if (notifAdminRef.current && !notifAdminRef.current.contains(event.target))
-        setShowNotifAdmin(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setShowDropdown(false);
+      if (notifClienteRef.current && !notifClienteRef.current.contains(event.target)) setShowNotifCliente(false);
+      if (notifProveedorRef.current && !notifProveedorRef.current.contains(event.target)) setShowNotifProveedor(false);
+      if (notifAdminRef.current && !notifAdminRef.current.contains(event.target)) setShowNotifAdmin(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Recalcular conteo de no leídas cada vez que cambian las notificaciones
-  const recalcularNoLeidas = (lista) => {
-    const leidas = getLeidas(user?.id_usuario ?? user?.id_proveedor ?? user?.id_administrador);
-    const count = lista.filter(n => !leidas.has(n.id_notificacion)).length;
-    setNoLeidas(count);
+  // ── Recálculo manual de no leídas ──
+  const forzarRecalculoCliente = (lista) => {
+    const leidas = getLeidas(userIdGral);
+    setNoLeidasCliente(lista.filter(n => !leidas.has(n.id_notificacion)).length);
+  };
+  const forzarRecalculoProveedor = (lista) => {
+    const leidas = getLeidas(userIdGral);
+    setNoLeidasProveedor(lista.filter(n => !leidas.has(n.id_notificacion || n.id)).length);
+  };
+  const forzarRecalculoAdmin = (lista) => {
+    const currentAdminId = user?.id_administrador ?? user?.id;
+    const leidas = getLeidas('admin_' + currentAdminId);
+    setNoLeidasAdmin(lista.filter(n => !leidas.has(n.id)).length);
   };
 
-  // Cargar notificaciones al iniciar sesión
+  // ── Cargar notificaciones BD (Cliente / Proveedor) ──
   useEffect(() => {
     if (!user || user.rol === 'admin') return;
-    const rol = user.rol;
-
-    api.get(`/admin/notificaciones?rol=${rol}`)
+    api.get(`/admin/notificaciones?rol=${user.rol}`)
       .then(res => {
         if (res.data.success) {
-          setNotificaciones(res.data.data);
-          recalcularNoLeidas(res.data.data);
+          const leidas = getLeidas(userIdGral);
+          if (user.rol === 'cliente') {
+            setNotificacionesCliente(res.data.data);
+            setNoLeidasCliente(res.data.data.filter(n => !leidas.has(n.id_notificacion)).length);
+          } else if (user.rol === 'proveedor') {
+            setNotificacionesProveedor(res.data.data);
+            setNoLeidasProveedor(res.data.data.filter(n => !leidas.has(n.id_notificacion || n.id)).length);
+          }
         }
       })
       .catch(() => {});
-  }, [user]);
+  }, [user, userIdGral]);
 
-  // Escuchar notificaciones en tiempo real
+  // ── Sockets en tiempo real (Cliente / Proveedor) ──
   useEffect(() => {
     if (!user || user.rol === 'admin') return;
 
-    const agregarNotif = (notif) => {
-      setNotificaciones(prev => {
-        const nueva = [notif, ...prev];
-        recalcularNoLeidas(nueva);
-        return nueva;
-      });
+    const registrar = (socket) => {
+      const onNuevaNotifGral = (notif) => {
+        const leidas = getLeidas(userIdGral);
+        if (user.rol === 'cliente') {
+          setNotificacionesCliente(prev => {
+            const nueva = [notif, ...prev];
+            setNoLeidasCliente(nueva.filter(n => !leidas.has(n.id_notificacion)).length);
+            return nueva;
+          });
+        } else if (user.rol === 'proveedor') {
+          setNotificacionesProveedor(prev => {
+            const nueva = [notif, ...prev];
+            setNoLeidasProveedor(nueva.filter(n => !leidas.has(n.id_notificacion || n.id)).length);
+            return nueva;
+          });
+        }
+      };
+
+      const onNuevaSolicitudCotizacion = (data) => {
+        if (user.rol !== 'proveedor') return;
+        const leidas = getLeidas(userIdGral);
+        const notifMapeada = {
+          ...data,
+          id: 'solic_' + data.id_solicitud + '_' + Date.now(),
+          esCotizacion: true,
+          // ✅ Usar la fecha que manda el servidor (cuando ocurre la acción)
+          fecha_recepcion: data.fecha_envio || new Date().toISOString(),
+        };
+        setNotificacionesProveedor(prev => {
+          const nueva = [notifMapeada, ...prev];
+          setNoLeidasProveedor(nueva.filter(n => !leidas.has(n.id_notificacion || n.id)).length);
+          return nueva;
+        });
+      };
+
+      socket.on('nueva_notificacion', onNuevaNotifGral);
+      if (user.rol === 'cliente') {
+        socket.on('nueva_notificacion_cliente', onNuevaNotifGral);
+      } else if (user.rol === 'proveedor') {
+        socket.on('nueva_notificacion_proveedor', onNuevaNotifGral);
+        // ✅ Escuchar nueva_solicitud — ahora llega porque socket.js auto-une la sala personal
+        socket.on('nueva_solicitud', onNuevaSolicitudCotizacion);
+      }
+
+      return () => {
+        socket.off('nueva_notificacion', onNuevaNotifGral);
+        socket.off('nueva_notificacion_cliente', onNuevaNotifGral);
+        socket.off('nueva_notificacion_proveedor', onNuevaNotifGral);
+        socket.off('nueva_solicitud', onNuevaSolicitudCotizacion);
+      };
     };
 
-    if (socketService.socket) {
-      socketService.socket.on('nueva_notificacion', agregarNotif);
-      if (user.rol === 'cliente') {
-        socketService.socket.on('nueva_notificacion_cliente', agregarNotif);
-      } else if (user.rol === 'proveedor') {
-        socketService.socket.on('nueva_notificacion_proveedor', agregarNotif);
-      }
+    const socket = socketService.socket;
+    let cleanup = () => {};
+
+    if (socket?.connected) {
+      cleanup = registrar(socket);
+    } else if (socket) {
+      const onConnect = () => { cleanup = registrar(socket); };
+      socket.once('connect', onConnect);
+      cleanup = () => socket.off('connect', onConnect);
     }
 
-    return () => {
-      if (socketService.socket) {
-        socketService.socket.off('nueva_notificacion', agregarNotif);
-        socketService.socket.off('nueva_notificacion_cliente', agregarNotif);
-        socketService.socket.off('nueva_notificacion_proveedor', agregarNotif);
-      }
-    };
-  }, [user]);
+    return () => cleanup();
+  }, [user, userIdGral]);
 
-  // Helper para recalcular no leídas del admin
-  const recalcularNoLeidasAdmin = (lista) => {
-    const userId = user?.id_administrador ?? user?.id;
-    const leidas = getLeidas('admin_' + userId);
-    const count = lista.filter(n => !leidas.has(n.id)).length;
-    setNoLeidasAdmin(count);
-  };
-
-  // Cargar notificaciones admin al iniciar (proveedores pendientes + reseñas reportadas)
+  // ── Cargar historial Admin ──
   useEffect(() => {
     if (!user || user.rol !== 'admin') return;
+    const currentAdminId = user?.id_administrador ?? user?.id;
 
     const cargarNotifAdmin = async () => {
       try {
@@ -173,6 +292,8 @@ function Layout({ children, showNav = true }) {
               ciudad: p.ciudad,
               tipo_servicio: p.tipo_servicio,
               fecha_registro: p.fecha_registro,
+              // ✅ fecha_recepcion = fecha_registro (cuándo se registró el proveedor)
+              fecha_recepcion: p.fecha_registro,
             }))
           : [];
 
@@ -187,152 +308,131 @@ function Layout({ children, showNav = true }) {
               sentimiento: r.sentimiento,
               nombre_negocio: r.nombre_negocio,
               nombre_cliente: r.nombre_cliente,
-              fecha: r.fecha_publicacion,
+              fecha_publicacion: r.fecha_publicacion,
+              // ✅ fecha_recepcion = fecha_publicacion (cuándo fue reportada)
+              fecha_recepcion: r.fecha_publicacion,
             }))
           : [];
 
-        // Ordenar: reseñas primero (más urgentes), luego proveedores por fecha desc
         const todas = [
           ...notifsResenas,
           ...notifsProv.sort((a, b) => new Date(b.fecha_registro) - new Date(a.fecha_registro)),
         ];
 
+        const leidas = getLeidas('admin_' + currentAdminId);
         setNotifAdmin(todas);
-        recalcularNoLeidasAdmin(todas);
+        setNoLeidasAdmin(todas.filter(n => !leidas.has(n.id)).length);
       } catch (e) {
         console.error('Error cargando notificaciones admin:', e);
       }
     };
-
     cargarNotifAdmin();
   }, [user]);
 
-  // Escuchar notificaciones de admin en tiempo real via socket
+  // ── Sockets Admin ──
   useEffect(() => {
     if (!user || user.rol !== 'admin') return;
+    const currentAdminId = user?.id_administrador ?? user?.id;
 
-    const onNuevaSolicitud = (data) => {
-      const notif = { ...data, id: 'prov_' + data.id_proveedor + '_rt_' + Date.now() };
-      setNotifAdmin(prev => {
-        // Evitar duplicado si ya cargó por API
-        const yaExiste = prev.some(n => n.id_proveedor === data.id_proveedor && n.tipo === 'nuevo_proveedor');
-        if (yaExiste) return prev;
-        const nueva = [notif, ...prev];
-        recalcularNoLeidasAdmin(nueva);
-        return nueva;
-      });
+    const registrar = (socket) => {
+      const onNuevaSolicitudProv = (data) => {
+        const leidas = getLeidas('admin_' + currentAdminId);
+        const notif = {
+          ...data,
+          id: 'prov_' + data.id_proveedor + '_rt_' + Date.now(),
+          tipo: 'nuevo_proveedor',
+          // ✅ Hora real en que llega el evento (= momento del registro)
+          fecha_recepcion: data.fecha_registro || new Date().toISOString(),
+        };
+        setNotifAdmin(prev => {
+          if (prev.some(n => n.id_proveedor === data.id_proveedor && n.tipo === 'nuevo_proveedor')) return prev;
+          const nueva = [notif, ...prev];
+          setNoLeidasAdmin(nueva.filter(n => !leidas.has(n.id)).length);
+          return nueva;
+        });
+      };
+
+      const onResenaReportada = (data) => {
+        const leidas = getLeidas('admin_' + currentAdminId);
+        const notif = {
+          ...data,
+          id: 'res_' + data.id_resena + '_rt_' + Date.now(),
+          tipo: 'resena_reportada',
+          // ✅ Hora real en que llega el evento (= momento del reporte)
+          fecha_recepcion: new Date().toISOString(),
+        };
+        setNotifAdmin(prev => {
+          if (prev.some(n => n.id_resena === data.id_resena && n.tipo === 'resena_reportada')) return prev;
+          const nueva = [notif, ...prev];
+          setNoLeidasAdmin(nueva.filter(n => !leidas.has(n.id)).length);
+          return nueva;
+        });
+      };
+
+      socket.on('admin_nueva_solicitud_proveedor', onNuevaSolicitudProv);
+      socket.on('admin_resena_reportada', onResenaReportada);
+
+      return () => {
+        socket.off('admin_nueva_solicitud_proveedor', onNuevaSolicitudProv);
+        socket.off('admin_resena_reportada', onResenaReportada);
+      };
     };
 
-    const onResenaReportada = (data) => {
-      const notif = { ...data, id: 'res_' + data.id_resena + '_rt_' + Date.now() };
-      setNotifAdmin(prev => {
-        const yaExiste = prev.some(n => n.id_resena === data.id_resena && n.tipo === 'resena_reportada');
-        if (yaExiste) return prev;
-        const nueva = [notif, ...prev];
-        recalcularNoLeidasAdmin(nueva);
-        return nueva;
-      });
-    };
+    const socket = socketService.socket;
+    let cleanup = () => {};
 
-    const registrarListeners = () => {
-      if (socketService.socket) {
-        socketService.socket.on('admin_nueva_solicitud_proveedor', onNuevaSolicitud);
-        socketService.socket.on('admin_resena_reportada', onResenaReportada);
-      }
-    };
-
-    // Intentar registrar ahora; si el socket aún no está listo, esperar el evento connect
-    registrarListeners();
-    if (socketService.socket) {
-      socketService.socket.on('connect', registrarListeners);
+    if (socket?.connected) {
+      cleanup = registrar(socket);
+    } else if (socket) {
+      const onConnect = () => { cleanup = registrar(socket); };
+      socket.once('connect', onConnect);
+      cleanup = () => socket.off('connect', onConnect);
     }
 
-    return () => {
-      if (socketService.socket) {
-        socketService.socket.off('admin_nueva_solicitud_proveedor', onNuevaSolicitud);
-        socketService.socket.off('admin_resena_reportada', onResenaReportada);
-        socketService.socket.off('connect', registrarListeners);
-      }
-    };
+    return () => cleanup();
   }, [user]);
 
-  const handleAbrirNotifAdmin = () => {
-    setShowNotifAdmin(prev => {
-      if (!prev) setPaginaAdmin(0);
-      return !prev;
-    });
-    setShowDropdown(false);
-  };
+  // ════════════════════════════════
+  //  RENDERERS – Panel Global
+  // ════════════════════════════════
 
-  const handleAbrirDetalleAdmin = (notif) => {
-    const userId = 'admin_' + (user?.id_administrador ?? user?.id);
-    marcarLeida(notif.id, userId);
-    setNotifAdminDetalle(notif);
-    setShowNotifAdmin(false);
-    recalcularNoLeidasAdmin(notifAdmin);
-  };
-
-  const handleCerrarDetalleAdmin = () => setNotifAdminDetalle(null);
-
-  const renderPanelAdmin = () => {
-    const userId = 'admin_' + (user?.id_administrador ?? user?.id);
-    const leidas = getLeidas(userId);
-    const totalPaginas = Math.ceil(notifAdmin.length / NOTIF_POR_PAGINA);
-    const paginadas = notifAdmin.slice(paginaAdmin * NOTIF_POR_PAGINA, (paginaAdmin + 1) * NOTIF_POR_PAGINA);
-
+  const renderPanel = ({ items, pagina, setPagina, keyId, getTitulo, getPreview, getFechaRecepcion, onAbrir, leidasKey }) => {
+    const leidas = getLeidas(leidasKey);
+    const totalPaginas = Math.ceil(items.length / NOTIF_POR_PAGINA);
+    const paginadas = items.slice(pagina * NOTIF_POR_PAGINA, (pagina + 1) * NOTIF_POR_PAGINA);
     return (
       <div className="nav-notif-panel">
         <div className="nav-notif-header">
           <span>🔔 Notificaciones</span>
-          {totalPaginas > 1 && (
-            <span className="nav-notif-pagina-label">{paginaAdmin + 1} / {totalPaginas}</span>
-          )}
+          {totalPaginas > 1 && <span className="nav-notif-pagina-label">{pagina + 1} / {totalPaginas}</span>}
         </div>
-        {notifAdmin.length === 0 ? (
-          <div className="nav-notif-empty">Sin notificaciones nuevas</div>
+        {items.length === 0 ? (
+          <div className="nav-notif-empty">Sin notificaciones</div>
         ) : (
           <>
             <ul className="nav-notif-list">
               {paginadas.map(n => {
-                const esLeida = leidas.has(n.id);
-                const esProveedor = n.tipo === 'nuevo_proveedor';
+                const esLeida = leidas.has(keyId(n));
                 return (
                   <li
-                    key={n.id}
+                    key={keyId(n)}
                     className={`nav-notif-item${esLeida ? ' nav-notif-item--leida' : ''}`}
-                    onClick={() => handleAbrirDetalleAdmin(n)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={e => e.key === 'Enter' && handleAbrirDetalleAdmin(n)}
+                    onClick={() => onAbrir(n)}
+                    role="button" tabIndex={0}
+                    onKeyDown={e => e.key === 'Enter' && onAbrir(n)}
                   >
                     {!esLeida && <span className="nav-notif-dot" />}
-                    <span className="nav-notif-titulo">
-                      {esProveedor ? '🏪 Nuevo proveedor' : '⚠️ Reseña reportada'}
-                    </span>
-                    <span className="nav-notif-preview">
-                      {esProveedor
-                        ? n.nombre_negocio
-                        : (n.comentario?.length > 60 ? n.comentario.slice(0, 60) + '…' : n.comentario)}
-                    </span>
-                    <span className="nav-notif-fecha">{formatFecha(esProveedor ? n.fecha_registro : n.fecha)}</span>
+                    <span className="nav-notif-titulo">{getTitulo(n)}</span>
+                    <span className="nav-notif-preview">{getPreview(n)}</span>
+                    <span className="nav-notif-fecha">{formatFecha(getFechaRecepcion(n))}</span>
                   </li>
                 );
               })}
             </ul>
             {totalPaginas > 1 && (
               <div className="nav-notif-paginacion">
-                <button
-                  className="nav-notif-pag-btn"
-                  onClick={() => setPaginaAdmin(p => p - 1)}
-                  disabled={paginaAdmin === 0}
-                  aria-label="Página anterior"
-                >‹ Anterior</button>
-                <button
-                  className="nav-notif-pag-btn"
-                  onClick={() => setPaginaAdmin(p => p + 1)}
-                  disabled={paginaAdmin >= totalPaginas - 1}
-                  aria-label="Página siguiente"
-                >Siguiente ›</button>
+                <button className="nav-notif-pag-btn" onClick={() => setPagina(p => p - 1)} disabled={pagina === 0}>‹ Anterior</button>
+                <button className="nav-notif-pag-btn" onClick={() => setPagina(p => p + 1)} disabled={pagina >= totalPaginas - 1}>Siguiente ›</button>
               </div>
             )}
           </>
@@ -341,112 +441,66 @@ function Layout({ children, showNav = true }) {
     );
   };
 
-  const renderCampanaAdmin = () => (
-    <div className="nav-notif-wrapper" ref={notifAdminRef}>
-      <button className="nav-notif-btn" onClick={handleAbrirNotifAdmin} aria-label="Notificaciones">
-        <FaBell size={18} />
-        {noLeidasAdmin > 0 && <span className="nav-notif-badge">{noLeidasAdmin > 9 ? '9+' : noLeidasAdmin}</span>}
-      </button>
-      {showNotifAdmin && renderPanelAdmin()}
-    </div>
-  );
+  // Campana Cliente
+  const renderCampanaCliente = () => renderPanel({
+    items: notificacionesCliente,
+    pagina: paginaCliente,
+    setPagina: setPaginaCliente,
+    leidasKey: userIdGral,
+    keyId: n => n.id_notificacion,
+    getTitulo: n => n.titulo,
+    getPreview: n => n.mensaje?.length > 60 ? n.mensaje.slice(0, 60) + '…' : n.mensaje,
+    getFechaRecepcion: n => n.fecha_envio,
+    onAbrir: (n) => {
+      marcarLeida(n.id_notificacion, userIdGral);
+      setNotifClienteDetalle(n);
+      setShowNotifCliente(false);
+      forzarRecalculoCliente(notificacionesCliente);
+    }
+  });
 
-  const handleAbrirNotif = () => {
-    setShowNotif(prev => {
-      if (!prev) setPaginaNotif(0); // resetear página al abrir
-      return !prev;
-    });
-    setShowDropdown(false);
-    // NO resetear noLeidas aquí — solo se marca al abrir el detalle
-  };
+  // Campana Proveedor
+  const renderCampanaProveedor = () => renderPanel({
+    items: notificacionesProveedor,
+    pagina: paginaProveedor,
+    setPagina: setPaginaProveedor,
+    leidasKey: userIdGral,
+    keyId: n => n.id_notificacion || n.id,
+    getTitulo: n => n.esCotizacion ? '📋 Nueva cotización' : (n.titulo || '🔔 Aviso de Admin'),
+    getPreview: n => n.esCotizacion
+      ? (n.tipo_evento ? `Evento: ${n.tipo_evento}` : (n.mensaje || 'Nueva solicitud recibida'))
+      : (n.mensaje?.length > 60 ? n.mensaje.slice(0, 60) + '…' : n.mensaje),
+    getFechaRecepcion: n => n.fecha_recepcion || n.fecha_envio,
+    onAbrir: (n) => {
+      marcarLeida(n.id_notificacion || n.id, userIdGral);
+      setShowNotifProveedor(false);
+      if (n.esCotizacion) {
+        setNotifSolicDetalle(n);
+      } else {
+        setNotifAdminGralDetalle(n);
+      }
+      forzarRecalculoProveedor(notificacionesProveedor);
+    }
+  });
 
-  // Abrir modal de detalle y marcar como leída
-  const handleAbrirDetalle = (notif) => {
-    marcarLeida(notif.id_notificacion, user?.id_usuario ?? user?.id_proveedor ?? user?.id_administrador);
-    setNotifDetalle(notif);
-    setShowNotif(false);
-    // Recalcular badge
-    recalcularNoLeidas(notificaciones);
-  };
-
-  const handleCerrarDetalle = () => setNotifDetalle(null);
-
-  const formatFecha = (fechaStr) => {
-    const fecha = new Date(fechaStr);
-    return fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
-
-  // Renderizado del panel de notificaciones con paginación de 3 en 3
-  const renderPanelNotif = () => {
-    const userId = user?.id_usuario ?? user?.id_proveedor ?? user?.id_administrador;
-    const leidas = getLeidas(userId);
-    const totalPaginas = Math.ceil(notificaciones.length / NOTIF_POR_PAGINA);
-    const paginadas = notificaciones.slice(paginaNotif * NOTIF_POR_PAGINA, (paginaNotif + 1) * NOTIF_POR_PAGINA);
-
-    return (
-    <div className="nav-notif-panel">
-      <div className="nav-notif-header">
-        <span>🔔 Notificaciones</span>
-        {totalPaginas > 1 && (
-          <span className="nav-notif-pagina-label">{paginaNotif + 1} / {totalPaginas}</span>
-        )}
-      </div>
-      {notificaciones.length === 0 ? (
-        <div className="nav-notif-empty">Sin notificaciones</div>
-      ) : (
-        <>
-          <ul className="nav-notif-list">
-            {paginadas.map(n => {
-              const esLeida = leidas.has(n.id_notificacion);
-              return (
-                <li
-                  key={n.id_notificacion}
-                  className={`nav-notif-item${esLeida ? ' nav-notif-item--leida' : ''}`}
-                  onClick={() => handleAbrirDetalle(n)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={e => e.key === 'Enter' && handleAbrirDetalle(n)}
-                >
-                  {!esLeida && <span className="nav-notif-dot" />}
-                  <span className="nav-notif-titulo">{n.titulo}</span>
-                  <span className="nav-notif-preview">{n.mensaje.length > 60 ? n.mensaje.slice(0, 60) + '…' : n.mensaje}</span>
-                  <span className="nav-notif-fecha">{formatFecha(n.fecha_envio)}</span>
-                </li>
-              );
-            })}
-          </ul>
-          {totalPaginas > 1 && (
-            <div className="nav-notif-paginacion">
-              <button
-                className="nav-notif-pag-btn"
-                onClick={() => setPaginaNotif(p => p - 1)}
-                disabled={paginaNotif === 0}
-                aria-label="Página anterior"
-              >‹ Anterior</button>
-              <button
-                className="nav-notif-pag-btn"
-                onClick={() => setPaginaNotif(p => p + 1)}
-                disabled={paginaNotif >= totalPaginas - 1}
-                aria-label="Página siguiente"
-              >Siguiente ›</button>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-  };
-
-  // Renderizado de la campana (igual para cliente y proveedor)
-  const renderCampana = () => (
-    <div className="nav-notif-wrapper" ref={notifRef}>
-      <button className="nav-notif-btn" onClick={handleAbrirNotif} aria-label="Notificaciones">
-        <FaBell size={18} />
-        {noLeidas > 0 && <span className="nav-notif-badge">{noLeidas > 9 ? '9+' : noLeidas}</span>}
-      </button>
-      {showNotif && renderPanelNotif()}
-    </div>
-  );
+  // Campana Admin
+  const renderCampanaAdminPanel = () => renderPanel({
+    items: notifAdmin,
+    pagina: paginaAdmin,
+    setPagina: setPaginaAdmin,
+    leidasKey: 'admin_' + (user?.id_administrador ?? user?.id),
+    keyId: n => n.id,
+    getTitulo: n => n.tipo === 'nuevo_proveedor' ? '🏪 Nuevo proveedor' : '⚠️ Reseña reportada',
+    getPreview: n => n.tipo === 'nuevo_proveedor' ? n.nombre_negocio : (n.comentario?.length > 60 ? n.comentario.slice(0, 60) + '…' : n.comentario),
+    getFechaRecepcion: n => n.fecha_recepcion,
+    onAbrir: (n) => {
+      const currentAdminId = user?.id_administrador ?? user?.id;
+      marcarLeida(n.id, 'admin_' + currentAdminId);
+      setNotifAdminDetalle(n);
+      setShowNotifAdmin(false);
+      forzarRecalculoAdmin(notifAdmin);
+    }
+  });
 
   return (
     <div className="layout">
@@ -455,7 +509,7 @@ function Layout({ children, showNav = true }) {
           <div className="navbar-content">
             <Link to={user?.rol === 'admin' ? '/admin/usuarios' : '/'} className="logo">EventosMX</Link>
 
-            {/* ========== NAVBAR CLIENTE ========== */}
+            {/* NAVBAR CLIENTE */}
             {user && user.rol === 'cliente' && (
               <div className="nav-links">
                 {!isMobile && (
@@ -465,7 +519,13 @@ function Layout({ children, showNav = true }) {
                     <Link to="/cliente/listas">Mis eventos</Link>
                   </>
                 )}
-                {renderCampana()}
+                <div className="nav-notif-wrapper" ref={notifClienteRef}>
+                  <button className="nav-notif-btn" onClick={() => { setShowNotifCliente(p => !p); setShowDropdown(false); }}>
+                    <FaBell size={18} />
+                    {noLeidasCliente > 0 && <span className="nav-notif-badge">{noLeidasCliente > 9 ? '9+' : noLeidasCliente}</span>}
+                  </button>
+                  {showNotifCliente && renderCampanaCliente()}
+                </div>
                 <div className="nav-dropdown" ref={dropdownRef}>
                   <button className="nav-dropdown-trigger" onClick={() => setShowDropdown(prev => !prev)}>
                     Mi cuenta <FaChevronDown size={12} />
@@ -487,7 +547,7 @@ function Layout({ children, showNav = true }) {
               </div>
             )}
 
-            {/* ========== NAVBAR PROVEEDOR ========== */}
+            {/* NAVBAR PROVEEDOR */}
             {user && user.rol === 'proveedor' && (
               <div className="nav-links">
                 {!isMobile && (
@@ -496,7 +556,13 @@ function Layout({ children, showNav = true }) {
                     <Link to="/proveedor/cuenta/solicitudes">Solicitudes</Link>
                   </>
                 )}
-                {renderCampana()}
+                <div className="nav-notif-wrapper" ref={notifProveedorRef}>
+                  <button className="nav-notif-btn" onClick={() => { setShowNotifProveedor(p => !p); setShowDropdown(false); }}>
+                    <FaBell size={18} />
+                    {noLeidasProveedor > 0 && <span className="nav-notif-badge">{noLeidasProveedor > 9 ? '9+' : noLeidasProveedor}</span>}
+                  </button>
+                  {showNotifProveedor && renderCampanaProveedor()}
+                </div>
                 <div className="nav-dropdown" ref={dropdownRef}>
                   <button className="nav-dropdown-trigger" onClick={() => setShowDropdown(prev => !prev)}>
                     Mi cuenta <FaChevronDown size={12} />
@@ -517,11 +583,17 @@ function Layout({ children, showNav = true }) {
               </div>
             )}
 
-            {/* ========== NAVBAR ADMIN ========== */}
+            {/* NAVBAR ADMIN */}
             {user && user.rol === 'admin' && (
               <div className="nav-links">
                 {!isMobile && <span className="nav-admin-badge">Administrador</span>}
-                {renderCampanaAdmin()}
+                <div className="nav-notif-wrapper" ref={notifAdminRef}>
+                  <button className="nav-notif-btn" onClick={() => { setShowNotifAdmin(p => !p); setShowDropdown(false); }}>
+                    <FaBell size={18} />
+                    {noLeidasAdmin > 0 && <span className="nav-notif-badge">{noLeidasAdmin > 9 ? '9+' : noLeidasAdmin}</span>}
+                  </button>
+                  {showNotifAdmin && renderCampanaAdminPanel()}
+                </div>
                 <div className="nav-dropdown" ref={dropdownRef}>
                   <button className="nav-dropdown-trigger" onClick={() => setShowDropdown(prev => !prev)}>
                     {user.nombre} <FaChevronDown size={12} />
@@ -566,82 +638,117 @@ function Layout({ children, showNav = true }) {
         </div>
       </footer>
 
-      {/* ========== Modal Contáctanos ========== */}
-      {modalContacto && (
-        <div className="contacto-modal-overlay" onClick={() => setModalContacto(false)}>
-          <div className="contacto-modal" onClick={e => e.stopPropagation()}>
-            <div className="contacto-modal-icono">✉️</div>
-            <h2 className="contacto-modal-titulo">Contáctanos</h2>
-            <p className="contacto-modal-desc">Para comunicarte con el administrador, envíanos un correo a:</p>
-            <a className="contacto-modal-email" href="https://mail.google.com/mail/?view=cm&fs=1&to=admin@eventosmx.com" target="_blank" rel="noopener noreferrer">
-              admin@eventosmx.com
-            </a>
-            <p className="contacto-modal-nota">Nos pondremos en contacto contigo a la brevedad posible.</p>
-            <button className="contacto-modal-btn" onClick={() => setModalContacto(false)}>Cerrar</button>
-          </div>
-        </div>
+      {/* ═══════════ MODALES ═══════════ */}
+
+      {/* Contáctanos */}
+      <ModalUnificado
+        visible={modalContacto}
+        icono="✉️"
+        titulo="Contáctanos"
+        descripcion={null}
+        onClose={() => setModalContacto(false)}
+        acciones={
+          <>
+            <div className="modal-contacto-body">
+              <p className="modal-descripcion">Para comunicarte con el administrador, envíanos un correo a:</p>
+              <a className="modal-email-link" href="https://mail.google.com/mail/?view=cm&fs=1&to=admin@eventosmx.com" target="_blank" rel="noopener noreferrer">
+                admin@eventosmx.com
+              </a>
+              <p className="modal-nota">Nos pondremos en contacto contigo a la brevedad posible.</p>
+            </div>
+            <button className="modal-btn modal-btn--primario" onClick={() => setModalContacto(false)}>Cerrar</button>
+          </>
+        }
+      />
+
+      {/* Detalle notificación Cliente */}
+      {notifClienteDetalle && (
+        <ModalUnificado
+          visible={true}
+          icono="🔔"
+          titulo={notifClienteDetalle.titulo}
+          descripcion={null}
+          onClose={() => setNotifClienteDetalle(null)}
+          acciones={
+            <>
+              <div className="modal-notif-body">
+                <p className="notif-detalle-mensaje">{notifClienteDetalle.mensaje}</p>
+                <span className="notif-detalle-fecha">{formatFecha(notifClienteDetalle.fecha_envio)}</span>
+              </div>
+              <button className="modal-btn modal-btn--primario" onClick={() => setNotifClienteDetalle(null)}>Cerrar</button>
+            </>
+          }
+        />
       )}
 
-      {/* ========== Modal Detalle de Notificación ========== */}
-      {notifDetalle && (
-        <div className="notif-detalle-overlay" onClick={handleCerrarDetalle}>
-          <div className="notif-detalle-modal" onClick={e => e.stopPropagation()}>
-            <div className="notif-detalle-icono">🔔</div>
-            <h2 className="notif-detalle-titulo">{notifDetalle.titulo}</h2>
-            <p className="notif-detalle-mensaje">{notifDetalle.mensaje}</p>
-            <span className="notif-detalle-fecha">{formatFecha(notifDetalle.fecha_envio)}</span>
-            <button className="notif-detalle-btn" onClick={handleCerrarDetalle}>Cerrar</button>
-          </div>
-        </div>
+      {/* Detalle notificación general Admin para PROVEEDOR */}
+      {notifAdminGralDetalle && (
+        <ModalUnificado
+          visible={true}
+          icono="🔔"
+          titulo={notifAdminGralDetalle.titulo}
+          descripcion={null}
+          onClose={() => setNotifAdminGralDetalle(null)}
+          acciones={
+            <>
+              <div className="modal-notif-body">
+                <p className="notif-detalle-mensaje">{notifAdminGralDetalle.mensaje}</p>
+                <span className="notif-detalle-fecha">{formatFecha(notifAdminGralDetalle.fecha_envio)}</span>
+              </div>
+              <button className="modal-btn modal-btn--primario" onClick={() => setNotifAdminGralDetalle(null)}>Cerrar</button>
+            </>
+          }
+        />
       )}
 
-      {/* ========== Modal Detalle de Notificación Admin ========== */}
+      {/* Detalle notificación Admin (panel del administrador) */}
       {notifAdminDetalle && (() => {
         const n = notifAdminDetalle;
         const esProveedor = n.tipo === 'nuevo_proveedor';
         return (
-          <div className="notif-detalle-overlay" onClick={handleCerrarDetalleAdmin}>
-            <div className="notif-detalle-modal notif-detalle-modal--admin" onClick={e => e.stopPropagation()}>
-              <div className="notif-detalle-icono">{esProveedor ? '🏪' : '⚠️'}</div>
-              <h2 className="notif-detalle-titulo">
-                {esProveedor ? 'Nuevo proveedor registrado' : 'Reseña reportada'}
-              </h2>
-
-              {esProveedor ? (
-                <div className="notif-admin-info">
-                  <div className="notif-admin-row"><span className="notif-admin-label">Negocio</span><span>{n.nombre_negocio}</span></div>
-                  <div className="notif-admin-row"><span className="notif-admin-label">Correo</span><span>{n.correo}</span></div>
-                  {n.telefono && <div className="notif-admin-row"><span className="notif-admin-label">Teléfono</span><span>{n.telefono}</span></div>}
-                  {n.ciudad && <div className="notif-admin-row"><span className="notif-admin-label">Ciudad</span><span>{n.ciudad}</span></div>}
-                  <div className="notif-admin-row"><span className="notif-admin-label">Tipo de servicio</span><span>{n.tipo_servicio}</span></div>
-                  <div className="notif-admin-row"><span className="notif-admin-label">Fecha de registro</span><span>{formatFecha(n.fecha_registro)}</span></div>
-                </div>
-              ) : (
-                <div className="notif-admin-info">
-                  <div className="notif-admin-row"><span className="notif-admin-label">Motivo del reporte</span><span>{n.motivo}</span></div>
-                  <div className="notif-admin-row"><span className="notif-admin-label">Comentario</span><span>{n.comentario}</span></div>
-                  <div className="notif-admin-row"><span className="notif-admin-label">Calificación</span><span>{'⭐'.repeat(Math.round(n.calificacion || 0))} ({n.calificacion})</span></div>
-                  <div className="notif-admin-row"><span className="notif-admin-label">Sentimiento</span><span>{n.sentimiento}</span></div>
-                  <div className="notif-admin-row"><span className="notif-admin-label">Fecha</span><span>{formatFecha(n.fecha)}</span></div>
-                </div>
-              )}
-
-              <div className="notif-admin-acciones">
-                <button
-                  className="notif-detalle-btn notif-detalle-btn--accion"
-                  onClick={() => {
-                    handleCerrarDetalleAdmin();
-                    navigate(esProveedor ? '/admin/solicitudes' : '/admin/resenas');
-                  }}
-                >
+          <div className="modal-overlay" onClick={() => setNotifAdminDetalle(null)}>
+            <div className="modal-card modal-card--ancho" onClick={e => e.stopPropagation()}>
+              <div className="modal-icono">{esProveedor ? '🏪' : '⚠️'}</div>
+              <h2 className="modal-titulo">{esProveedor ? 'Nuevo proveedor registrado' : 'Reseña reportada'}</h2>
+              <div className="notif-admin-info">
+                {esProveedor ? (
+                  <>
+                    <div className="notif-admin-row"><span className="notif-admin-label">Negocio</span><span>{n.nombre_negocio}</span></div>
+                    <div className="notif-admin-row"><span className="notif-admin-label">Correo</span><span>{n.correo}</span></div>
+                    {n.telefono && <div className="notif-admin-row"><span className="notif-admin-label">Teléfono</span><span>{n.telefono}</span></div>}
+                    {n.ciudad && <div className="notif-admin-row"><span className="notif-admin-label">Ciudad</span><span>{n.ciudad}</span></div>}
+                    <div className="notif-admin-row"><span className="notif-admin-label">Tipo de servicio</span><span>{n.tipo_servicio}</span></div>
+                    <div className="notif-admin-row"><span className="notif-admin-label">Fecha de registro</span><span>{formatFecha(n.fecha_registro)}</span></div>
+                    <div className="notif-admin-row"><span className="notif-admin-label">Aviso recibido</span><span>{formatFecha(n.fecha_recepcion)}</span></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="notif-admin-row"><span className="notif-admin-label">Motivo del reporte</span><span>{n.motivo}</span></div>
+                    <div className="notif-admin-row"><span className="notif-admin-label">Comentario</span><span>{n.comentario}</span></div>
+                    <div className="notif-admin-row"><span className="notif-admin-label">Calificación</span><span>{'⭐'.repeat(Math.round(n.calificacion || 0))} ({n.calificacion})</span></div>
+                    <div className="notif-admin-row"><span className="notif-admin-label">Sentimiento</span><span>{n.sentimiento}</span></div>
+                    <div className="notif-admin-row"><span className="notif-admin-label">Publicada</span><span>{formatFecha(n.fecha_publicacion)}</span></div>
+                    <div className="notif-admin-row"><span className="notif-admin-label">Aviso recibido</span><span>{formatFecha(n.fecha_recepcion)}</span></div>
+                  </>
+                )}
+              </div>
+              <div className="modal-acciones">
+                <button className="modal-btn modal-btn--accion" onClick={() => { setNotifAdminDetalle(null); navigate(esProveedor ? '/admin/solicitudes' : '/admin/resenas'); }}>
                   {esProveedor ? 'Ver solicitud del proveedor' : 'Ver reseñas reportadas'}
                 </button>
-                <button className="notif-detalle-btn notif-detalle-btn--cerrar" onClick={handleCerrarDetalleAdmin}>Cerrar</button>
+                <button className="modal-btn modal-btn--secundario" onClick={() => setNotifAdminDetalle(null)}>Cerrar</button>
               </div>
             </div>
           </div>
         );
       })()}
+
+      {/* Modal nueva cotización (proveedor) */}
+      <NotifProveedorDetalle
+        notif={notifSolicDetalle}
+        onCerrar={() => setNotifSolicDetalle(null)}
+        onIrChat={(id) => navigate(`/chat/${id}`)}
+      />
     </div>
   );
 }
