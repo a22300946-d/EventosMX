@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import './ModalResena.css';
+import { FiX, FiAlertCircle, FiInfo, FiSend } from 'react-icons/fi';
+import { MdRateReview } from 'react-icons/md';
 
 const ModalResena = ({ 
   isOpen, 
@@ -39,7 +41,6 @@ const ModalResena = ({
         comentario: comentario.trim()
       });
 
-      // Limpiar y cerrar
       setComentario('');
       onClose();
     } catch (err) {
@@ -64,18 +65,20 @@ const ModalResena = ({
     <div className="modal-overlay-resena" onClick={handleClose}>
       <div className="modal-content-resena" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-resena">
-          <h2>✍️ Dejar Reseña</h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MdRateReview size={22} />
+            Dejar Reseña
+          </h2>
           <button 
             className="modal-close-resena" 
             onClick={handleClose}
             disabled={loading}
           >
-            ×
+            <FiX size={20} />
           </button>
         </div>
 
         <div className="modal-body-resena">
-          {/* Información del proveedor */}
           <div className="proveedor-info-resena">
             <div className="proveedor-avatar-resena">
               {solicitud.nombre_proveedor?.charAt(0) || 'P'}
@@ -88,15 +91,16 @@ const ModalResena = ({
             </div>
           </div>
 
-          {/* Información sobre el análisis de sentimiento */}
           <div className="info-sentimiento">
-            <p>
-              💡 <strong>Nota:</strong> Tu reseña será analizada automáticamente para determinar
-              su calificación basándose en el sentimiento expresado.
+            <p style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+              <FiInfo size={16} style={{ marginTop: 2, flexShrink: 0 }} />
+              <span>
+                <strong>Nota:</strong> Tu reseña será analizada automáticamente para determinar
+                su calificación basándose en el sentimiento expresado.
+              </span>
             </p>
           </div>
 
-          {/* Formulario de reseña */}
           <form onSubmit={handleSubmit}>
             <div className="form-group-resena">
               <label htmlFor="comentario">
@@ -118,8 +122,9 @@ const ModalResena = ({
             </div>
 
             {error && (
-              <div className="error-message-resena">
-                ⚠️ {error}
+              <div className="error-message-resena" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <FiAlertCircle size={16} />
+                {error}
               </div>
             )}
 
@@ -136,8 +141,10 @@ const ModalResena = ({
                 type="submit"
                 className="btn-enviar-resena"
                 disabled={loading || !comentario.trim()}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
-                {loading ? 'Enviando...' : '📤 Publicar Reseña'}
+                <FiSend size={16} />
+                {loading ? 'Enviando...' : 'Publicar Reseña'}
               </button>
             </div>
           </form>

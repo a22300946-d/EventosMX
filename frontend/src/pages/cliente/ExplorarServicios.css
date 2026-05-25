@@ -1,5 +1,5 @@
 /* ============================================
-   EXPLORAR SERVICIOS - CSS COMBINADO
+   EXPLORAR SERVICIOS - CSS
    ============================================ */
 
 .explorar-servicios {
@@ -10,11 +10,11 @@
 }
 
 /* ============================================
-   HEADER CON IMAGEN DE FONDO
+   HEADER
    ============================================ */
 .explorar-header {
-  background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
-    url('https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-4.0.3') center/cover;
+  background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)),
+    url('https://res.cloudinary.com/eventosmx/image/upload/v1779458200/40af2d21-bdfb-4bbc-a9f6-a4f2f8f55180_bb9fek.jpg') center/cover;
   padding: 4rem 2rem;
   text-align: center;
   color: white;
@@ -34,7 +34,7 @@
 }
 
 /* ============================================
-   ✅ RQF14, RQF18: BARRA DE BÚSQUEDA CON SUGERENCIAS
+   BARRA DE BÚSQUEDA CON SUGERENCIAS
    ============================================ */
 .barra-busqueda-container {
   position: relative;
@@ -93,7 +93,6 @@
   box-shadow: 0 5px 15px rgba(26, 77, 92, 0.3);
 }
 
-/* ✅ SUGERENCIAS DROPDOWN */
 .sugerencias-dropdown {
   position: absolute;
   top: calc(100% + 0.5rem);
@@ -109,14 +108,8 @@
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .sugerencia-item {
@@ -129,9 +122,7 @@
   border-bottom: 1px solid #f0f0f0;
 }
 
-.sugerencia-item:last-child {
-  border-bottom: none;
-}
+.sugerencia-item:last-child { border-bottom: none; }
 
 .sugerencia-item:hover {
   background: #f8f9fa;
@@ -144,10 +135,7 @@
   font-style: italic;
 }
 
-.sugerencia-icono {
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
+.sugerencia-icono { font-size: 1.5rem; flex-shrink: 0; }
 
 .sugerencia-texto {
   display: flex;
@@ -155,18 +143,11 @@
   gap: 0.2rem;
 }
 
-.sugerencia-texto strong {
-  color: #1a4d5c;
-  font-size: 1rem;
-}
-
-.sugerencia-texto small {
-  color: #95a5a6;
-  font-size: 0.85rem;
-}
+.sugerencia-texto strong { color: #1a4d5c; font-size: 1rem; }
+.sugerencia-texto small  { color: #95a5a6; font-size: 0.85rem; }
 
 /* ============================================
-   CONTENIDO PRINCIPAL
+   LAYOUT PRINCIPAL
    ============================================ */
 .explorar-contenido {
   display: grid;
@@ -198,9 +179,7 @@
   border-bottom: 2px solid #f0f0f0;
 }
 
-.filtro-seccion {
-  margin-bottom: 1.5rem;
-}
+.filtro-seccion { margin-bottom: 1.5rem; }
 
 .filtro-seccion label {
   display: block;
@@ -228,7 +207,6 @@
   box-shadow: 0 0 0 3px rgba(26, 77, 92, 0.1);
 }
 
-/* Tipos de Evento - Grid 2 columnas */
 .tipo-evento-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -262,18 +240,14 @@
   box-shadow: 0 4px 15px rgba(26, 77, 92, 0.3);
 }
 
-.tipo-evento-card.activo .tipo-evento-nombre {
-  color: white;
-}
+.tipo-evento-card.activo .tipo-evento-nombre { color: white; }
 
 .tipo-evento-icono {
   font-size: 1.5rem;
   transition: transform 0.3s ease;
 }
 
-.tipo-evento-card.activo .tipo-evento-icono {
-  transform: scale(1.2);
-}
+.tipo-evento-card.activo .tipo-evento-icono { transform: scale(1.2); }
 
 .tipo-evento-nombre {
   font-size: 0.75rem;
@@ -281,24 +255,15 @@
   color: #1a4d5c;
 }
 
-/* ✅ RQF16: Rango de Precios */
 .precio-inputs {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.precio-inputs input {
-  flex: 1;
-  width: auto !important;
-}
+.precio-inputs input { flex: 1; width: auto !important; }
+.precio-inputs span  { color: #7f8c8d; font-weight: bold; }
 
-.precio-inputs span {
-  color: #7f8c8d;
-  font-weight: bold;
-}
-
-/* Botones de Filtros */
 .filtros-botones {
   display: flex;
   flex-direction: column;
@@ -316,10 +281,7 @@
   transition: all 0.3s ease;
 }
 
-.btn-aplicar {
-  background: #1a4d5c;
-  color: white;
-}
+.btn-aplicar { background: #1a4d5c; color: white; }
 
 .btn-aplicar:hover {
   background: #143d4a;
@@ -333,12 +295,10 @@
   border: 2px solid #e9ecef;
 }
 
-.btn-limpiar:hover {
-  background: #e9ecef;
-}
+.btn-limpiar:hover { background: #e9ecef; }
 
 /* ============================================
-   RESULTADOS MAIN
+   RESULTADOS
    ============================================ */
 .resultados-main {
   background: white;
@@ -347,7 +307,6 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
-/* ✅ RQF21: Contador + RQF17: Ordenamiento */
 .resultados-header {
   display: flex;
   justify-content: space-between;
@@ -363,16 +322,8 @@
   color: #1a4d5c;
 }
 
-.ordenamiento {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.ordenamiento label {
-  font-size: 0.9rem;
-  color: #7f8c8d;
-}
+.ordenamiento { display: flex; align-items: center; gap: 0.5rem; }
+.ordenamiento label { font-size: 0.9rem; color: #7f8c8d; }
 
 .ordenamiento select {
   padding: 0.5rem 1rem;
@@ -383,18 +334,12 @@
   transition: all 0.3s ease;
 }
 
-.ordenamiento select:focus {
-  border-color: #1a4d5c;
-  outline: none;
-}
+.ordenamiento select:focus { border-color: #1a4d5c; outline: none; }
 
 /* ============================================
    LOADING Y SIN RESULTADOS
    ============================================ */
-.loading-container {
-  text-align: center;
-  padding: 4rem;
-}
+.loading-container { text-align: center; padding: 4rem; }
 
 .spinner {
   width: 50px;
@@ -406,16 +351,9 @@
   margin: 0 auto 1rem;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.sin-resultados {
-  text-align: center;
-  padding: 4rem;
-}
+.sin-resultados { text-align: center; padding: 4rem; }
 
 .sin-resultados p {
   font-size: 1.2rem;
@@ -443,9 +381,6 @@
 /* ============================================
    GRID DE PROVEEDORES
    ============================================ */
-/* ============================================
-   GRID DE PROVEEDORES - ESTILO HOME
-   ============================================ */
 .proveedores-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -453,311 +388,24 @@
   margin-bottom: 2rem;
 }
 
-.proveedor-card-home {
-  background: white;
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.proveedor-card-home:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.proveedor-card-home:active {
-  transform: translateY(-4px);
-}
-
-.proveedor-image-home {
-  position: relative;
-  width: 100%;
-  height: 300px;
-  overflow: hidden;
-}
-
-.proveedor-image-home img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.proveedor-card-home:hover .proveedor-image-home img {
-  transform: scale(1.05);
-}
-
-/* ========== Botón de favorito - ESTILO HOME ========== */
-.btn-favorito-home {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(255, 255, 255, 0.95);
-  border: 2px solid #ddd;
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 10;
-}
-
-.btn-favorito-home:hover:not(:disabled) {
-  transform: scale(1.15);
-  background: white;
-  border-color: #ff6b6b;
-  color: #ff6b6b;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.btn-favorito-home.favorito-activo {
-  background: #ff6b6b;
-  color: white;
-  border-color: #ff6b6b;
-}
-
-.btn-favorito-home.favorito-activo:hover {
-  background: #ff5252;
-  border-color: #ff5252;
-  transform: scale(1.15);
-}
-
-.btn-favorito-home:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.proveedor-info-home {
-  padding: 1.5rem;
-}
-
-.proveedor-rating-home {
+/* ============================================
+   CAMPOS EXTRA DE TARJETA (complementan Home.css)
+   ============================================ */
+.proveedor-ubicacion-home {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin: 0.3rem 0;
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  margin-bottom: 0.5rem;
 }
 
-.estrella-llena-home {
-  color: #ffd700;
-  font-size: 1rem;
-}
-
-.estrella-media-home {
-  color: #ffd700;
-  font-size: 1rem;
-}
-
-.estrella-vacia-home {
-  color: #d1d5db;
-  font-size: 1rem;
-}
-
-.rating-numero {
+.proveedor-descripcion-home {
   color: #6c757d;
   font-size: 0.9rem;
-  font-weight: 500;
-  margin-left: 0.3rem;
-}
-
-.proveedor-info-home h3 {
-  color: #1a4d5c;
-  font-size: 1.3rem;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-}
-
-.proveedor-precio {
-  color: #1a4d5c;
-  font-weight: 600;
-  font-size: 1.1rem;
-  margin: 0.5rem 0;
-}
-
-.proveedor-sin-precio {
-  color: #6c757d;
-  font-style: italic;
-  font-size: 0.95rem;
-  margin: 0.5rem 0;
-}
-
-.proveedor-footer-home {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.categoria-badge-home {
-  background-color: #5ba4c5;
-  color: white;
-  padding: 0.5rem 1.5rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-/* ========== CONTROLES DE CARRUSEL ========== */
-.carousel-controls {
-  position: absolute;
-  bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 0.5rem;
-  z-index: 5;
-}
-
-.carousel-btn {
-  background: rgba(255, 255, 255, 0.9);
-  border: 2px solid #1a4d5c;
-  color: #1a4d5c;
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  font-weight: bold;
-}
-
-.carousel-btn:hover {
-  background: #1a4d5c;
-  color: white;
-  transform: scale(1.1);
-}
-
-.proveedor-info {
-  padding: 1.5rem;
-}
-
-.proveedor-info h3 {
-  font-size: 1.2rem;
-  color: #1a4d5c;
-  margin-bottom: 0.5rem;
-}
-
-.proveedor-info p {
-  color: #7f8c8d;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-}
-
-/* ========== ESTRELLAS ========== */
-.proveedor-rating {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  margin-bottom: 0.5rem;
-}
-
-.estrella-llena {
-  color: #ffd700;
-  font-size: 1rem;
-}
-
-.estrella-media {
-  color: #ffd700;
-  font-size: 1rem;
-}
-
-.estrella-vacia {
-  color: #d1d5db;
-  font-size: 1rem;
-}
-
-.rating-numero {
-  color: #6c757d;
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-left: 0.3rem;
-}
-
-.proveedor-precio {
-  font-size: 1rem;
-  color: #1a4d5c;
-  font-weight: 600;
-  margin: 0.5rem 0;
-}
-
-.proveedor-sin-precio {
-  color: #6c757d;
-  font-style: italic;
-  font-size: 0.95rem;
-  margin: 0.5rem 0;
-}
-
-/* ========== FILTROS ADICIONALES ========== */
-.filtros-adicionales {
-  max-width: 1400px;
-  margin: 2rem auto;
-  padding: 0 2rem;
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.filtros-adicionales .search-input {
-  flex: 1;
-  min-width: 150px;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 0.95rem;
-}
-
-.btn-aplicar-filtros,
-.btn-limpiar-filtros {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.btn-aplicar-filtros {
-  background: #1a4d5c;
-  color: white;
-}
-
-.btn-aplicar-filtros:hover {
-  background: #143d4a;
-}
-
-.btn-limpiar-filtros {
-  background: #f8f9fa;
-  color: #1a4d5c;
-  border: 2px solid #e9ecef;
-}
-
-.btn-limpiar-filtros:hover {
-  background: #e9ecef;
-}
-
-/* ========== SELECT DE ORDENAMIENTO ========== */
-.ordenamiento-select {
-  padding: 0.5rem 1rem;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.ordenamiento-select:focus {
-  border-color: #1a4d5c;
-  outline: none;
+  line-height: 1.5;
+  margin: 0.75rem 0;
+  min-height: 40px;
 }
 
 /* ============================================
@@ -780,23 +428,19 @@
   transition: all 0.3s ease;
   font-weight: 600;
   color: #1a4d5c;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .paginacion button:hover:not(:disabled) {
   border-color: #1a4d5c;
-  color: #1a4d5c;
   background: #f8f9fa;
 }
 
-.paginacion button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.paginacion button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.paginacion-numeros {
-  display: flex;
-  gap: 0.5rem;
-}
+.paginacion-numeros { display: flex; gap: 0.5rem; }
 
 .paginacion-numeros button.activo {
   background: #1a4d5c;
@@ -808,115 +452,29 @@
    RESPONSIVE
    ============================================ */
 @media (max-width: 1024px) {
-  .explorar-contenido {
-    grid-template-columns: 1fr;
-  }
-
-  .filtros-sidebar {
-    position: static;
-  }
-
-  .proveedores-grid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  }
+  .explorar-contenido { grid-template-columns: 1fr; }
+  .filtros-sidebar { position: static; }
+  .proveedores-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 }
 
 @media (max-width: 768px) {
-  .explorar-servicios {
-    padding: 0;
-  }
-
-  .explorar-header {
-    padding: 2rem 1rem;
-  }
-
-  .explorar-header h1 {
-    font-size: 2rem;
-  }
-
-  .barra-busqueda-container {
-    padding: 0 1rem;
-  }
-
-  .barra-busqueda {
-    flex-direction: column;
-    padding: 1rem;
-  }
-
-  .barra-busqueda input {
-    min-width: 100%;
-  }
-
-  .barra-busqueda button {
-    width: 100%;
-    padding: 1rem;
-    justify-content: center;
-  }
-
-  .sugerencias-dropdown {
-    left: 1rem;
-    right: 1rem;
-  }
-
-  .explorar-contenido {
-    padding: 0 1rem 1rem;
-  }
-
-  .resultados-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-
-  .proveedores-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tipo-evento-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .proveedor-imagen {
-    height: 200px;
-  }
-
-  .btn-favorito {
-    width: 40px;
-    height: 40px;
-    font-size: 1.3rem;
-  }
+  .explorar-header { padding: 2rem 1rem; }
+  .explorar-header h1 { font-size: 2rem; }
+  .barra-busqueda-container { padding: 0 1rem; }
+  .barra-busqueda { flex-direction: column; padding: 1rem; }
+  .barra-busqueda input { min-width: 100%; }
+  .barra-busqueda button { width: 100%; padding: 1rem; justify-content: center; }
+  .sugerencias-dropdown { left: 1rem; right: 1rem; }
+  .explorar-contenido { padding: 0 1rem 1rem; }
+  .resultados-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+  .proveedores-grid { grid-template-columns: 1fr; }
+  .tipo-evento-grid { grid-template-columns: 1fr; }
+  .proveedor-descripcion-home { min-height: auto; }
 }
 
 @media (max-width: 480px) {
-  .explorar-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .barra-busqueda input {
-    padding: 0.65rem 1rem;
-    font-size: 0.95rem;
-  }
-
-  .barra-busqueda button {
-    padding: 0.85rem;
-    font-size: 0.95rem;
-  }
-
-  .tipo-evento-card {
-    padding: 1.25rem;
-  }
-
-  .proveedor-info {
-    padding: 1rem;
-  }
-
-  .proveedor-info h3 {
-    font-size: 1.1rem;
-  }
-
-  .btn-favorito {
-    width: 35px;
-    height: 35px;
-    font-size: 1.2rem;
-  }
+  .explorar-header h1 { font-size: 1.5rem; }
+  .barra-busqueda input { padding: 0.65rem 1rem; font-size: 0.95rem; }
+  .barra-busqueda button { padding: 0.85rem; font-size: 0.95rem; }
+  .tipo-evento-card { padding: 1.25rem; }
 }

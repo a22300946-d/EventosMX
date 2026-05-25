@@ -5,6 +5,10 @@ import { proveedorService } from "../../services/proveedorService";
 import { useAuth } from "../../hooks/useAuth";
 import "./MiInformacion.css";
 
+// React Icons
+import { FiCamera, FiTrash2, FiCheck, FiAlertTriangle, FiLoader, FiPlus, FiX } from "react-icons/fi";
+import { AiOutlineHourglass } from "react-icons/ai";
+
 function MiInformacion() {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -24,7 +28,7 @@ function MiInformacion() {
   const [categorias, setCategorias] = useState([]);
   const [ciudades, setCiudades] = useState([]);
   const fileInputRef = useRef(null);
-  
+
   // Estados para tipos de eventos
   const [tiposEventosDisponibles, setTiposEventosDisponibles] = useState([]);
   const [misEventos, setMisEventos] = useState([]);
@@ -61,10 +65,7 @@ function MiInformacion() {
 
     try {
       setProcesandoEvento(true);
-      await api.post("/proveedor-eventos/mis-eventos", {
-        id_tipo_evento,
-      });
-      
+      await api.post("/proveedor-eventos/mis-eventos", { id_tipo_evento });
       await cargarMisEventos();
     } catch (error) {
       console.error("Error al agregar evento:", error);
@@ -84,7 +85,6 @@ function MiInformacion() {
     try {
       setProcesandoEvento(true);
       await api.delete(`/proveedor-eventos/mis-eventos/${id_tipo_evento}`);
-      
       await cargarMisEventos();
     } catch (error) {
       console.error("Error al eliminar evento:", error);
@@ -135,246 +135,136 @@ function MiInformacion() {
     }
   };
 
-  // ⭐ NUEVO: Manejar cambio de foto de perfil
   const handleFotoChange = async (e) => {
     const file = e.target.files[0];
-    
     if (!file) return;
 
-    // Validar tipo
-    if (!file.type.startsWith('image/')) {
-      alert('Solo se permiten imágenes');
+    if (!file.type.startsWith("image/")) {
+      alert("Solo se permiten imágenes");
       return;
     }
 
-    // Validar tamaño (2MB máximo)
     if (file.size > 2 * 1024 * 1024) {
-      alert('La imagen no debe superar los 2MB');
+      alert("La imagen no debe superar los 2MB");
       return;
     }
 
     try {
       setUploadingFoto(true);
+      const formDataFoto = new FormData();
+      formDataFoto.append("logo", file);
 
-      const formData = new FormData();
-      formData.append('logo', file);
+      const response = await proveedorService.actualizarFotoPerfil(formDataFoto);
 
-      const response = await proveedorService.actualizarFotoPerfil(formData);
-
-      // Actualizar la foto en el estado local
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        logo: response.data.data.logo
+        logo: response.data.data.logo,
       }));
 
-      // Actualizar localStorage
       const userStorage = JSON.parse(localStorage.getItem("user"));
       localStorage.setItem(
         "user",
-        JSON.stringify({
-          ...userStorage,
-          logo: response.data.data.logo
-        })
+        JSON.stringify({ ...userStorage, logo: response.data.data.logo })
       );
 
-      alert('✅ Foto de perfil actualizada');
+      alert("Foto de perfil actualizada");
     } catch (error) {
-      console.error('Error al actualizar foto:', error);
-      alert('Error al actualizar la foto de perfil');
+      console.error("Error al actualizar foto:", error);
+      alert("Error al actualizar la foto de perfil");
     } finally {
       setUploadingFoto(false);
     }
   };
 
-  // ⭐ NUEVO: Handler para eliminar foto de perfil
   const handleEliminarFoto = async () => {
     if (!formData.logo) {
-      alert('No tienes una foto de perfil para eliminar');
+      alert("No tienes una foto de perfil para eliminar");
       return;
     }
 
-    const confirmar = window.confirm('¿Estás seguro de que deseas eliminar tu foto de perfil?');
+    const confirmar = window.confirm("¿Estás seguro de que deseas eliminar tu foto de perfil?");
     if (!confirmar) return;
 
     try {
       setUploadingFoto(true);
-
       await proveedorService.eliminarFotoPerfil();
 
-      // Limpiar la foto en el estado local
-      setFormData(prev => ({
-        ...prev,
-        logo: ""
-      }));
+      setFormData((prev) => ({ ...prev, logo: "" }));
 
-      // Actualizar localStorage
       const userStorage = JSON.parse(localStorage.getItem("user"));
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          ...userStorage,
-          logo: ""
-        })
-      );
+      localStorage.setItem("user", JSON.stringify({ ...userStorage, logo: "" }));
 
-      alert('✅ Foto de perfil eliminada');
+      alert("Foto de perfil eliminada");
     } catch (error) {
-      console.error('Error al eliminar foto:', error);
-      alert('Error al eliminar la foto de perfil');
+      console.error("Error al eliminar foto:", error);
+      alert("Error al eliminar la foto de perfil");
     } finally {
       setUploadingFoto(false);
     }
   };
 
-  // Validaciones (mantener las existentes)
   const validarNombreNegocio = (valor) => {
-    if (!valor.trim()) {
-      return "El nombre del negocio es obligatorio";
-    }
-    if (valor.length < 3) {
-      return "El nombre debe tener al menos 3 caracteres";
-    }
-    if (valor.length > 100) {
-      return "El nombre no puede exceder 100 caracteres";
-    }
+    if (!valor.trim()) return "El nombre del negocio es obligatorio";
+    if (valor.length < 3) return "El nombre debe tener al menos 3 caracteres";
+    if (valor.length > 100) return "El nombre no puede exceder 100 caracteres";
     const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\-&.,()]+$/;
-    if (!regex.test(valor)) {
-      return "El nombre contiene caracteres no permitidos";
-    }
+    if (!regex.test(valor)) return "El nombre contiene caracteres no permitidos";
     return "";
   };
 
   const validarTelefono = (valor) => {
-    if (!valor.trim()) {
-      return "";
-    }
-    
+    if (!valor.trim()) return "";
     const telefonoLimpio = valor.replace(/[\s\-()]/g, "");
-    
-    if (!/^\d+$/.test(telefonoLimpio)) {
-      return "El teléfono debe contener solo números";
-    }
-    
-    if (telefonoLimpio.length !== 10) {
-      return "El teléfono debe tener 10 dígitos";
-    }
-    
+    if (!/^\d+$/.test(telefonoLimpio)) return "El teléfono debe contener solo números";
+    if (telefonoLimpio.length !== 10) return "El teléfono debe tener 10 dígitos";
     return "";
   };
 
   const validarDescripcion = (valor) => {
-    if (!valor.trim()) {
-      return "";
-    }
-    
-    if (valor.length < 10) {
-      return "La descripción debe tener al menos 10 caracteres";
-    }
-    
-    if (valor.length > 1000) {
-      return "La descripción no puede exceder 1000 caracteres";
-    }
-    
+    if (!valor.trim()) return "";
+    if (valor.length < 10) return "La descripción debe tener al menos 10 caracteres";
+    if (valor.length > 1000) return "La descripción no puede exceder 1000 caracteres";
     return "";
   };
 
   const validarContrasena = (valor) => {
-    if (!valor) {
-      return "";
-    }
-    
-    if (valor.length < 8) {
-      return "La contraseña debe tener al menos 8 caracteres";
-    }
-    
-    if (valor.length > 50) {
-      return "La contraseña no puede exceder 50 caracteres";
-    }
-    
-    if (!/[A-Z]/.test(valor)) {
-      return "La contraseña debe contener al menos una mayúscula";
-    }
-    
-    if (!/[a-z]/.test(valor)) {
-      return "La contraseña debe contener al menos una minúscula";
-    }
-    
-    if (!/\d/.test(valor)) {
-      return "La contraseña debe contener al menos un número";
-    }
-    
+    if (!valor) return "";
+    if (valor.length < 8) return "La contraseña debe tener al menos 8 caracteres";
+    if (valor.length > 50) return "La contraseña no puede exceder 50 caracteres";
+    if (!/[A-Z]/.test(valor)) return "La contraseña debe contener al menos una mayúscula";
+    if (!/[a-z]/.test(valor)) return "La contraseña debe contener al menos una minúscula";
+    if (!/\d/.test(valor)) return "La contraseña debe contener al menos un número";
     return "";
   };
 
   const validarCampo = (nombre, valor) => {
-    let error = "";
-    
     switch (nombre) {
-      case "nombre_negocio":
-        error = validarNombreNegocio(valor);
-        break;
-      case "telefono":
-        error = validarTelefono(valor);
-        break;
-      case "descripcion":
-        error = validarDescripcion(valor);
-        break;
-      case "nueva_contrasena":
-        error = validarContrasena(valor);
-        break;
-      case "ciudad":
-        if (!valor) {
-          error = "Debes seleccionar una ciudad";
-        }
-        break;
-      case "tipo_servicio":
-        if (!valor) {
-          error = "Debes seleccionar un tipo de servicio";
-        }
-        break;
-      default:
-        break;
+      case "nombre_negocio": return validarNombreNegocio(valor);
+      case "telefono": return validarTelefono(valor);
+      case "descripcion": return validarDescripcion(valor);
+      case "nueva_contrasena": return validarContrasena(valor);
+      case "ciudad": return !valor ? "Debes seleccionar una ciudad" : "";
+      case "tipo_servicio": return !valor ? "Debes seleccionar un tipo de servicio" : "";
+      default: return "";
     }
-    
-    return error;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
     let valorProcesado = value;
-    
+
     if (name === "telefono") {
       valorProcesado = value.replace(/[^\d\s\-()]/g, "");
-      
       const soloNumeros = valorProcesado.replace(/[\s\-()]/g, "");
-      if (soloNumeros.length > 10) {
-        return;
-      }
+      if (soloNumeros.length > 10) return;
     }
-    
-    if (name === "nombre_negocio" && value.length > 100) {
-      return;
-    }
-    
-    if (name === "descripcion" && value.length > 1000) {
-      return;
-    }
-    
-    if (name === "nueva_contrasena" && value.length > 50) {
-      return;
-    }
-    
-    setFormData({
-      ...formData,
-      [name]: valorProcesado,
-    });
-    
-    const error = validarCampo(name, valorProcesado);
-    setErrores({
-      ...errores,
-      [name]: error,
-    });
+
+    if (name === "nombre_negocio" && value.length > 100) return;
+    if (name === "descripcion" && value.length > 1000) return;
+    if (name === "nueva_contrasena" && value.length > 50) return;
+
+    setFormData({ ...formData, [name]: valorProcesado });
+    setErrores({ ...errores, [name]: validarCampo(name, valorProcesado) });
   };
 
   const handleSubmit = async (e) => {
@@ -382,22 +272,20 @@ function MiInformacion() {
     setLoading(true);
     setMensaje({ tipo: "", texto: "" });
 
-    const nuevosErrores = {};
-    nuevosErrores.nombre_negocio = validarNombreNegocio(formData.nombre_negocio);
-    nuevosErrores.telefono = validarTelefono(formData.telefono);
-    nuevosErrores.ciudad = formData.ciudad ? "" : "Debes seleccionar una ciudad";
-    nuevosErrores.tipo_servicio = formData.tipo_servicio ? "" : "Debes seleccionar un tipo de servicio";
-    nuevosErrores.descripcion = validarDescripcion(formData.descripcion);
-    nuevosErrores.nueva_contrasena = validarContrasena(formData.nueva_contrasena);
+    const nuevosErrores = {
+      nombre_negocio: validarNombreNegocio(formData.nombre_negocio),
+      telefono: validarTelefono(formData.telefono),
+      ciudad: formData.ciudad ? "" : "Debes seleccionar una ciudad",
+      tipo_servicio: formData.tipo_servicio ? "" : "Debes seleccionar un tipo de servicio",
+      descripcion: validarDescripcion(formData.descripcion),
+      nueva_contrasena: validarContrasena(formData.nueva_contrasena),
+    };
 
-    const erroresActivos = Object.entries(nuevosErrores).filter(([_, valor]) => valor !== "");
+    const erroresActivos = Object.entries(nuevosErrores).filter(([_, v]) => v !== "");
 
     if (erroresActivos.length > 0) {
       setErrores(nuevosErrores);
-      setMensaje({
-        tipo: "error",
-        texto: "Por favor corrige los errores antes de guardar",
-      });
+      setMensaje({ tipo: "error", texto: "Por favor corrige los errores antes de guardar" });
       setLoading(false);
       return;
     }
@@ -417,17 +305,9 @@ function MiInformacion() {
 
       await proveedorService.actualizarPerfil(datosActualizar);
 
-      setMensaje({
-        tipo: "success",
-        texto: "✓ Datos actualizados exitosamente",
-      });
-
+      setMensaje({ tipo: "success", texto: "Datos actualizados exitosamente" });
       setErrores({});
-
-      setFormData({
-        ...formData,
-        nueva_contrasena: "",
-      });
+      setFormData({ ...formData, nueva_contrasena: "" });
 
       const userStorage = JSON.parse(localStorage.getItem("user"));
       localStorage.setItem(
@@ -438,12 +318,12 @@ function MiInformacion() {
           telefono: formData.telefono,
           ciudad: formData.ciudad,
           tipo_servicio: formData.tipo_servicio,
-        }),
+        })
       );
     } catch (error) {
       setMensaje({
         tipo: "error",
-        texto: error.response?.data?.message || "❌ Error al actualizar datos",
+        texto: error.response?.data?.message || "Error al actualizar datos",
       });
     } finally {
       setLoading(false);
@@ -456,80 +336,57 @@ function MiInformacion() {
         <h1>Editar mis datos personales</h1>
 
         <div className="informacion-content">
-          {/* ⭐ SECCIÓN DE AVATAR ACTUALIZADA */}
+          {/* AVATAR */}
           <div className="avatar-section">
-            <div 
+            <div
               className="avatar-circle-clickable"
               onClick={() => !uploadingFoto && fileInputRef.current?.click()}
-              style={{ cursor: uploadingFoto ? 'wait' : 'pointer' }}
+              style={{ cursor: uploadingFoto ? "wait" : "pointer" }}
             >
               {formData.logo ? (
-                <img 
-                  src={formData.logo} 
+                <img
+                  src={formData.logo}
                   alt="Foto de perfil"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    borderRadius: '50%'
-                  }}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
                 />
               ) : (
                 <svg viewBox="0 0 100 100" width="200" height="200">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="48"
-                    fill="#8ba9b5"
-                    stroke="#6b8a96"
-                    strokeWidth="2"
-                  />
+                  <circle cx="50" cy="50" r="48" fill="#8ba9b5" stroke="#6b8a96" strokeWidth="2" />
                   <circle cx="50" cy="40" r="18" fill="white" />
                   <path d="M 25 75 Q 25 55, 50 55 Q 75 55, 75 75" fill="white" />
                 </svg>
               )}
-              
+
               <div className="avatar-overlay">
                 {uploadingFoto ? (
-                  <span style={{ fontSize: '48px' }}>⏳</span>
+                  <AiOutlineHourglass size={48} color="white" />
                 ) : (
                   <>
-                    <span style={{ fontSize: '48px' }}>📷</span>
-                    <span style={{ 
-                      color: 'white', 
-                      fontSize: '14px', 
-                      fontWeight: '500',
-                      marginTop: '8px'
-                    }}>
+                    <FiCamera size={48} color="white" />
+                    <span style={{ color: "white", fontSize: "14px", fontWeight: "500", marginTop: "8px" }}>
                       Cambiar foto
                     </span>
                   </>
                 )}
               </div>
             </div>
-            
-            {/* ⭐ NUEVO: Botón para eliminar foto */}
+
             {formData.logo && !uploadingFoto && (
-              <button
-                type="button"
-                onClick={handleEliminarFoto}
-                className="btn-eliminar-foto"
-              >
-                🗑️ Eliminar foto
+              <button type="button" onClick={handleEliminarFoto} className="btn-eliminar-foto">
+                <FiTrash2 /> Eliminar foto
               </button>
             )}
-            
+
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               onChange={handleFotoChange}
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
             />
           </div>
 
           <form onSubmit={handleSubmit} className="informacion-form">
-            {/* Resto del formulario (mantener igual) */}
             <div className="form-group">
               <input
                 type="text"
@@ -541,11 +398,11 @@ function MiInformacion() {
                 required
               />
               {errores.nombre_negocio && (
-                <span className="error-message">⚠️ {errores.nombre_negocio}</span>
+                <span className="error-message">
+                  <FiAlertTriangle /> {errores.nombre_negocio}
+                </span>
               )}
-              <small className="field-hint">
-                {formData.nombre_negocio.length}/100 caracteres
-              </small>
+              <small className="field-hint">{formData.nombre_negocio.length}/100 caracteres</small>
             </div>
 
             <div className="form-group">
@@ -572,11 +429,11 @@ function MiInformacion() {
                 maxLength="14"
               />
               {errores.telefono && (
-                <span className="error-message">⚠️ {errores.telefono}</span>
+                <span className="error-message">
+                  <FiAlertTriangle /> {errores.telefono}
+                </span>
               )}
-              <small className="field-hint">
-                Ejemplo: 3312345678
-              </small>
+              <small className="field-hint">Ejemplo: 3312345678</small>
             </div>
 
             <div className="form-group">
@@ -586,21 +443,17 @@ function MiInformacion() {
                 value={formData.ciudad}
                 onChange={handleChange}
                 required
-                style={{
-                  color: formData.ciudad === "" ? "#adb5bd" : "#495057",
-                }}
+                style={{ color: formData.ciudad === "" ? "#adb5bd" : "#495057" }}
               >
-                <option value="" disabled hidden>
-                  Selecciona tu ciudad
-                </option>
+                <option value="" disabled hidden>Selecciona tu ciudad</option>
                 {ciudades.map((lugar) => (
-                  <option key={lugar.id_lugar} value={lugar.ciudad}>
-                    {lugar.ciudad}
-                  </option>
+                  <option key={lugar.id_lugar} value={lugar.ciudad}>{lugar.ciudad}</option>
                 ))}
               </select>
               {errores.ciudad && (
-                <span className="error-message">⚠️ {errores.ciudad}</span>
+                <span className="error-message">
+                  <FiAlertTriangle /> {errores.ciudad}
+                </span>
               )}
             </div>
 
@@ -610,25 +463,20 @@ function MiInformacion() {
                 className={`form-input form-select ${errores.tipo_servicio ? "input-error" : ""}`}
                 value={formData.tipo_servicio}
                 onChange={handleChange}
-                style={{
-                  color: formData.tipo_servicio === "" ? "#adb5bd" : "#495057",
-                }}
                 required
+                style={{ color: formData.tipo_servicio === "" ? "#adb5bd" : "#495057" }}
               >
-                <option value="" disabled hidden>
-                  Selecciona el tipo de servicio
-                </option>
+                <option value="" disabled hidden>Selecciona el tipo de servicio</option>
                 {categorias.map((categoria) => (
-                  <option
-                    key={categoria.id_categoria}
-                    value={categoria.nombre_categoria}
-                  >
+                  <option key={categoria.id_categoria} value={categoria.nombre_categoria}>
                     {categoria.nombre_categoria}
                   </option>
                 ))}
               </select>
               {errores.tipo_servicio && (
-                <span className="error-message">⚠️ {errores.tipo_servicio}</span>
+                <span className="error-message">
+                  <FiAlertTriangle /> {errores.tipo_servicio}
+                </span>
               )}
             </div>
 
@@ -642,17 +490,17 @@ function MiInformacion() {
                 rows="4"
               />
               {errores.descripcion && (
-                <span className="error-message">⚠️ {errores.descripcion}</span>
+                <span className="error-message">
+                  <FiAlertTriangle /> {errores.descripcion}
+                </span>
               )}
               <small className="field-hint">
                 {formData.descripcion.length}/1000 caracteres
-                {formData.descripcion.length < 10 && formData.descripcion.length > 0 && 
-                  ` (mínimo 10)`
-                }
+                {formData.descripcion.length < 10 && formData.descripcion.length > 0 && " (mínimo 10)"}
               </small>
             </div>
 
-            {/* SECCIÓN DE TIPOS DE EVENTOS (mantener igual) */}
+            {/* SECCIÓN DE TIPOS DE EVENTOS */}
             <div className="form-group">
               <label className="eventos-label">
                 Tipos de eventos que atiendo
@@ -671,7 +519,7 @@ function MiInformacion() {
                     >
                       <span className="evento-icono">{evento.icono}</span>
                       <span className="evento-nombre">{evento.nombre_evento}</span>
-                      <span className="evento-eliminar">×</span>
+                      <FiX className="evento-eliminar" />
                     </button>
                   ))}
                 </div>
@@ -690,7 +538,7 @@ function MiInformacion() {
                     >
                       <span className="evento-icono">{tipo.icono}</span>
                       <span className="evento-nombre">{tipo.nombre_evento}</span>
-                      <span className="evento-agregar">+</span>
+                      <FiPlus className="evento-agregar" />
                     </button>
                   ))}
               </div>
@@ -706,7 +554,9 @@ function MiInformacion() {
                 onChange={handleChange}
               />
               {errores.nueva_contrasena && (
-                <span className="error-message">⚠️ {errores.nueva_contrasena}</span>
+                <span className="error-message">
+                  <FiAlertTriangle /> {errores.nueva_contrasena}
+                </span>
               )}
               <small className="field-hint">
                 Mínimo 8 caracteres, debe incluir mayúsculas, minúsculas y números
@@ -715,12 +565,13 @@ function MiInformacion() {
 
             {mensaje.texto && (
               <div className={`mensaje mensaje-${mensaje.tipo}`}>
+                {mensaje.tipo === "success" ? <FiCheck /> : <FiAlertTriangle />}
                 {mensaje.texto}
               </div>
             )}
 
             <button type="submit" className="btn-guardar" disabled={loading}>
-              {loading ? "Guardando..." : "✓ Guardar cambios"}
+              {loading ? <><FiLoader /> Guardando...</> : <><FiCheck /> Guardar cambios</>}
             </button>
           </form>
         </div>

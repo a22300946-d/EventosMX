@@ -1,449 +1,625 @@
-* {
-  box-sizing: border-box;
-}
+/* ========== Reset & Base ========== */
+* { box-sizing: border-box; }
 
-.servicios-container {
-  padding: 2rem;
+/* ========== Container ========== */
+.sp-container {
+  padding: 2.5rem 2rem;
   max-width: 1400px;
   margin: 0 auto;
+  min-height: 100vh;
 }
 
-.servicios-container h1 {
+/* ========== Header ========== */
+.sp-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sp-header-text h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
   color: #1a4d5c;
-  margin-bottom: 2rem;
-  font-size: 2.5rem;
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
-.servicios-list {
+.sp-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.sp-btn-nuevo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #1a4d5c;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.sp-btn-nuevo:hover {
+  background: #143d4a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(26, 77, 92, 0.3);
+}
+
+.sp-btn-nuevo:active {
+  transform: translateY(0);
+}
+
+.sp-btn-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* ========== Loading ========== */
+.sp-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 5rem 0;
+  color: #6b7280;
+}
+
+.sp-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #1a4d5c;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ========== Empty State ========== */
+.sp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 2rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 16px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.sp-empty:hover {
+  border-color: #1a4d5c;
+  background: #f0f7f9;
+}
+
+.sp-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+.sp-empty h3 { color: #1a4d5c; margin: 0 0 0.5rem; font-size: 1.25rem; }
+.sp-empty p { color: #6b7280; margin: 0; }
+
+/* ========== Grid ========== */
+.sp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(350px, 100%), 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  gap: 1.5rem;
 }
 
-.servicio-card {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
-  max-width: 100%;
+/* ========== Service Card ========== */
+.sp-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+  position: relative;
+  overflow: hidden;
 }
 
-.servicio-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+.sp-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #1a4d5c, #2d8099);
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
-.servicio-header h3 {
+.sp-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.sp-card:hover::before { opacity: 1; }
+
+.sp-card--eliminando {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Badge tipo precio */
+.sp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #eef7f9;
   color: #1a4d5c;
-  margin-bottom: 0.5rem;
-  font-size: 1.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  width: fit-content;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.sp-badge-icon { font-size: 0.9rem; }
+
+/* Nombre */
+.sp-card-nombre {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 1.3;
   word-break: break-word;
 }
 
-.servicio-descripcion {
-  color: #555;
-  margin-bottom: 1rem;
+/* Descripción */
+.sp-card-descripcion {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0;
   line-height: 1.6;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
 }
 
-.servicio-precio {
-  color: #6c757d;
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
-  font-weight: 600;
+/* Meta chips */
+.sp-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.btn-editar-servicio {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: #1a4d5c;
-  color: white;
-  border: none;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.3s;
+.sp-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
   font-weight: 500;
+  background: #f3f4f6;
+  color: #374151;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
 }
 
-.btn-editar-servicio:hover:not(:disabled) {
-  background-color: #143d4a;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+.sp-meta-chip--activo {
+  background: #ecfdf5;
+  color: #065f46;
 }
 
-.btn-editar-servicio:disabled {
+.sp-meta-chip--inactivo {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+/* Precio */
+.sp-card-precio {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sp-precio-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+}
+
+.sp-precio-valor {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1a4d5c;
+  line-height: 1.2;
+}
+
+.sp-precio-tipo {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+/* Acciones */
+.sp-card-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.sp-btn-editar,
+.sp-btn-eliminar {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.sp-btn-editar {
+  background: #f0f7f9;
+  color: #1a4d5c;
+  border: 1px solid #c8dfe5;
+}
+
+.sp-btn-editar:hover:not(:disabled) {
+  background: #1a4d5c;
+  color: white;
+  border-color: #1a4d5c;
+}
+
+.sp-btn-eliminar {
+  background: #fff5f5;
+  color: #c0392b;
+  border: 1px solid #fbd5d5;
+}
+
+.sp-btn-eliminar:hover:not(:disabled) {
+  background: #c0392b;
+  color: white;
+  border-color: #c0392b;
+}
+
+.sp-btn-editar:disabled,
+.sp-btn-eliminar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========== Add Card ========== */
+.sp-card-add {
+  border: 2px dashed #d1d5db;
+  border-radius: 16px;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.sp-card-add:hover {
+  border-color: #1a4d5c;
+  background: #f0f7f9;
+}
+
+.sp-card-add-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9ca3af;
+  transition: color 0.2s;
+}
+
+.sp-card-add:hover .sp-card-add-inner { color: #1a4d5c; }
+
+.sp-card-add-icon {
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.sp-card-add-inner p {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* ========== Modal ========== */
+.sp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+.sp-modal {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+}
+
+.sp-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.75rem 1.75rem 0;
+  margin-bottom: 1.5rem;
+}
+
+.sp-modal-header h2 {
+  color: #1a4d5c;
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.sp-modal-close {
+  background: #f3f4f6;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.sp-modal-close:hover:not(:disabled) {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+/* Form */
+.sp-form {
+  padding: 0 1.75rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+.sp-form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.sp-label {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sp-input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #111827;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.sp-input:focus {
+  border-color: #1a4d5c;
+  box-shadow: 0 0 0 3px rgba(26, 77, 92, 0.1);
+}
+
+.sp-textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.5;
+}
+
+.sp-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.1rem;
+  padding-right: 2.5rem;
+}
+
+.sp-input-prefix-wrap {
+  position: relative;
+}
+
+.sp-input-prefix {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.95rem;
+  color: #6b7280;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.sp-input-prefixed { padding-left: 1.75rem; }
+
+/* Footer */
+.sp-modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.sp-btn-cancel,
+.sp-btn-save {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.sp-btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.sp-btn-cancel:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.sp-btn-save {
+  background: #1a4d5c;
+  color: white;
+}
+
+.sp-btn-save:hover:not(:disabled) {
+  background: #143d4a;
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.35);
+}
+
+.sp-btn-cancel:disabled,
+.sp-btn-save:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.servicio-placeholder {
-  border: 2px dashed #6c757d;
-  border-radius: 12px;
-  min-height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  background-color: #f8f9fa;
-}
-
-.servicio-placeholder:hover {
-  background-color: #e9ecef;
-  border-color: #1a4d5c;
-}
-
-.servicio-placeholder p {
-  color: #6c757d;
-  text-align: center;
-  padding: 0 1rem;
-}
-
-.servicios-container .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
-  padding: 1rem;
-}
-
-.servicios-container .modal-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 550px;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-  margin: auto;
-  position: relative;
-}
-
-.servicios-container .modal-content h2 {
-  color: #1a4d5c;
-  margin: 0 0 1.5rem 0;
-  font-size: 1.75rem;
-  font-weight: 600;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #e0e0e0;
-}
-
-.servicios-container .modal-content .form-input,
-.servicios-container .modal-content select,
-.servicios-container .modal-content textarea {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  margin-bottom: 1.25rem;
-  font-size: 1rem;
-  font-family: inherit;
-  transition: all 0.3s ease;
-  box-sizing: border-box;
-}
-
-.servicios-container .modal-content textarea {
-  min-height: 100px;
-  resize: vertical;
-  line-height: 1.5;
-}
-
-.servicios-container .modal-content select.form-input {
-  cursor: pointer;
-  background-color: white;
-}
-
-.servicios-container .modal-content .form-input:focus,
-.servicios-container .modal-content select:focus,
-.servicios-container .modal-content textarea:focus {
-  outline: none;
-  border-color: #1a4d5c;
-  box-shadow: 0 0 0 4px rgba(26, 77, 92, 0.1);
-}
-
-.servicios-container .modal-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 2px solid #e0e0e0;
-  flex-wrap: wrap;
-}
-
-.servicios-container .modal-buttons .btn-cancelar,
-.servicios-container .modal-buttons .btn-crear {
-  padding: 0.875rem 2rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  min-width: 120px;
-}
-
-.servicios-container .modal-buttons .btn-cancelar {
-  background-color: #6c757d;
-  color: white;
-}
-
-.servicios-container .modal-buttons .btn-cancelar:hover {
-  background-color: #5a6268;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
-}
-
-.servicios-container .modal-buttons .btn-crear {
-  background-color: #1a4d5c;
-  color: white;
-}
-
-.servicios-container .modal-buttons .btn-crear:hover {
-  background-color: #143d4a;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.4);
-}
-
-/* ========== Diseño Responsivo ========== */
-
-@media (max-width: 1024px) {
-  .servicios-container {
-    padding: 1.5rem;
-  }
-
-  .servicios-container h1 {
-    font-size: 2rem;
-  }
-
-  .servicios-list {
-    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
-    gap: 1.5rem;
-  }
-
-  .servicios-container .modal-content {
-    max-width: 90%;
-    padding: 1.75rem;
-  }
-
-  .servicios-container .modal-content h2 {
-    font-size: 1.5rem;
-  }
-}
-
+/* ========== Responsive ========== */
 @media (max-width: 768px) {
-  .servicios-container {
-    padding: 1rem;
-  }
+  .sp-container { padding: 1.5rem 1rem; }
 
-  .servicios-container h1 {
-    font-size: 1.8rem;
-    text-align: center;
-  }
+  .sp-header h1 { font-size: 1.75rem; }
 
-  .servicios-list {
+  .sp-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
   }
 
-  .servicio-card {
-    padding: 1.5rem;
-    max-width: 500px;
-    margin: 0 auto;
+  .sp-form-row { flex-direction: column; }
+
+  .sp-modal-footer {
+    flex-direction: column-reverse;
   }
 
-  .servicio-header h3 {
-    font-size: 1.3rem;
-  }
-
-  .servicio-precio {
-    font-size: 1rem;
-  }
-
-  .servicios-container .modal-overlay {
-    padding: 1rem;
-  }
-
-  .servicios-container .modal-content {
-    max-width: 95%;
-    max-height: 88vh;
-    padding: 1.5rem;
-  }
-
-  .servicios-container .modal-content h2 {
-    font-size: 1.4rem;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-  }
-
-  .servicios-container .modal-content .form-input,
-  .servicios-container .modal-content select,
-  .servicios-container .modal-content textarea {
-    margin-bottom: 1rem;
-  }
-
-  .servicios-container .modal-buttons {
-    flex-direction: row;
-    justify-content: space-between;
-  }
-
-  .servicios-container .modal-buttons .btn-cancelar,
-  .servicios-container .modal-buttons .btn-crear {
-    flex: 1;
+  .sp-btn-cancel,
+  .sp-btn-save {
+    width: 100%;
+    justify-content: center;
   }
 }
 
 @media (max-width: 480px) {
-  .servicios-container {
-    padding: 0.75rem;
-  }
+  .sp-container { padding: 1rem 0.75rem; }
 
-  .servicios-container h1 {
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
+  .sp-header { flex-direction: column; align-items: flex-start; }
 
-  .servicios-list {
-    gap: 1rem;
-  }
+  .sp-btn-nuevo { width: 100%; justify-content: center; }
 
-  .servicio-card {
-    padding: 1rem;
-    border-radius: 8px;
-    max-width: 100%;
-  }
+  .sp-modal { border-radius: 16px 16px 0 0; max-height: 95vh; }
 
-  .servicio-header h3 {
-    font-size: 1.2rem;
-  }
+  .sp-modal-overlay { align-items: flex-end; padding: 0; }
 
-  .servicio-descripcion {
-    font-size: 0.95rem;
-  }
+  .sp-modal-header { padding: 1.25rem 1.25rem 0; }
+  .sp-form { padding: 0 1.25rem 1.25rem; }
 
-  .servicio-precio {
-    font-size: 0.95rem;
-  }
-
-  .btn-editar-servicio {
-    padding: 0.65rem;
-    font-size: 0.95rem;
-  }
-
-  .servicio-placeholder {
-    min-height: 180px;
-    border-radius: 8px;
-  }
-
-  .servicio-placeholder p {
-    font-size: 0.95rem;
-  }
+  .sp-card-actions { flex-direction: column; }
 }
 
-@media (max-width: 425px) {
-  .servicios-container .modal-overlay {
-    padding: 0.75rem;
-    align-items: flex-start;
-    padding-top: 1.5rem;
-  }
-
-  .servicios-container .modal-content {
-    max-width: 100%;
-    max-height: 92vh;
-    padding: 1.25rem;
-    border-radius: 12px;
-  }
-
-  .servicios-container .modal-content h2 {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-  }
-
-  .servicios-container .modal-content .form-input,
-  .servicios-container .modal-content select,
-  .servicios-container .modal-content textarea {
-    padding: 0.75rem 0.875rem;
-    font-size: 0.95rem;
-    margin-bottom: 0.875rem;
-  }
-
-  .servicios-container .modal-content textarea {
-    min-height: 80px;
-  }
-
-  .servicios-container .modal-buttons {
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
-  }
-
-  .servicios-container .modal-buttons .btn-cancelar,
-  .servicios-container .modal-buttons .btn-crear {
-    width: 100%;
-    min-width: unset;
-    padding: 0.875rem 1rem;
-    font-size: 1rem;
-  }
+/* ========== Modal confirmación eliminar ========== */
+.sp-modal--confirm {
+  max-width: 420px;
+  padding: 2rem 1.75rem 1.75rem;
+  text-align: center;
 }
 
-@media (max-width: 390px) {
-  .servicios-container .modal-overlay {
-    padding: 0.5rem;
-    padding-top: 1rem;
-  }
-
-  .servicios-container .modal-content {
-    padding: 1rem;
-    max-height: 94vh;
-  }
-
-  .servicios-container .modal-content h2 {
-    font-size: 1.15rem;
-    margin-bottom: 0.875rem;
-  }
-
-  .servicios-container .modal-content .form-input,
-  .servicios-container .modal-content select,
-  .servicios-container .modal-content textarea {
-    padding: 0.7rem 0.8rem;
-    font-size: 0.9rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .servicios-container .modal-buttons .btn-cancelar,
-  .servicios-container .modal-buttons .btn-crear {
-    padding: 0.8rem 0.875rem;
-    font-size: 0.95rem;
-  }
+.sp-confirm-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: block;
 }
 
-@media (max-width: 360px) {
-  .servicios-container h1 {
-    font-size: 1.3rem;
-  }
+.sp-confirm-title {
+  color: #111827;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
 
-  .servicio-card {
-    padding: 0.85rem;
-  }
+.sp-confirm-desc {
+  color: #6b7280;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
 
-  .servicio-header h3 {
-    font-size: 1.1rem;
-  }
+.sp-confirm-desc strong {
+  color: #374151;
+  font-weight: 600;
+}
 
-  .servicio-placeholder {
-    min-height: 160px;
-  }
+.sp-confirm-footer {
+  justify-content: center;
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.sp-btn-eliminar-confirm {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: #dc2626;
+  color: white;
+}
+
+.sp-btn-eliminar-confirm:hover {
+  background: #b91c1c;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
 }

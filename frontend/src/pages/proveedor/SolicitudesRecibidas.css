@@ -2,251 +2,926 @@
   box-sizing: border-box;
 }
 
-.solicitudes-recibidas-container {
+/* ========== Contenedor principal ========== */
+
+.sr-root {
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
 }
 
-.solicitudes-recibidas-container h1 {
-  color: #1a4d5c;
+/* ========== Header ========== */
+
+.sr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
-  font-size: 2.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.solicitudes-list {
+.sr-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sr-header-icon {
+  font-size: 2rem;
+  color: #1a4d5c;
+}
+
+.sr-header-left h1 {
+  color: #1a4d5c;
+  font-size: 2.5rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.sr-header-left p {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.sr-header-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: white;
+  padding: 1rem 1.75rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.sr-total-num {
+  color: #1a4d5c;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sr-total-lbl {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+/* ========== Tarjetas resumen ========== */
+
+.sr-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.sr-resumen-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sr-resumen-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.sr-resumen-activo {
+  border-color: #1a4d5c;
+  background: #e6f3f7;
+}
+
+.sr-resumen-ico {
+  font-size: 1.4rem;
+  color: #1a4d5c;
+}
+
+.sr-resumen-num {
+  color: #1a4d5c;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.sr-resumen-lbl {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+/* ========== Controles filtro/orden ========== */
+
+.sr-controles {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.sr-filtros {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sr-ctrl-icon {
+  color: #6c757d;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.sr-pill {
+  background: white;
+  border: 2px solid #dee2e6;
+  color: #4a5568;
+  padding: 0.5rem 1.25rem;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.sr-pill:hover {
+  border-color: #1a4d5c;
+  color: #1a4d5c;
+  background: white;
+}
+
+.sr-pill-activo {
+  background: #1a4d5c;
+  color: white;
+  border-color: #1a4d5c;
+}
+
+.sr-pill-activo:hover {
+  background: #163e4a;
+  color: white;
+  border-color: #163e4a;
+}
+
+.sr-orden {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sr-select {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #333;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+  outline: none;
+}
+
+.sr-select:focus {
+  border-color: #1a4d5c;
+}
+
+/* ========== Info de paginación ========== */
+
+.sr-pag-info {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ========== Lista de solicitudes ========== */
+
+.sr-lista {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.solicitud-recibida-card {
+/* ========== Card de solicitud ========== */
+
+.sr-card {
   background: white;
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+}
+
+.sr-card:hover {
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.sr-card-pendiente  { border-left-color: #ffc107; }
+.sr-card-respondida { border-left-color: #2196f3; }
+.sr-card-aceptada   { border-left-color: #4caf50; }
+.sr-card-rechazada  { border-left-color: #f44336; }
+.sr-card-cancelada  { border-left-color: #9e9e9e; }
+
+/* ── Top de la card ── */
+
+.sr-card-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 1.5rem;
-  transition: all 0.3s ease;
-  max-width: 100%;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.solicitud-recibida-card:hover {
-  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-  transform: translateY(-2px);
+.sr-cliente-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
-.solicitud-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.solicitud-info h3 {
-  color: #1a4d5c;
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-  word-break: break-word;
-}
-
-.solicitud-fecha, 
-.solicitud-servicio,
-.solicitud-detalles {
-  color: #6c757d;
-  font-size: 0.95rem;
-  margin: 0.25rem 0;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.solicitud-servicio {
-  font-weight: 500;
-}
-
-.btn-abrir-chat {
-  padding: 0.75rem 2rem;
-  background-color: #1a4d5c;
-  color: white;
-  border: none;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.3s;
-  white-space: nowrap;
-  font-weight: 500;
+.sr-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e2e8f0;
   flex-shrink: 0;
 }
 
-.btn-abrir-chat:hover:not(:disabled) {
-  background-color: #143d4a;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+.sr-avatar-placeholder {
+  font-size: 3rem;
+  color: #cbd5e0;
+  flex-shrink: 0;
 }
 
-.btn-abrir-chat:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+/* Nombre del proveedor (botón) — específico del cliente */
+.sr-proveedor-nombre {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0 0 0.35rem 0;
+  color: #1a4d5c;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color 0.2s;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
+.sr-proveedor-nombre:hover {
+  color: #2d6f82;
+  text-decoration: underline;
+}
+
+.sr-np-ico {
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.sr-ciudad {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   color: #6c757d;
+  font-size: 0.85rem;
+  margin-bottom: 0.2rem;
 }
 
-.empty-state p {
-  font-size: 1.2rem;
-  margin: 0;
+.sr-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #f5a623;
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
-.badge-estado {
-  display: inline-block;
-  padding: 0.4rem 1rem;
+/* ── Badges de estado ── */
+
+.sr-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sr-badge-pendiente  { background-color: #ffc107; color: #333; }
+.sr-badge-respondida { background-color: #2196f3; color: white; }
+.sr-badge-aceptada   { background-color: #4caf50; color: white; }
+.sr-badge-rechazada  { background-color: #f44336; color: white; }
+.sr-badge-cancelada  { background-color: #9e9e9e; color: white; }
+.sr-badge-default    { background-color: #e2e8f0; color: #4a5568; }
+
+/* ── Tags de tipo ── */
+
+.sr-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.sr-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #e6f3f7;
+  color: #1a4d5c;
+  padding: 0.3rem 0.85rem;
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 500;
-  margin-top: 0.5rem;
 }
 
-.badge-pendiente {
-  background-color: #ffc107;
+.sr-tag-evento {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* ── Grid de detalles ── */
+
+.sr-detalles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sr-detalle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.sr-d-ico {
+  color: #1a4d5c;
+  font-size: 1rem;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.sr-d-lbl {
+  display: block;
+  color: #6c757d;
+  font-size: 0.8rem;
+  margin-bottom: 0.15rem;
+}
+
+.sr-d-val {
+  display: block;
   color: #333;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
-.badge-respondida {
-  background-color: #4caf50;
+.sr-precio {
+  color: #1a4d5c;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+/* ── Sección expandible ── */
+
+.sr-extra {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sr-extra-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.sr-extra-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sr-extra-item-lbl {
+  color: #6c757d;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sr-extra-item-val {
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+/* ── Propuesta ── */
+
+.sr-propuesta {
+  background: #e6f3f7;
+  border: 1px solid #b2d8e4;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.sr-propuesta-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #1a4d5c;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.sr-propuesta-precio {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #1a4d5c;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.sr-propuesta-msg {
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  margin: 0.5rem 0;
+}
+
+.sr-propuesta-fecha {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #6c757d;
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+/* ── Footer de la card ── */
+
+.sr-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sr-btn-expandir {
+  background: transparent;
+  border: 1px solid #1a4d5c;
+  color: #1a4d5c;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.sr-btn-expandir:hover {
+  background: #1a4d5c;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(26, 77, 92, 0.2);
+}
+
+.sr-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Botón "Ver perfil" — exclusivo del cliente */
+.sr-btn-perfil {
+  background: transparent;
+  border: 1px solid #1a4d5c;
+  color: #1a4d5c;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.sr-btn-perfil:hover {
+  background: #1a4d5c;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(26, 77, 92, 0.2);
+}
+
+.sr-btn-chat {
+  background: #1a4d5c;
+  border: none;
+  color: white;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.sr-btn-chat:hover {
+  background: #163e4a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(26, 77, 92, 0.25);
+}
+
+/* ========== Estados vacíos / loading / error ========== */
+
+.sr-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.sr-empty-icon {
+  font-size: 4rem;
+  color: #cbd5e0;
+  margin-bottom: 1rem;
+}
+
+.sr-empty h3 {
+  color: #1a4d5c;
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.sr-empty p {
+  color: #6c757d;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.sr-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+  color: #6c757d;
+}
+
+.sr-spinner {
+  font-size: 2.5rem;
+  color: #1a4d5c;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.sr-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+  text-align: center;
+  color: #dc3545;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.sr-error h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.sr-btn-retry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sr-btn-retry:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+}
+
+/* ========== Paginación ========== */
+
+.sr-paginacion {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.sr-pag-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sr-pag-btn:hover:not(:disabled) {
+  background: #e6f3f7;
+  border-color: #1a4d5c;
+  color: #1a4d5c;
+}
+
+.sr-pag-activa {
+  background: #1a4d5c;
+  border-color: #1a4d5c;
   color: white;
 }
 
-.badge-rechazada {
-  background-color: #f44336;
-  color: white;
+.sr-pag-activa:hover {
+  background: #1a4d5c !important;
+  color: white !important;
 }
 
-/* ========== Diseño Responsivo ========== */
+.sr-pag-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sr-pag-nav {
+  color: #1a4d5c;
+}
+
+.sr-pag-ellipsis {
+  color: #6c757d;
+  padding: 0 0.25rem;
+  font-size: 1.1rem;
+  user-select: none;
+}
+
+/* ========== Responsive ========== */
 
 @media (max-width: 1024px) {
-  .solicitudes-recibidas-container {
+  .sr-root {
     padding: 1.5rem;
   }
 
-  .solicitudes-recibidas-container h1 {
+  .sr-header-left h1 {
     font-size: 2rem;
   }
 
-  .solicitud-recibida-card {
-    padding: 1.5rem;
+  .sr-resumen {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .sr-resumen-num {
+    font-size: 2rem;
+  }
+
+  .sr-detalles-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
-  .solicitudes-recibidas-container {
+  .sr-root {
     padding: 1rem;
   }
 
-  .solicitudes-recibidas-container h1 {
-    font-size: 1.8rem;
-    text-align: center;
+  .sr-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .solicitudes-list {
+  .sr-header-left h1 {
+    font-size: 1.8rem;
+  }
+
+  .sr-header-stat {
+    align-self: flex-start;
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .sr-resumen {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .sr-resumen-card {
+    padding: 1.25rem;
+  }
+
+  .sr-resumen-num {
+    font-size: 1.8rem;
+  }
+
+  .sr-controles {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .sr-lista {
     gap: 1rem;
   }
 
-  .solicitud-recibida-card {
-    flex-direction: column;
-    align-items: flex-start;
+  .sr-card {
     padding: 1.5rem;
   }
 
-  .solicitud-info h3 {
-    font-size: 1.3rem;
+  .sr-card-top {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .solicitud-fecha, 
-  .solicitud-servicio,
-  .solicitud-detalles {
-    font-size: 0.9rem;
+  .sr-badge {
+    align-self: flex-start;
   }
 
-  .btn-abrir-chat {
+  .sr-detalles-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sr-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .sr-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sr-btn-expandir,
+  .sr-btn-perfil,
+  .sr-btn-chat {
     width: 100%;
-    text-align: center;
-    margin-top: 1rem;
+    justify-content: center;
+  }
+
+  .sr-acciones {
+    flex-direction: column;
+    width: 100%;
   }
 }
 
 @media (max-width: 480px) {
-  .solicitudes-recibidas-container {
+  .sr-root {
     padding: 0.75rem;
   }
 
-  .solicitudes-recibidas-container h1 {
+  .sr-header-left h1 {
     font-size: 1.5rem;
     margin-bottom: 1.5rem;
   }
 
-  .solicitudes-list {
-    gap: 1rem;
+  .sr-resumen {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
   }
 
-  .solicitud-recibida-card {
+  .sr-resumen-card {
+    padding: 1rem;
+  }
+
+  .sr-resumen-num {
+    font-size: 1.6rem;
+  }
+
+  .sr-resumen-lbl {
+    font-size: 0.85rem;
+  }
+
+  .sr-card {
     padding: 1rem;
     border-radius: 8px;
   }
 
-  .solicitud-info h3 {
-    font-size: 1.2rem;
-  }
-
-  .solicitud-fecha, 
-  .solicitud-servicio,
-  .solicitud-detalles {
+  .sr-badge {
+    padding: 0.4rem 1rem;
     font-size: 0.85rem;
   }
 
-  .btn-abrir-chat {
-    padding: 0.7rem 1.5rem;
-    font-size: 0.95rem;
-    margin-top: 0.75rem;
+  .sr-d-val {
+    font-size: 0.9rem;
   }
 
-  .empty-state {
-    padding: 3rem 1rem;
+  .sr-btn-expandir,
+  .sr-btn-perfil,
+  .sr-btn-chat {
+    font-size: 0.85rem;
+    padding: 0.45rem 0.85rem;
   }
 
-  .empty-state p {
-    font-size: 1rem;
+  .sr-extra {
+    padding: 1rem;
   }
 
-  .badge-estado {
-    font-size: 0.8rem;
-    padding: 0.35rem 0.85rem;
+  .sr-propuesta {
+    padding: 1rem;
+  }
+
+  .sr-pag-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 0.88rem;
   }
 }
 
 @media (max-width: 360px) {
-  .solicitudes-recibidas-container h1 {
+  .sr-header-left h1 {
     font-size: 1.3rem;
   }
 
-  .solicitud-recibida-card {
-    padding: 0.85rem;
+  .sr-resumen {
+    gap: 0.5rem;
   }
 
-  .solicitud-info h3 {
-    font-size: 1.1rem;
+  .sr-resumen-num {
+    font-size: 1.4rem;
   }
 
-  .solicitud-fecha, 
-  .solicitud-servicio,
-  .solicitud-detalles {
+  .sr-resumen-lbl {
     font-size: 0.8rem;
   }
 
-  .btn-abrir-chat {
-    padding: 0.65rem 1.2rem;
-    font-size: 0.9rem;
+  .sr-badge {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
   }
 }

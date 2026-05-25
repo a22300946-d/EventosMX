@@ -1,8 +1,53 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ProveedorLayout from '../../components/proveedor/ProveedorLayout';
 import { proveedorService } from '../../services/proveedorService';
+import {
+  FiCamera, FiFolder, FiFileText, FiCalendar, FiEye,
+  FiTrash2, FiX, FiUploadCloud, FiCheckCircle, FiAlertTriangle,
+  FiImage
+} from 'react-icons/fi';
 import './GaleriaFotos.css';
 
+// ─── Modal de confirmación ────────────────────────────────────────────────────
+function ConfirmModal({ mensaje, onConfirmar, onCancelar }) {
+  return (
+    <div className="confirm-overlay-pro" onClick={onCancelar}>
+      <div className="confirm-box-pro" onClick={(e) => e.stopPropagation()}>
+        <div className="confirm-icon-pro">
+          <FiAlertTriangle size={32} />
+        </div>
+        <h3 className="confirm-titulo-pro">¿Eliminar foto?</h3>
+        <p className="confirm-mensaje-pro">{mensaje}</p>
+        <div className="confirm-acciones-pro">
+          <button className="confirm-btn-cancelar-pro" onClick={onCancelar}>
+            Cancelar
+          </button>
+          <button className="confirm-btn-eliminar-pro" onClick={onConfirmar}>
+            <FiTrash2 size={16} />
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Toast de notificación ────────────────────────────────────────────────────
+function Toast({ mensaje, tipo, onClose }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div className={`toast-pro toast-pro--${tipo}`}>
+      {tipo === 'exito' ? <FiCheckCircle size={18} /> : <FiAlertTriangle size={18} />}
+      <span>{mensaje}</span>
+    </div>
+  );
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 function GaleriaFotos() {
   const [fotos, setFotos] = useState([]);
   const [limite, setLimite] = useState(null);
@@ -13,7 +58,11 @@ function GaleriaFotos() {
   const [descripcion, setDescripcion] = useState('');
   const [mostrarModal, setMostrarModal] = useState(false);
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
+  const [confirm, setConfirm] = useState(null); // { foto }
+  const [toast, setToast] = useState(null);     // { mensaje, tipo }
   const fileInputRef = useRef(null);
+
+  const mostrarToast = (mensaje, tipo = 'exito') => setToast({ mensaje, tipo });
 
   useEffect(() => {
     cargarGaleria();
@@ -25,7 +74,7 @@ function GaleriaFotos() {
       const response = await proveedorService.obtenerMiGaleria();
       setFotos(response.data.data || []);
     } catch (error) {
-      console.error('Error al cargar galería:', error);
+      mostrarToast('Error al cargar la galería', 'error');
     } finally {
       setLoading(false);
     }
@@ -35,86 +84,73 @@ function GaleriaFotos() {
     try {
       const response = await proveedorService.obtenerInfoLimiteGaleria();
       setLimite(response.data.data);
-    } catch (error) {
-      console.error('Error al cargar límite:', error);
+    } catch {
+      // silencioso
     }
   };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
-    
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Solo se permiten imágenes');
+      mostrarToast('Solo se permiten imágenes', 'error');
       return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
-      alert('La imagen no debe superar los 5MB');
+      mostrarToast('La imagen no debe superar los 5MB', 'error');
       return;
     }
 
     setArchivoSeleccionado(file);
-
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagenPreview(reader.result);
-    };
+    reader.onloadend = () => setImagenPreview(reader.result);
     reader.readAsDataURL(file);
   };
 
   const subirFoto = async () => {
     if (!archivoSeleccionado) {
-      alert('Por favor selecciona una imagen');
+      mostrarToast('Por favor selecciona una imagen', 'error');
       return;
     }
-
     if (!descripcion.trim()) {
-      alert('Por favor agrega una descripción para la foto');
+      mostrarToast('Por favor agrega una descripción', 'error');
       return;
     }
 
     try {
       setUploading(true);
-
       const formData = new FormData();
       formData.append('foto', archivoSeleccionado);
       formData.append('descripcion', descripcion.trim());
-
       await proveedorService.agregarFoto(formData);
 
-      // Limpiar formulario
-      setArchivoSeleccionado(null);
-      setImagenPreview(null);
-      setDescripcion('');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-
+      cancelarSeleccion();
       await cargarGaleria();
       await cargarLimite();
-
-      alert('✅ Foto agregada exitosamente');
+      mostrarToast('Foto agregada exitosamente');
     } catch (error) {
-      console.error('Error al subir foto:', error);
-      alert(error.response?.data?.message || 'Error al subir la foto');
+      mostrarToast(error.response?.data?.message || 'Error al subir la foto', 'error');
     } finally {
       setUploading(false);
     }
   };
 
-  const eliminarFoto = async (foto) => {
-    if (!window.confirm(`¿Eliminar esta foto?\n"${foto.descripcion}"`)) return;
+  const pedirConfirmacion = (foto) => {
+    setConfirm({ foto });
+  };
 
+  const confirmarEliminacion = async () => {
+    const foto = confirm.foto;
+    setConfirm(null);
     try {
       await proveedorService.eliminarFoto(foto.id_foto);
       await cargarGaleria();
       await cargarLimite();
       setMostrarModal(false);
-      alert('✅ Foto eliminada exitosamente');
-    } catch (error) {
-      alert('Error al eliminar foto');
+      mostrarToast('Foto eliminada exitosamente');
+    } catch {
+      mostrarToast('Error al eliminar la foto', 'error');
     }
   };
 
@@ -122,38 +158,49 @@ function GaleriaFotos() {
     setArchivoSeleccionado(null);
     setImagenPreview(null);
     setDescripcion('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const abrirModal = (foto) => {
-    setFotoSeleccionada(foto);
-    setMostrarModal(true);
-  };
-
-  const cerrarModal = () => {
-    setMostrarModal(false);
-    setFotoSeleccionada(null);
-  };
+  const abrirModal = (foto) => { setFotoSeleccionada(foto); setMostrarModal(true); };
+  const cerrarModal = () => { setMostrarModal(false); setFotoSeleccionada(null); };
 
   return (
     <ProveedorLayout>
       <div className="galeria-container-pro">
+
+        {/* Toast */}
+        {toast && (
+          <Toast
+            mensaje={toast.mensaje}
+            tipo={toast.tipo}
+            onClose={() => setToast(null)}
+          />
+        )}
+
+        {/* Modal de confirmación */}
+        {confirm && (
+          <ConfirmModal
+            mensaje={`"${confirm.foto.descripcion}"`}
+            onConfirmar={confirmarEliminacion}
+            onCancelar={() => setConfirm(null)}
+          />
+        )}
+
         {/* Header */}
         <div className="galeria-header-pro">
           <div className="header-content-pro">
             <div className="header-left-pro">
-              <h1 className="titulo-pro">📸 Galería de Fotos</h1>
-              <p className="subtitulo-pro">
-                Muestra tus mejores trabajos a los clientes
-              </p>
+              <h1 className="titulo-pro">
+                <FiCamera className="titulo-icon-pro" />
+                Galería de Fotos
+              </h1>
+              <p className="subtitulo-pro">Muestra tus mejores trabajos a los clientes</p>
             </div>
             {limite && (
               <div className="limite-badge-pro">
                 <div className="limite-progress-pro">
-                  <div 
-                    className="limite-bar-pro" 
+                  <div
+                    className="limite-bar-pro"
                     style={{ width: `${(limite.total_fotos / limite.limite_maximo) * 100}%` }}
                   />
                 </div>
@@ -180,7 +227,7 @@ function GaleriaFotos() {
               <div className="upload-section-pro">
                 <div className="upload-card-pro">
                   {!imagenPreview ? (
-                    <div 
+                    <div
                       className="upload-dropzone-pro"
                       onClick={() => fileInputRef.current?.click()}
                     >
@@ -192,10 +239,13 @@ function GaleriaFotos() {
                         style={{ display: 'none' }}
                       />
                       <div className="dropzone-content-pro">
-                        <div className="dropzone-icon-pro">📁</div>
+                        <div className="dropzone-icon-pro">
+                          <FiUploadCloud size={64} />
+                        </div>
                         <h3>Selecciona una imagen</h3>
                         <p>JPG, PNG o WEBP • Máximo 5MB</p>
                         <button className="btn-browse-pro">
+                          <FiFolder size={16} />
                           Explorar archivos
                         </button>
                       </div>
@@ -203,40 +253,33 @@ function GaleriaFotos() {
                   ) : (
                     <div className="upload-preview-section-pro">
                       <div className="preview-image-container-pro">
-                        <img 
-                          src={imagenPreview} 
-                          alt="Preview" 
-                          className="preview-image-pro"
-                        />
+                        <img src={imagenPreview} alt="Preview" className="preview-image-pro" />
                         <div className="preview-overlay-pro">
                           <span className="preview-badge-pro">Vista previa</span>
                         </div>
                       </div>
-                      
+
                       <div className="preview-form-pro">
                         <div className="form-group-pro">
                           <label className="form-label-pro">
-                            📝 Descripción de la foto *
+                            <FiFileText size={16} />
+                            Descripción de la foto *
                           </label>
                           <textarea
                             className="form-textarea-pro"
-                            placeholder="Describe esta foto para que los clientes sepan qué representa (ej: 'Decoración estilo rústico para boda', 'Banquete para 100 personas')"
+                            placeholder="Describe esta foto para que los clientes sepan qué representa (ej: 'Decoración estilo rústico para boda')"
                             value={descripcion}
                             onChange={(e) => setDescripcion(e.target.value)}
                             rows="3"
                             maxLength="200"
                           />
-                          <div className="caracteres-contador-pro">
-                            {descripcion.length}/200 caracteres
-                          </div>
+                          <div className="caracteres-contador-pro">{descripcion.length}/200 caracteres</div>
                         </div>
 
                         <div className="archivo-info-pro">
-                          <span className="archivo-icono-pro">📄</span>
+                          <FiFileText size={28} className="archivo-icono-pro" />
                           <div className="archivo-detalles-pro">
-                            <p className="archivo-nombre-pro">
-                              {archivoSeleccionado?.name}
-                            </p>
+                            <p className="archivo-nombre-pro">{archivoSeleccionado?.name}</p>
                             <p className="archivo-tamano-pro">
                               {(archivoSeleccionado?.size / 1024 / 1024).toFixed(2)} MB
                             </p>
@@ -244,7 +287,7 @@ function GaleriaFotos() {
                         </div>
 
                         <div className="form-actions-pro">
-                          <button 
+                          <button
                             className="btn-subir-pro"
                             onClick={subirFoto}
                             disabled={uploading || !descripcion.trim()}
@@ -256,17 +299,17 @@ function GaleriaFotos() {
                               </>
                             ) : (
                               <>
-                                <span>✅</span>
+                                <FiCheckCircle size={18} />
                                 Subir Foto
                               </>
                             )}
                           </button>
-                          <button 
+                          <button
                             className="btn-cancelar-pro"
                             onClick={cancelarSeleccion}
                             disabled={uploading}
                           >
-                            <span>✕</span>
+                            <FiX size={18} />
                             Cancelar
                           </button>
                         </div>
@@ -277,43 +320,38 @@ function GaleriaFotos() {
               </div>
             )}
 
-            {/* Grid de fotos estilo Pinterest */}
+            {/* Grid de fotos */}
             {fotos.length > 0 ? (
               <div className="fotos-grid-pro">
                 {fotos.map((foto) => (
-                  <div 
-                    key={foto.id_foto} 
+                  <div
+                    key={foto.id_foto}
                     className="foto-item-pro"
                     onClick={() => abrirModal(foto)}
                   >
                     <div className="foto-image-wrapper-pro">
-                      <img 
-                        src={foto.url_foto} 
-                        alt={foto.descripcion || 'Foto de galería'} 
+                      <img
+                        src={foto.url_foto}
+                        alt={foto.descripcion || 'Foto de galería'}
                         className="foto-img-pro"
                       />
                       <div className="foto-hover-overlay-pro">
-                        <button 
+                        <button
                           className="btn-ver-detalle-pro"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            abrirModal(foto);
-                          }}
+                          onClick={(e) => { e.stopPropagation(); abrirModal(foto); }}
                         >
-                          👁️ Ver detalles
+                          <FiEye size={16} />
+                          Ver detalles
                         </button>
                       </div>
                     </div>
                     <div className="foto-info-pro">
-                      <p className="foto-descripcion-pro">
-                        {foto.descripcion}
-                      </p>
+                      <p className="foto-descripcion-pro">{foto.descripcion}</p>
                       <div className="foto-meta-pro">
                         <span className="foto-fecha-pro">
-                          📅 {new Date(foto.fecha_subida).toLocaleDateString('es-MX', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
+                          <FiCalendar size={13} />
+                          {new Date(foto.fecha_subida).toLocaleDateString('es-MX', {
+                            day: 'numeric', month: 'short', year: 'numeric'
                           })}
                         </span>
                       </div>
@@ -323,16 +361,16 @@ function GaleriaFotos() {
               </div>
             ) : (
               <div className="empty-state-pro">
-                <div className="empty-icon-pro">🖼️</div>
+                <div className="empty-icon-pro"><FiImage size={80} /></div>
                 <h3>Aún no tienes fotos</h3>
                 <p>Agrega tu primera foto para mostrar tu trabajo</p>
               </div>
             )}
 
-            {/* Mensaje de límite alcanzado */}
+            {/* Límite alcanzado */}
             {limite && !limite.puede_agregar && (
               <div className="limite-alcanzado-pro">
-                <span className="limite-alert-icon-pro">⚠️</span>
+                <FiAlertTriangle size={28} className="limite-alert-icon-pro" />
                 <div className="limite-alert-content-pro">
                   <h4>Límite alcanzado</h4>
                   <p>
@@ -345,49 +383,52 @@ function GaleriaFotos() {
           </>
         )}
 
-        {/* Modal de detalles de foto */}
+        {/* Modal de detalles */}
         {mostrarModal && fotoSeleccionada && (
           <div className="modal-overlay-pro" onClick={cerrarModal}>
             <div className="modal-content-pro" onClick={(e) => e.stopPropagation()}>
               <button className="modal-close-pro" onClick={cerrarModal}>
-                ✕
+                <FiX size={22} />
               </button>
-              
+
               <div className="modal-body-pro">
+                {/* Imagen a pantalla completa del modal */}
                 <div className="modal-image-section-pro">
-                  <img 
-                    src={fotoSeleccionada.url_foto} 
+                  <img
+                    src={fotoSeleccionada.url_foto}
                     alt={fotoSeleccionada.descripcion}
                     className="modal-image-pro"
                   />
                 </div>
-                
+
                 <div className="modal-info-section-pro">
                   <h2 className="modal-title-pro">Detalles de la foto</h2>
-                  
+
                   <div className="modal-field-pro">
-                    <label className="modal-label-pro">📝 Descripción</label>
+                    <label className="modal-label-pro">
+                      <FiFileText size={15} /> Descripción
+                    </label>
                     <p className="modal-text-pro">{fotoSeleccionada.descripcion}</p>
                   </div>
 
                   <div className="modal-field-pro">
-                    <label className="modal-label-pro">📅 Fecha de subida</label>
+                    <label className="modal-label-pro">
+                      <FiCalendar size={15} /> Fecha de subida
+                    </label>
                     <p className="modal-text-pro">
                       {new Date(fotoSeleccionada.fecha_subida).toLocaleDateString('es-MX', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                       })}
                     </p>
                   </div>
 
                   <div className="modal-actions-pro">
-                    <button 
+                    <button
                       className="btn-eliminar-modal-pro"
-                      onClick={() => eliminarFoto(fotoSeleccionada)}
+                      onClick={() => pedirConfirmacion(fotoSeleccionada)}
                     >
-                      🗑️ Eliminar foto
+                      <FiTrash2 size={18} />
+                      Eliminar foto
                     </button>
                   </div>
                 </div>

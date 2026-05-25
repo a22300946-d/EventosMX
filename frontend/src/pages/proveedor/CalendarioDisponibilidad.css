@@ -39,6 +39,9 @@
   padding: 0.5rem 1rem;
   cursor: pointer;
   font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .calendario-semana {
@@ -381,4 +384,115 @@
 .calendario-dia.pasado.editable:hover {
   transform: none;
   box-shadow: none;
+}
+
+/* ─── Modal de notificación ──────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-contenido {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  padding: 2.5rem 2rem 2rem;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* Borde superior de color según tipo */
+.modal-contenido.exito {
+  border-top: 5px solid #22c55e;
+}
+
+.modal-contenido.error {
+  border-top: 5px solid #e91e63;
+}
+
+/* Icono */
+.modal-icono {
+  margin-bottom: 1rem;
+}
+
+.modal-contenido.exito .modal-icono {
+  color: #22c55e;
+}
+
+.modal-contenido.error .modal-icono {
+  color: #e91e63;
+}
+
+/* Título */
+.modal-titulo {
+  color: #1a4d5c;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+/* Mensaje */
+.modal-mensaje {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
+
+/* Botón principal */
+.modal-btn-cerrar {
+  background-color: #1a4d5c;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 0.75rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.modal-btn-cerrar:hover {
+  background-color: #143d4a;
+  transform: translateY(-1px);
+}
+
+/* X de cierre */
+.modal-btn-x {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.modal-btn-x:hover {
+  color: #555;
 }
