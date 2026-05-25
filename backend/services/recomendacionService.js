@@ -137,43 +137,69 @@ class RecomendacionService {
   /**
    * Pr: Coincidencia de precios (0-1)
    */
-  static async calcularCoincidenciaPrecios(proveedor, preferencias) {
-    // Obtener el precio promedio de los servicios del proveedor
-    const precioProveedor = await this.obtenerPrecioPromedioProveedor(proveedor.id_proveedor);
-    
-    if (!precioProveedor) {
-      return 0.5; // Neutral si no hay precios
-    }
+ static async calcularCoincidenciaPrecios(proveedor, preferencias) {
+  const precioProveedor = await this.obtenerPrecioPromedioProveedor(proveedor.id_proveedor);
 
-    const precioMin = preferencias.precio_min || 0;
-    const precioMax = preferencias.precio_max || 999999;
-
-    // Si el precio está dentro del rango, puntuación alta
-    if (precioProveedor >= precioMin && precioProveedor <= precioMax) {
-      // Calcular qué tan centrado está en el rango
-      const rangoTotal = precioMax - precioMin;
-      if (rangoTotal === 0) return 1.0;
-      
-      const distanciaAlCentro = Math.abs(precioProveedor - (precioMin + precioMax) / 2);
-      const puntuacion = 1 - (distanciaAlCentro / (rangoTotal / 2));
-      return Math.max(0.7, Math.min(1, puntuacion));
-    }
-
-    // Si está fuera del rango, calcular qué tan lejos está
-    if (precioProveedor < precioMin) {
-      const diferencia = precioMin - precioProveedor;
-      const penalizacion = Math.min(diferencia / precioMin, 0.5);
-      return Math.max(0, 0.5 - penalizacion);
-    }
-
-    if (precioProveedor > precioMax) {
-      const diferencia = precioProveedor - precioMax;
-      const penalizacion = Math.min(diferencia / precioMax, 0.5);
-      return Math.max(0, 0.5 - penalizacion);
-    }
-
+  // Si el proveedor no tiene precios, valor neutral
+  if (precioProveedor === null || isNaN(precioProveedor)) {
     return 0.5;
   }
+
+  const precioMin = preferencias.precio_min !== null && preferencias.precio_min !== "" 
+    ? parseFloat(preferencias.precio_min) 
+    : null;
+  const precioMax = preferencias.precio_max !== null && preferencias.precio_max !== "" 
+    ? parseFloat(preferencias.precio_max) 
+    : null;
+
+  // Si no hay ningún rango definido, valor neutral
+  if (precioMin === null && precioMax === null) {
+    return 0.5;
+  }
+
+  // Si solo hay mínimo
+  if (precioMin !== null && precioMax === null) {
+    if (precioProveedor >= precioMin) return 1.0;
+    const diferencia = precioMin - precioProveedor;
+    if (precioMin === 0) return 0.5;
+    return Math.max(0, 0.5 - Math.min(diferencia / precioMin, 0.5));
+  }
+
+  // Si solo hay máximo
+  if (precioMin === null && precioMax !== null) {
+    if (precioProveedor <= precioMax) return 1.0;
+    const diferencia = precioProveedor - precioMax;
+    if (precioMax === 0) return 0;
+    return Math.max(0, 0.5 - Math.min(diferencia / precioMax, 0.5));
+  }
+
+  // Ambos definidos
+  const min = precioMin;
+  const max = precioMax;
+
+  // Si min > max (error del usuario), valor neutral
+  if (min > max) return 0.5;
+
+  if (precioProveedor >= min && precioProveedor <= max) {
+    const rangoTotal = max - min;
+    if (rangoTotal === 0) return 1.0;
+    const centro = (min + max) / 2;
+    const distanciaAlCentro = Math.abs(precioProveedor - centro);
+    const puntuacion = 1 - (distanciaAlCentro / (rangoTotal / 2));
+    return Math.max(0.7, Math.min(1, puntuacion));
+  }
+
+  if (precioProveedor < min) {
+    const diferencia = min - precioProveedor;
+    if (min === 0) return 0.5;
+    return Math.max(0, 0.5 - Math.min(diferencia / min, 0.5));
+  }
+
+  // precioProveedor > max
+  const diferencia = precioProveedor - max;
+  if (max === 0) return 0;
+  return Math.max(0, 0.5 - Math.min(diferencia / max, 0.5));
+}
 
   /**
    * F: Puntuación por fotos en galería (0-1)

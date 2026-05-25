@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { proveedorService } from "../../services/proveedorService";
+import { FaTrash } from "react-icons/fa";
 import "./Promociones.css";
 
 function Promociones() {
@@ -87,7 +88,6 @@ function Promociones() {
     e.preventDefault();
     try {
       if (isEditing) {
-        // Suponiendo que el backend usa este método en tu proveedorService
         await proveedorService.actualizarPromocion(editingId, formData);
       } else {
         await proveedorService.crearPromocion(formData);
@@ -262,7 +262,9 @@ function Promociones() {
         {modalConfirm.visible && (
           <div className="promo-confirm-overlay" onClick={cerrarConfirm}>
             <div className="promo-confirm-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="promo-confirm-icono">🗑️</div>
+              <div className="promo-confirm-icono">
+                <FaTrash />
+              </div>
               <h3 className="promo-confirm-titulo">¿Eliminar promoción?</h3>
               <p className="promo-confirm-desc">
                 Vas a eliminar la promoción <strong>"{modalConfirm.promo?.titulo}"</strong>. Esta acción no se puede deshacer.
