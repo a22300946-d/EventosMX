@@ -23,11 +23,17 @@ function ResenasPublicadas() {
   const [ordenResenas, setOrdenResenas]     = useState("recientes");
   const [paginaActual, setPaginaActual]     = useState(1);
 
+  // Estado para el modal de confirmación
+  const [modalEliminar, setModalEliminar] = useState({
+    visible: false,
+    id_resena: null,
+    nombreProveedor: "",
+  });
+
   const navigate = useNavigate();
 
   useEffect(() => { cargarResenas(); }, []);
 
-  // Reinicia página cuando cambia filtro u orden
   useEffect(() => { setPaginaActual(1); }, [filtroSentimiento, ordenResenas]);
 
   const cargarResenas = async () => {
@@ -97,11 +103,15 @@ function ResenasPublicadas() {
 
   // ── Acciones ──────────────────────────────────────────────────────────────
 
-  const handleEliminarResena = async (id_resena, nombreProveedor) => {
-    const confirmar = window.confirm(
-      `¿Estás seguro de que deseas eliminar tu reseña de "${nombreProveedor}"?\n\nEsta acción no se puede deshacer.`
-    );
-    if (!confirmar) return;
+  // Abre el modal en lugar de window.confirm
+  const handleSolicitarEliminar = (id_resena, nombreProveedor) => {
+    setModalEliminar({ visible: true, id_resena, nombreProveedor });
+  };
+
+  // Se ejecuta al confirmar en el modal
+  const handleConfirmarEliminar = async () => {
+    const { id_resena } = modalEliminar;
+    setModalEliminar({ visible: false, id_resena: null, nombreProveedor: "" });
 
     try {
       setEliminando(id_resena);
@@ -113,6 +123,10 @@ function ResenasPublicadas() {
     } finally {
       setEliminando(null);
     }
+  };
+
+  const handleCancelarEliminar = () => {
+    setModalEliminar({ visible: false, id_resena: null, nombreProveedor: "" });
   };
 
   const handleVerProveedor = (id_proveedor) => navigate(`/perfil-proveedor/${id_proveedor}`);
@@ -131,10 +145,10 @@ function ResenasPublicadas() {
 
   const getBadgeInfo = (sentimiento) => {
     switch (sentimiento?.toLowerCase()) {
-      case "positivo": return { clase: "badge-positivo", texto: "Positiva",       icono: <FaSmile /> };
-      case "neutro":   return { clase: "badge-neutro",   texto: "Neutral",         icono: <FaMeh />   };
-      case "negativo": return { clase: "badge-negativo", texto: "Negativa",        icono: <FaFrown /> };
-      default:         return { clase: "badge-neutro",   texto: "Sin clasificar",  icono: <FaMeh />   };
+      case "positivo": return { clase: "badge-positivo", texto: "Positiva",      icono: <FaSmile /> };
+      case "neutro":   return { clase: "badge-neutro",   texto: "Neutral",        icono: <FaMeh />   };
+      case "negativo": return { clase: "badge-negativo", texto: "Negativa",       icono: <FaFrown /> };
+      default:         return { clase: "badge-neutro",   texto: "Sin clasificar", icono: <FaMeh />   };
     }
   };
 
@@ -181,6 +195,37 @@ function ResenasPublicadas() {
     <ClienteLayout>
       <div className="resenas-publicadas-container">
 
+        {/* Modal de confirmación para eliminar */}
+        {modalEliminar.visible && (
+          <div className="modal-overlay" onClick={handleCancelarEliminar}>
+            <div className="modal-contenido" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-icono-wrapper">
+                <FaTrashAlt className="modal-icono-trash" />
+              </div>
+              <h2 className="modal-titulo">Eliminar reseña</h2>
+              <p className="modal-desc">
+                ¿Estás seguro de que deseas eliminar tu reseña de{" "}
+                <strong>"{modalEliminar.nombreProveedor}"</strong>?
+              </p>
+              <p className="modal-aviso">Esta acción no se puede deshacer.</p>
+              <div className="modal-acciones">
+                <button
+                  className="modal-btn-cancelar"
+                  onClick={handleCancelarEliminar}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="modal-btn-confirmar"
+                  onClick={handleConfirmarEliminar}
+                >
+                  <FaTrashAlt /> Eliminar reseña
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="resenas-header">
           <div className="resenas-header-titulo">
@@ -212,42 +257,41 @@ function ResenasPublicadas() {
             </div>
 
             {/* Controles de filtrado */}
-            <div className="resenas-controles">
-              <div className="filtro-sentimiento">
-                <FaFilter className="filtro-icon" />
+            <div className="sr-controles">
+              <div className="sr-filtros">
+                <FaFilter className="sr-ctrl-icon" />
                 <button
-                  className={`btn-filtro ${filtroSentimiento === "todos" ? "activo" : ""}`}
+                  className={`sr-pill ${filtroSentimiento === "todos" ? "sr-pill-activo" : ""}`}
                   onClick={() => setFiltroSentimiento("todos")}
                 >
                   <FaThumbsUp /> Todas ({contarPorSentimiento("todos")})
                 </button>
                 <button
-                  className={`btn-filtro btn-positivo ${filtroSentimiento === "positivo" ? "activo" : ""}`}
+                  className={`sr-pill ${filtroSentimiento === "positivo" ? "sr-pill-activo" : ""}`}
                   onClick={() => setFiltroSentimiento("positivo")}
                 >
                   <FaSmile /> Positivas ({contarPorSentimiento("positivo")})
                 </button>
                 <button
-                  className={`btn-filtro btn-neutro ${filtroSentimiento === "neutro" ? "activo" : ""}`}
+                  className={`sr-pill ${filtroSentimiento === "neutro" ? "sr-pill-activo" : ""}`}
                   onClick={() => setFiltroSentimiento("neutro")}
                 >
                   <FaMeh /> Neutras ({contarPorSentimiento("neutro")})
                 </button>
                 <button
-                  className={`btn-filtro btn-negativo ${filtroSentimiento === "negativo" ? "activo" : ""}`}
+                  className={`sr-pill ${filtroSentimiento === "negativo" ? "sr-pill-activo" : ""}`}
                   onClick={() => setFiltroSentimiento("negativo")}
                 >
                   <FaFrown /> Negativas ({contarPorSentimiento("negativo")})
                 </button>
               </div>
 
-              <div className="filtro-ordenamiento">
-                <FaSortAmountDown className="filtro-icon" />
-                <label>Ordenar por:</label>
+              <div className="sr-orden">
+                <FaSortAmountDown className="sr-ctrl-icon" />
                 <select
                   value={ordenResenas}
                   onChange={(e) => setOrdenResenas(e.target.value)}
-                  className="select-ordenamiento"
+                  className="sr-select"
                 >
                   <option value="recientes">Más recientes</option>
                   <option value="mejores">Mejor calificadas</option>
@@ -265,13 +309,10 @@ function ResenasPublicadas() {
               </div>
             ) : (
               <>
-                {/* Indicador de página */}
-                <div className="paginacion-info">
-                  <p>
-                    Mostrando <strong>{inicio + 1}–{Math.min(inicio + POR_PAGINA, todasFiltradas.length)}</strong> de{" "}
-                    <strong>{todasFiltradas.length}</strong> reseñas
-                  </p>
-                </div>
+                <p className="sr-pag-info">
+                  Mostrando <strong>{inicio + 1}–{Math.min(inicio + POR_PAGINA, todasFiltradas.length)}</strong> de{" "}
+                  <strong>{todasFiltradas.length}</strong> reseñas
+                </p>
 
                 <div className="resenas-list">
                   {resenasPagina.map((resena) => {
@@ -317,7 +358,7 @@ function ResenasPublicadas() {
                           </button>
 
                           <button
-                            onClick={() => handleEliminarResena(resena.id_resena, resena.nombre_negocio)}
+                            onClick={() => handleSolicitarEliminar(resena.id_resena, resena.nombre_negocio)}
                             className="btn-eliminar-resena"
                             disabled={eliminando === resena.id_resena}
                           >
@@ -333,9 +374,9 @@ function ResenasPublicadas() {
 
                 {/* Paginación */}
                 {totalPaginas > 1 && (
-                  <div className="paginacion">
+                  <nav className="sr-paginacion">
                     <button
-                      className="btn-pagina btn-pagina-nav"
+                      className="sr-pag-btn sr-pag-nav"
                       onClick={() => irAPagina(paginaActual - 1)}
                       disabled={paginaActual === 1}
                     >
@@ -345,7 +386,7 @@ function ResenasPublicadas() {
                     {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((n) => (
                       <button
                         key={n}
-                        className={`btn-pagina ${paginaActual === n ? "activa" : ""}`}
+                        className={`sr-pag-btn ${paginaActual === n ? "sr-pag-activa" : ""}`}
                         onClick={() => irAPagina(n)}
                       >
                         {n}
@@ -353,13 +394,13 @@ function ResenasPublicadas() {
                     ))}
 
                     <button
-                      className="btn-pagina btn-pagina-nav"
+                      className="sr-pag-btn sr-pag-nav"
                       onClick={() => irAPagina(paginaActual + 1)}
                       disabled={paginaActual === totalPaginas}
                     >
                       <FaChevronRight />
                     </button>
-                  </div>
+                  </nav>
                 )}
               </>
             )}

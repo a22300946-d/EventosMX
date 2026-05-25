@@ -79,26 +79,32 @@ function Preferencias() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMensaje({ tipo: "", texto: "" });
+  e.preventDefault();
+  setLoading(true);
+  setMensaje({ tipo: "", texto: "" });
 
-    try {
-      await api.post("/recomendaciones/preferencias", formData);
-      setMensaje({
-        tipo: "success",
-        texto: "Preferencias guardadas exitosamente. Esto mejorará tus recomendaciones.",
-      });
-    } catch (error) {
-      console.error("Error al guardar preferencias:", error);
-      setMensaje({
-        tipo: "error",
-        texto: error.response?.data?.message || "Error al guardar preferencias",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const dataToSend = {
+      ...formData,
+      precio_min: formData.precio_min !== "" ? parseFloat(formData.precio_min) : null,
+      precio_max: formData.precio_max !== "" ? parseFloat(formData.precio_max) : null,
+    };
+
+    await api.post("/recomendaciones/preferencias", dataToSend);
+    setMensaje({
+      tipo: "success",
+      texto: "Preferencias guardadas exitosamente. Esto mejorará tus recomendaciones.",
+    });
+  } catch (error) {
+    console.error("Error al guardar preferencias:", error);
+    setMensaje({
+      tipo: "error",
+      texto: error.response?.data?.message || "Error al guardar preferencias",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleLimpiar = async () => {
     if (!window.confirm("¿Estás seguro de que deseas eliminar todas tus preferencias?")) return;

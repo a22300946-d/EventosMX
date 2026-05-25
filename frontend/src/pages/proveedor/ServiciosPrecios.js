@@ -3,11 +3,28 @@ import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { proveedorService } from "../../services/proveedorService";
 import "./ServiciosPrecios.css";
 
+const TIPO_PRECIO_LABELS = {
+  "por evento": "Por evento",
+  "por hora": "Por hora",
+  "por persona": "Por persona",
+  "paquete": "Paquete",
+};
+
+const TIPO_PRECIO_ICONS = {
+  "por evento": "📅",
+  "por hora": "⏱",
+  "por persona": "👤",
+  "paquete": "📦",
+};
+
 function ServiciosPrecios() {
   const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [eliminando, setEliminando] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+  const [confirmEliminar, setConfirmEliminar] = useState(null); // { id, nombre }
   const [formData, setFormData] = useState({
     nombre_servicio: "",
     descripcion: "",
@@ -31,10 +48,7 @@ function ServiciosPrecios() {
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const abrirModal = (servicio = null) => {
@@ -48,133 +62,252 @@ function ServiciosPrecios() {
       });
     } else {
       setEditando(null);
-      setFormData({
-        nombre_servicio: "",
-        descripcion: "",
-        precio: "",
-        tipo_precio: "por evento",
-      });
+      setFormData({ nombre_servicio: "", descripcion: "", precio: "", tipo_precio: "por evento" });
     }
     setShowModal(true);
   };
 
+  const cerrarModal = () => {
+    if (!guardando) setShowModal(false);
+  };
+
   const guardarServicio = async (e) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       if (editando) {
         await proveedorService.actualizarServicio(editando, formData);
       } else {
-        await proveedorService.crearServicio({
-          ...formData,
-          id_categoria: 1, // Puedes agregar selector de categori­a despues
-        });
+        await proveedorService.crearServicio({ ...formData, id_categoria: 1 });
       }
       setShowModal(false);
       cargarServicios();
     } catch (error) {
       alert(error.response?.data?.message || "Error al guardar servicio");
+    } finally {
+      setGuardando(false);
     }
   };
 
-  const eliminarServicio = async (id) => {
-    if (!window.confirm("¿Eliminar este servicio?")) return;
-
+  const eliminarServicio = async () => {
+    if (!confirmEliminar) return;
+    const id = confirmEliminar.id;
+    setConfirmEliminar(null);
+    setEliminando(id);
     try {
       await proveedorService.eliminarServicio(id);
-      cargarServicios();
+      setServicios((prev) => prev.filter((s) => s.id_servicio !== id));
     } catch (error) {
       alert("Error al eliminar servicio");
+    } finally {
+      setEliminando(null);
     }
   };
 
   return (
     <ProveedorLayout>
-      <div className="servicios-container">
-        <h1>Mis servicios</h1>
+      <div className="sp-container">
+        {/* Header */}
+        <div className="sp-header">
+          <div className="sp-header-text">
+            <h1>Mis servicios</h1>
+            <p className="sp-subtitle">
+              {servicios.length === 0
+                ? "Agrega tu primer servicio para comenzar"
+                : `${servicios.length} servicio${servicios.length !== 1 ? "s" : ""} publicado${servicios.length !== 1 ? "s" : ""}`}
+            </p>
+          </div>
+          <button className="sp-btn-nuevo" onClick={() => abrirModal()}>
+            <span className="sp-btn-icon">+</span>
+            Nuevo servicio
+          </button>
+        </div>
 
+        {/* Content */}
         {loading ? (
-          <p>Cargando servicios...</p>
+          <div className="sp-loading">
+            <div className="sp-spinner" />
+            <p>Cargando servicios...</p>
+          </div>
+        ) : servicios.length === 0 ? (
+          <div className="sp-empty" onClick={() => abrirModal()}>
+            <div className="sp-empty-icon">🛎</div>
+            <h3>Aún no tienes servicios</h3>
+            <p>Haz clic aquí para agregar tu primer servicio</p>
+          </div>
         ) : (
-          <div className="servicios-list">
+          <div className="sp-grid">
             {servicios.map((servicio) => (
-              <div key={servicio.id_servicio} className="servicio-card">
-                <div className="servicio-header">
-                  <h3>{servicio.nombre_servicio}</h3>
-                  <p className="servicio-precio">
-                    Precio: ${servicio.precio.toLocaleString()}
-                  </p>
+              <div
+                key={servicio.id_servicio}
+                className={`sp-card ${eliminando === servicio.id_servicio ? "sp-card--eliminando" : ""}`}
+              >
+                {/* Badge tipo precio */}
+                <div className="sp-badge">
+                  <span className="sp-badge-icon">{TIPO_PRECIO_ICONS[servicio.tipo_precio] || "📋"}</span>
+                  {TIPO_PRECIO_LABELS[servicio.tipo_precio] || servicio.tipo_precio}
                 </div>
-                <button
-                  className="btn-editar-servicio"
-                  onClick={() => abrirModal(servicio)}
-                >
-                  Editar
-                </button>
+
+                {/* Nombre */}
+                <h3 className="sp-card-nombre">{servicio.nombre_servicio}</h3>
+
+                {/* Descripción */}
+                {servicio.descripcion && (
+                  <p className="sp-card-descripcion">{servicio.descripcion}</p>
+                )}
+
+                {/* Precio */}
+                <div className="sp-card-precio">
+                  <span className="sp-precio-label">Precio</span>
+                  <span className="sp-precio-valor">
+                    ${Number(servicio.precio).toLocaleString("es-MX")}
+                    <span className="sp-precio-tipo"> / {TIPO_PRECIO_LABELS[servicio.tipo_precio] || servicio.tipo_precio}</span>
+                  </span>
+                </div>
+
+                {/* Acciones */}
+                <div className="sp-card-actions">
+                  <button
+                    className="sp-btn-editar"
+                    onClick={() => abrirModal(servicio)}
+                    disabled={eliminando === servicio.id_servicio}
+                  >
+                    ✏ Editar
+                  </button>
+                  <button
+                    className="sp-btn-eliminar"
+                    onClick={() => setConfirmEliminar({ id: servicio.id_servicio, nombre: servicio.nombre_servicio })}
+                    disabled={eliminando === servicio.id_servicio}
+                  >
+                    {eliminando === servicio.id_servicio ? "Eliminando..." : "🗑 Eliminar"}
+                  </button>
+                </div>
               </div>
             ))}
 
-            <div className="servicio-placeholder" onClick={() => abrirModal()}>
-              <p>Haz clic para agregar nuevo servicio</p>
+            {/* Tarjeta agregar */}
+            <div className="sp-card-add" onClick={() => abrirModal()}>
+              <div className="sp-card-add-inner">
+                <span className="sp-card-add-icon">+</span>
+                <p>Agregar servicio</p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Modal */}
+        {/* Modal editar/crear */}
         {showModal && (
-          <div className="modal-overlay" onClick={() => setShowModal(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <h2>{editando ? "Editar Servicio" : "Nuevo Servicio"}</h2>
-              <form onSubmit={guardarServicio}>
-                <input
-                  type="text"
-                  name="nombre_servicio"
-                  placeholder="Nombre del servicio"
-                  value={formData.nombre_servicio}
-                  onChange={handleChange}
-                  required
-                  className="form-input"
-                />
-                <textarea
-                  name="descripcion"
-                  placeholder="Descripcion"
-                  value={formData.descripcion}
-                  onChange={handleChange}
-                  className="form-input"
-                  rows="3"
-                />
-                <input
-                  type="number"
-                  name="precio"
-                  placeholder="Precio"
-                  value={formData.precio}
-                  onChange={handleChange}
-                  required
-                  className="form-input"
-                />
-                <select
-                  name="tipo_precio"
-                  value={formData.tipo_precio}
-                  onChange={handleChange}
-                  className="form-input"
-                >
-                  <option value="por evento">Por evento</option>
-                  <option value="por hora">Por hora</option>
-                  <option value="por persona">Por persona</option>
-                  <option value="paquete">Paquete</option>
-                </select>
-                <div className="modal-buttons">
+          <div className="sp-modal-overlay" onClick={cerrarModal}>
+            <div className="sp-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="sp-modal-header">
+                <h2>{editando ? "Editar servicio" : "Nuevo servicio"}</h2>
+                <button className="sp-modal-close" onClick={cerrarModal} disabled={guardando}>
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={guardarServicio} className="sp-form">
+                <div className="sp-form-group">
+                  <label className="sp-label">Nombre del servicio *</label>
+                  <input
+                    type="text"
+                    name="nombre_servicio"
+                    placeholder="Ej. Fotografía de bodas premium"
+                    value={formData.nombre_servicio}
+                    onChange={handleChange}
+                    required
+                    className="sp-input"
+                  />
+                </div>
+
+                <div className="sp-form-group">
+                  <label className="sp-label">Descripción</label>
+                  <textarea
+                    name="descripcion"
+                    placeholder="Describe qué incluye el servicio, horarios, condiciones..."
+                    value={formData.descripcion}
+                    onChange={handleChange}
+                    className="sp-input sp-textarea"
+                    rows="4"
+                  />
+                </div>
+
+                <div className="sp-form-row">
+                  <div className="sp-form-group">
+                    <label className="sp-label">Precio (MXN) *</label>
+                    <div className="sp-input-prefix-wrap">
+                      <span className="sp-input-prefix">$</span>
+                      <input
+                        type="number"
+                        name="precio"
+                        placeholder="0.00"
+                        value={formData.precio}
+                        onChange={handleChange}
+                        required
+                        min="0"
+                        step="0.01"
+                        className="sp-input sp-input-prefixed"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sp-form-group">
+                    <label className="sp-label">Tipo de precio *</label>
+                    <select
+                      name="tipo_precio"
+                      value={formData.tipo_precio}
+                      onChange={handleChange}
+                      className="sp-input sp-select"
+                    >
+                      <option value="por evento">Por evento</option>
+                      <option value="por hora">Por hora</option>
+                      <option value="por persona">Por persona</option>
+                      <option value="paquete">Paquete</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="sp-modal-footer">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
-                    className="btn-cancelar"
+                    className="sp-btn-cancel"
+                    onClick={cerrarModal}
+                    disabled={guardando}
                   >
                     Cancelar
                   </button>
-                  <button type="submit" className="btn-crear">
-                    {editando ? "Actualizar" : "Crear"}
+                  <button type="submit" className="sp-btn-save" disabled={guardando}>
+                    {guardando ? "Guardando..." : editando ? "Guardar cambios" : "Crear servicio"}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal confirmación eliminar */}
+        {confirmEliminar && (
+          <div className="sp-modal-overlay" onClick={() => setConfirmEliminar(null)}>
+            <div className="sp-modal sp-modal--confirm" onClick={(e) => e.stopPropagation()}>
+              <div className="sp-confirm-icon">🗑</div>
+              <h2 className="sp-confirm-title">¿Eliminar servicio?</h2>
+              <p className="sp-confirm-desc">
+                Estás a punto de eliminar <strong>"{confirmEliminar.nombre}"</strong>. Esta acción no se puede deshacer.
+              </p>
+              <div className="sp-modal-footer sp-confirm-footer">
+                <button
+                  className="sp-btn-cancel"
+                  onClick={() => setConfirmEliminar(null)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="sp-btn-eliminar-confirm"
+                  onClick={eliminarServicio}
+                >
+                  Sí, eliminar
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -1,14 +1,56 @@
 import React, { useState, useEffect } from "react";
+import { FaChevronLeft, FaChevronRight, FaCheckCircle, FaTimesCircle, FaTimes } from "react-icons/fa";
 import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { proveedorService } from "../../services/proveedorService";
 import "./CalendarioDisponibilidad.css";
 
+// ─── Modal de notificación ────────────────────────────────────────────────────
+function NotificacionModal({ modal, onClose }) {
+  if (!modal.visible) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className={`modal-contenido ${modal.tipo}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-icono">
+          {modal.tipo === "exito" ? (
+            <FaCheckCircle size={40} />
+          ) : (
+            <FaTimesCircle size={40} />
+          )}
+        </div>
+        <h3 className="modal-titulo">
+          {modal.tipo === "exito" ? "¡Listo!" : "Algo salió mal"}
+        </h3>
+        <p className="modal-mensaje">{modal.mensaje}</p>
+        <button className="modal-btn-cerrar" onClick={onClose}>
+          Aceptar
+        </button>
+        <button className="modal-btn-x" onClick={onClose} aria-label="Cerrar">
+          <FaTimes size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 function CalendarioDisponibilidad() {
   const [mesCalendario, setMesCalendario] = useState(new Date());
   const [fechasBloqueadas, setFechasBloqueadas] = useState([]);
   const [fechasBloqueadasTemp, setFechasBloqueadasTemp] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
+
+  const [modal, setModal] = useState({ visible: false, tipo: "exito", mensaje: "" });
+
+  const mostrarModal = (tipo, mensaje) =>
+    setModal({ visible: true, tipo, mensaje });
+
+  const cerrarModal = () =>
+    setModal((prev) => ({ ...prev, visible: false }));
 
   const meses = [
     "Enero","Febrero","Marzo","Abril","Mayo","Junio",
@@ -40,13 +82,11 @@ function CalendarioDisponibilidad() {
         .filter((fecha) => fecha.disponible === false)
         .map((fecha) => {
           let fechaStr = fecha.fecha;
-
           if (typeof fechaStr === "string" && fechaStr.includes("T")) {
             fechaStr = fechaStr.split("T")[0];
           } else if (fechaStr instanceof Date) {
             fechaStr = fechaStr.toISOString().split("T")[0];
           }
-
           return fechaStr;
         });
 
@@ -77,7 +117,7 @@ function CalendarioDisponibilidad() {
     const fecha = new Date(year, month, day);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-    return fecha < hoy;
+    return fecha <= hoy; // ← cambio: <= para incluir el día de hoy
   };
 
   const toggleDiaEdicion = (dia) => {
@@ -124,9 +164,9 @@ function CalendarioDisponibilidad() {
       setFechasBloqueadas([...fechasBloqueadasTemp]);
       setModoEdicion(false);
 
-      alert("Cambios guardados exitosamente");
+      mostrarModal("exito", "Los cambios se guardaron exitosamente.");
     } catch (error) {
-      alert("Error al guardar los cambios. Por favor, intenta nuevamente.");
+      mostrarModal("error", "Error al guardar los cambios. Por favor, intenta nuevamente.");
     } finally {
       setLoading(false);
     }
@@ -185,20 +225,28 @@ function CalendarioDisponibilidad() {
 
         {modoEdicion && (
           <div className="alerta-edicion">
-            Modo edición activado - Haz clic en los días para bloquear/desbloquear
+            Modo edición activado — Haz clic en los días para bloquear/desbloquear
           </div>
         )}
 
         <div className="calendario-card">
           <div className="calendario-header">
-            <button onClick={() => cambiarMesCalendario(-1)} className="btn-mes">
-              &lt;
+            <button
+              onClick={() => cambiarMesCalendario(-1)}
+              className="btn-mes"
+              aria-label="Mes anterior"
+            >
+              <FaChevronLeft />
             </button>
             <h2>
               {meses[mesCalendario.getMonth()]} {mesCalendario.getFullYear()}
             </h2>
-            <button onClick={() => cambiarMesCalendario(1)} className="btn-mes">
-              &gt;
+            <button
+              onClick={() => cambiarMesCalendario(1)}
+              className="btn-mes"
+              aria-label="Mes siguiente"
+            >
+              <FaChevronRight />
             </button>
           </div>
 
@@ -248,6 +296,8 @@ function CalendarioDisponibilidad() {
           )}
         </div>
       </div>
+
+      <NotificacionModal modal={modal} onClose={cerrarModal} />
     </ProveedorLayout>
   );
 }
