@@ -153,77 +153,6 @@
   gap: 2rem;
 }
 
-/* ========== NAVEGACIÓN DEL CAROUSEL - DISEÑO PROFESIONAL ========== */
-.carousel-navigation {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2rem;
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-.carousel-nav-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: white;
-  border: 2px solid #1a4d5c;
-  color: #1a4d5c;
-  font-size: 1.4rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(26, 77, 92, 0.15);
-}
-
-.carousel-nav-btn:hover {
-  background: #1a4d5c;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
-}
-
-.carousel-nav-btn:active {
-  transform: translateY(0);
-}
-
-.carousel-nav-btn span {
-  display: block;
-  line-height: 1;
-}
-
-/* Indicadores de página (dots) */
-.carousel-dots {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgba(26, 77, 92, 0.3);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.dot:hover {
-  background: rgba(26, 77, 92, 0.5);
-  transform: scale(1.2);
-}
-
-.dot.active {
-  width: 32px;
-  border-radius: 5px;
-  background: #1a4d5c;
-}
-
-/* ========== RESPONSIVE ========== */
 @media (max-width: 1024px) {
   .proveedores-carousel {
     grid-template-columns: repeat(2, 1fr);
@@ -234,26 +163,6 @@
   .proveedores-carousel {
     grid-template-columns: 1fr;
   }
-
-  .carousel-navigation {
-    gap: 1.5rem;
-    padding: 1rem;
-  }
-
-  .carousel-nav-btn {
-    width: 42px;
-    height: 42px;
-    font-size: 1.2rem;
-  }
-
-  .dot {
-    width: 8px;
-    height: 8px;
-  }
-
-  .dot.active {
-    width: 24px;
-  }
 }
 
 .proveedor-card-home {
@@ -262,6 +171,7 @@
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .proveedor-card-home:hover {
@@ -291,7 +201,7 @@
   transform: scale(1.05);
 }
 
-/* ========== Botón de favorito - ESTILO UNIFICADO ========== */
+/* ========== Botón de favorito ========== */
 .btn-favorito-home {
   position: absolute;
   top: 1rem;
@@ -405,6 +315,7 @@
   font-weight: 500;
 }
 
+/* ========== CTA ========== */
 .cta-section {
   background-color: #1a4d5c;
   padding: 4rem 2rem;
@@ -462,6 +373,7 @@
   color: #1a4d5c;
 }
 
+/* ========== FOOTER ========== */
 .footer-info {
   background-color: #f8f9fa;
   padding: 3rem 2rem 1rem;
@@ -529,66 +441,6 @@
   border-top: 1px solid #dee2e6;
 }
 
-/* ========== Responsive ========== */
-
-@media (max-width: 1024px) {
-  .categorias-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .proveedores-carousel {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 2rem;
-  }
-
-  .search-container {
-    flex-direction: column;
-  }
-
-  .categorias-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .proveedores-carousel {
-    grid-template-columns: 1fr;
-  }
-
-  .footer-info-content {
-    grid-template-columns: 1fr;
-  }
-
-  .cta-buttons {
-    flex-direction: column;
-  }
-
-  /* Ocultar flechas en móvil */
-  .carousel-controls {
-    display: none;
-  }
-
-  /* Botón favorito responsive */
-  .btn-favorito-home {
-    width: 40px;
-    height: 40px;
-    font-size: 1.3rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .btn-favorito-home {
-    width: 35px;
-    height: 35px;
-    font-size: 1.2rem;
-  }
-}
-
-/* ========== AGREGAR ESTOS ESTILOS AL FINAL DE Home.css ========== */
-
 /* ========== HEADER DE SECCIÓN CON BOTÓN ========== */
 .seccion-header {
   max-width: 1400px;
@@ -637,12 +489,11 @@
   box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
 }
 
-/* ========== BADGE DE COINCIDENCIA EN TARJETA ========== */
+/* ========== BADGE DE COINCIDENCIA ========== */
 .badge-coincidencia-home {
   position: absolute;
   top: 1rem;
   left: 1rem;
-  background: white;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 20px;
@@ -651,9 +502,11 @@
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
 }
 
-/* ========== UBICACIÓN Y DESCRIPCIÓN EN TARJETA ========== */
+/* ========== UBICACIÓN Y DESCRIPCIÓN ========== */
 .proveedor-ubicacion-home {
   color: #6c757d;
   font-size: 0.95rem;
@@ -671,7 +524,7 @@
   min-height: 40px;
 }
 
-/* ========== LOADING STATE ========== */
+/* ========== LOADING ========== */
 .loading-proveedores {
   text-align: center;
   padding: 4rem 2rem;
@@ -679,8 +532,84 @@
   font-size: 1.1rem;
 }
 
+/* ========== PAGINACIÓN ========== */
+.hs-paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+
+.hs-pag-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1.5px solid #d0d5dd;
+  background: #ffffff;
+  color: #1a4d5c;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.hs-pag-btn:hover:not(:disabled) {
+  border-color: #1a4d5c;
+  color: #1a4d5c;
+  background: #f0f7f9;
+}
+
+.hs-pag-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hs-pag-activa {
+  background: #1a4d5c !important;
+  color: #ffffff !important;
+  border-color: #1a4d5c !important;
+}
+
+.hs-pag-nav {
+  font-size: 0.8rem;
+}
+
+.hs-pag-ellipsis {
+  padding: 0 4px;
+  color: #64748b;
+}
+
 /* ========== RESPONSIVE ========== */
+@media (max-width: 1024px) {
+  .categorias-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .search-container {
+    flex-direction: column;
+  }
+
+  .categorias-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-info-content {
+    grid-template-columns: 1fr;
+  }
+
+  .cta-buttons {
+    flex-direction: column;
+  }
+
   .seccion-header {
     flex-direction: column;
     align-items: stretch;
@@ -706,5 +635,19 @@
 
   .proveedor-descripcion-home {
     min-height: auto;
+  }
+
+  .btn-favorito-home {
+    width: 40px;
+    height: 40px;
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-favorito-home {
+    width: 35px;
+    height: 35px;
+    font-size: 1.2rem;
   }
 }

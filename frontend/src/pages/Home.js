@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
-import { FaStar, FaStarHalfAlt, FaRegStar, FaMapMarkerAlt, FaSlidersH, FaMagic, FaCog } from "react-icons/fa";
+import {
+  FaStar, FaStarHalfAlt, FaRegStar, FaMapMarkerAlt,
+  FaSlidersH, FaMagic, FaCog,
+  FaChevronLeft, FaChevronRight,
+} from "react-icons/fa";
 import { MdCelebration } from "react-icons/md";
 import { clienteService } from "../services/clienteService";
 import { useAuth } from "../hooks/useAuth";
 import api from "../services/api";
 import "./Home.css";
+
+const POR_PAGINA = 6;
 
 function Home() {
   const [ciudades, setCiudades] = useState([]);
@@ -22,7 +28,8 @@ function Home() {
   const [tienePreferencias, setTienePreferencias] = useState(false);
   const [mostrandoRecomendaciones, setMostrandoRecomendaciones] = useState(false);
   const [cargandoProveedores, setCargandoProveedores] = useState(true);
-  
+  const [paginaActual, setPaginaActual] = useState(1);
+
   const navigate = useNavigate();
   const { user, loading } = useAuth();
 
@@ -40,13 +47,45 @@ function Home() {
     }
   }, [user]);
 
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [mostrandoRecomendaciones]);
+
+  // ── Paginación ────────────────────────────────────────────────
+
+  const totalPaginas = Math.max(1, Math.ceil(proveedores.length / POR_PAGINA));
+  const inicio       = (paginaActual - 1) * POR_PAGINA;
+  const paginados    = proveedores.slice(inicio, inicio + POR_PAGINA);
+
+  const irAPagina = (n) => {
+    if (n < 1 || n > totalPaginas) return;
+    setPaginaActual(n);
+    const seccion = document.querySelector(".proveedores-destacados");
+    window.scrollTo({ top: seccion ? seccion.offsetTop - 80 : 0, behavior: "smooth" });
+  };
+
+  const getPaginas = () => {
+    if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, i) => i + 1);
+    const p = [];
+    if (paginaActual <= 4) {
+      p.push(1, 2, 3, 4, 5, "...", totalPaginas);
+    } else if (paginaActual >= totalPaginas - 3) {
+      p.push(1, "...", totalPaginas - 4, totalPaginas - 3, totalPaginas - 2, totalPaginas - 1, totalPaginas);
+    } else {
+      p.push(1, "...", paginaActual - 1, paginaActual, paginaActual + 1, "...", totalPaginas);
+    }
+    return p;
+  };
+
+  // ── Carga de datos ────────────────────────────────────────────
+
   const verificarPreferenciasYCargarProveedores = async () => {
     try {
       setCargandoProveedores(true);
-      
+
       const prefResponse = await api.get("/recomendaciones/preferencias");
       const tienePrefs = prefResponse.data.data !== null;
-      
+
       setTienePreferencias(tienePrefs);
 
       if (tienePrefs) {
@@ -74,39 +113,26 @@ function Home() {
         recomendaciones.map(async (proveedor) => {
           try {
             const serviciosResponse = await api.get("/servicios/buscar", {
-              params: {
-                id_proveedor: proveedor.id_proveedor,
-                limite: 100,
-              },
+              params: { id_proveedor: proveedor.id_proveedor, limite: 100 },
             });
-
             const servicios = serviciosResponse.data.data || [];
             const serviciosProveedor = servicios.filter(
               (s) => s.id_proveedor === proveedor.id_proveedor,
             );
-
             let precioMinimo = null;
             if (serviciosProveedor.length > 0) {
               precioMinimo = Math.min(
                 ...serviciosProveedor.map((s) => parseFloat(s.precio) || 0),
               );
             }
-
             return {
               ...proveedor,
               precio_minimo: precioMinimo,
               calificacion_promedio: proveedor.calificacion_promedio || 0,
             };
           } catch (error) {
-            console.error(
-              `Error al cargar servicios del proveedor ${proveedor.id_proveedor}:`,
-              error,
-            );
-            return {
-              ...proveedor,
-              precio_minimo: null,
-              calificacion_promedio: proveedor.calificacion_promedio || 0,
-            };
+            console.error(`Error al cargar servicios del proveedor ${proveedor.id_proveedor}:`, error);
+            return { ...proveedor, precio_minimo: null, calificacion_promedio: proveedor.calificacion_promedio || 0 };
           }
         }),
       );
@@ -123,12 +149,10 @@ function Home() {
     try {
       const response = await clienteService.obtenerListaFavoritos();
       const proveedoresFavoritos = response.data.data.proveedores || [];
-      
       const favoritosMap = {};
       proveedoresFavoritos.forEach((fav) => {
         favoritosMap[fav.id_proveedor] = fav.id_lista_proveedor;
       });
-      
       setFavoritos(favoritosMap);
     } catch (error) {
       console.error("Error al cargar favoritos:", error);
@@ -165,37 +189,22 @@ function Home() {
         proveedoresData.map(async (proveedor) => {
           try {
             const serviciosResponse = await api.get("/servicios/buscar", {
-              params: {
-                id_proveedor: proveedor.id_proveedor,
-                limite: 100,
-              },
+              params: { id_proveedor: proveedor.id_proveedor, limite: 100 },
             });
-
             const servicios = serviciosResponse.data.data || [];
             const serviciosProveedor = servicios.filter(
               (s) => s.id_proveedor === proveedor.id_proveedor,
             );
-
             let precioMinimo = null;
             if (serviciosProveedor.length > 0) {
               precioMinimo = Math.min(
                 ...serviciosProveedor.map((s) => parseFloat(s.precio) || 0),
               );
             }
-
-            return {
-              ...proveedor,
-              precio_minimo: precioMinimo,
-            };
+            return { ...proveedor, precio_minimo: precioMinimo };
           } catch (error) {
-            console.error(
-              `Error al cargar servicios del proveedor ${proveedor.id_proveedor}:`,
-              error,
-            );
-            return {
-              ...proveedor,
-              precio_minimo: null,
-            };
+            console.error(`Error al cargar servicios del proveedor ${proveedor.id_proveedor}:`, error);
+            return { ...proveedor, precio_minimo: null };
           }
         }),
       );
@@ -209,14 +218,14 @@ function Home() {
     }
   };
 
+  // ── Handlers ──────────────────────────────────────────────────
+
   const toggleFavorito = async (e, idProveedor) => {
     e.stopPropagation();
 
     if (!user || user.rol !== "cliente") {
       navigate("/login", {
-        state: {
-          message: "Inicia sesión como cliente para guardar favoritos",
-        },
+        state: { message: "Inicia sesión como cliente para guardar favoritos" },
       });
       return;
     }
@@ -225,12 +234,10 @@ function Home() {
 
     try {
       setProcesandoFavorito(true);
-
       const esFavorito = favoritos[idProveedor];
 
       if (esFavorito) {
         await clienteService.eliminarDeFavoritos(favoritos[idProveedor]);
-        
         setFavoritos((prev) => {
           const newFavoritos = { ...prev };
           delete newFavoritos[idProveedor];
@@ -238,7 +245,6 @@ function Home() {
         });
       } else {
         const response = await clienteService.agregarAFavoritos(idProveedor);
-        
         setFavoritos((prev) => ({
           ...prev,
           [idProveedor]: response.data.data.id_lista_proveedor,
@@ -248,9 +254,7 @@ function Home() {
       console.error("Error al gestionar favorito:", error);
       if (error.response?.status === 401) {
         navigate("/login", {
-          state: {
-            message: "Tu sesión ha expirado. Inicia sesión nuevamente",
-          },
+          state: { message: "Tu sesión ha expirado. Inicia sesión nuevamente" },
         });
       } else {
         alert("Error al actualizar favoritos");
@@ -262,16 +266,9 @@ function Home() {
 
   const handleBuscar = () => {
     const params = new URLSearchParams();
-
-    if (filtros.nombre_proveedor) {
-      params.append("nombre_proveedor", filtros.nombre_proveedor);
-    }
-    if (filtros.ubicacion) {
-      params.append("ciudad", filtros.ubicacion);
-    }
-    if (filtros.fecha) {
-      params.append("fecha", filtros.fecha);
-    }
+    if (filtros.nombre_proveedor) params.append("nombre_proveedor", filtros.nombre_proveedor);
+    if (filtros.ubicacion)        params.append("ciudad", filtros.ubicacion);
+    if (filtros.fecha)            params.append("fecha", filtros.fecha);
 
     if (user && user.rol === "cliente") {
       navigate(`/cliente/explorar?${params.toString()}`);
@@ -287,11 +284,7 @@ function Home() {
 
   const handleChangeFiltro = (e) => {
     const { name, value } = e.target;
-
-    setFiltros((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFiltros((prev) => ({ ...prev, [name]: value }));
   };
 
   const renderEstrellas = (calificacion) => {
@@ -302,14 +295,11 @@ function Home() {
       if (calificacionEstrellas >= i) {
         estrellas.push(<FaStar key={i} className="estrella-llena-home" />);
       } else if (calificacionEstrellas >= i - 0.5) {
-        estrellas.push(
-          <FaStarHalfAlt key={i} className="estrella-media-home" />,
-        );
+        estrellas.push(<FaStarHalfAlt key={i} className="estrella-media-home" />);
       } else {
         estrellas.push(<FaRegStar key={i} className="estrella-vacia-home" />);
       }
     }
-
     return estrellas;
   };
 
@@ -345,23 +335,19 @@ function Home() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
         <p>Cargando...</p>
       </div>
     );
   }
 
+  // ── Render ────────────────────────────────────────────────────
+
   return (
     <Layout showNav={true}>
       <div className="home-container">
-        {/* Hero Section con búsqueda */}
+
+        {/* Hero Section */}
         <section className="hero-section">
           <div className="hero-content">
             <h1 className="hero-title">
@@ -386,14 +372,9 @@ function Home() {
                   className="search-input form-select"
                   value={filtros.ubicacion}
                   onChange={handleChangeFiltro}
-                  style={{
-                    color: filtros.ubicacion === "" ? "#adb5bd" : "#495057",
-                  }}
+                  style={{ color: filtros.ubicacion === "" ? "#adb5bd" : "#495057" }}
                 >
-                  <option value="" disabled hidden>
-                    Ubicación
-                  </option>
-
+                  <option value="" disabled hidden>Ubicación</option>
                   {ciudades.map((lugar) => (
                     <option key={lugar.id_lugar} value={lugar.ciudad}>
                       {lugar.ciudad}
@@ -440,7 +421,7 @@ function Home() {
           </div>
         </section>
 
-        {/* Proveedores (Recomendaciones o Mejor Calificados) */}
+        {/* Proveedores */}
         <section className="proveedores-destacados">
           <div className="seccion-header">
             <div className="seccion-titulo-wrapper">
@@ -460,19 +441,13 @@ function Home() {
                 </p>
               )}
             </div>
-            
+
             {user && user.rol === "cliente" && (
               <button onClick={irAPreferencias} className="btn-preferencias-home">
                 {tienePreferencias ? (
-                  <>
-                    <FaCog style={{ marginRight: "6px" }} />
-                    Ajustar preferencias
-                  </>
+                  <><FaCog style={{ marginRight: "6px" }} />Ajustar preferencias</>
                 ) : (
-                  <>
-                    <FaMagic style={{ marginRight: "6px" }} />
-                    Configurar preferencias
-                  </>
+                  <><FaMagic style={{ marginRight: "6px" }} />Configurar preferencias</>
                 )}
               </button>
             )}
@@ -486,21 +461,14 @@ function Home() {
             <>
               <div className="proveedores-carousel">
                 {proveedores.length === 0 ? (
-                  <p
-                    style={{
-                      gridColumn: "1 / -1",
-                      textAlign: "center",
-                      color: "#6c757d",
-                    }}
-                  >
-                    {mostrandoRecomendaciones 
+                  <p style={{ gridColumn: "1 / -1", textAlign: "center", color: "#6c757d" }}>
+                    {mostrandoRecomendaciones
                       ? "No encontramos proveedores que coincidan con tus preferencias. Intenta ajustarlas."
                       : "No hay proveedores disponibles en este momento."}
                   </p>
                 ) : (
-                  proveedores.slice(0, 3).map((proveedor) => {
-                    const calificacion =
-                      parseFloat(proveedor.calificacion_promedio) || 0;
+                  paginados.map((proveedor) => {
+                    const calificacion = parseFloat(proveedor.calificacion_promedio) || 0;
                     const calificacionDe5 = calificacion * 5;
                     const esFavorito = !!favoritos[proveedor.id_proveedor];
 
@@ -512,11 +480,9 @@ function Home() {
                         style={{ cursor: "pointer" }}
                       >
                         {mostrandoRecomendaciones && proveedor.puntuacion_recomendacion && (
-                          <div 
+                          <div
                             className="badge-coincidencia-home"
-                            style={{ 
-                              backgroundColor: getPuntuacionColor(proveedor.puntuacion_recomendacion) 
-                            }}
+                            style={{ backgroundColor: getPuntuacionColor(proveedor.puntuacion_recomendacion) }}
                           >
                             <FaSlidersH style={{ marginRight: "4px", fontSize: "10px" }} />
                             {Math.round(proveedor.puntuacion_recomendacion * 100)}% match
@@ -525,14 +491,10 @@ function Home() {
 
                         <div className="proveedor-image-home">
                           <img
-                            src={
-                              proveedor.logo ||
-                              "https://res.cloudinary.com/eventosmx/image/upload/v1779458200/40af2d21-bdfb-4bbc-a9f6-a4f2f8f55180_bb9fek.jpg"
-                            }
+                            src={proveedor.logo || "https://res.cloudinary.com/eventosmx/image/upload/v1779458200/40af2d21-bdfb-4bbc-a9f6-a4f2f8f55180_bb9fek.jpg"}
                             alt={proveedor.nombre_negocio}
                             onError={(e) => {
-                              e.target.src =
-                                "https://res.cloudinary.com/eventosmx/image/upload/v1779458200/40af2d21-bdfb-4bbc-a9f6-a4f2f8f55180_bb9fek.jpg";
+                              e.target.src = "https://res.cloudinary.com/eventosmx/image/upload/v1779458200/40af2d21-bdfb-4bbc-a9f6-a4f2f8f55180_bb9fek.jpg";
                             }}
                           />
                           <button
@@ -548,9 +510,7 @@ function Home() {
                         <div className="proveedor-info-home">
                           <div className="proveedor-rating-home">
                             {renderEstrellas(calificacion)}
-                            <span className="rating-numero">
-                              {calificacionDe5.toFixed(1)}/5
-                            </span>
+                            <span className="rating-numero">{calificacionDe5.toFixed(1)}/5</span>
                           </div>
 
                           <h3>{proveedor.nombre_negocio}</h3>
@@ -570,16 +530,12 @@ function Home() {
                             </p>
                           )}
 
-                          {proveedor.precio_minimo !== null &&
-                          proveedor.precio_minimo > 0 ? (
+                          {proveedor.precio_minimo !== null && proveedor.precio_minimo > 0 ? (
                             <p className="proveedor-precio">
-                              Desde $
-                              {proveedor.precio_minimo.toLocaleString("es-MX")}
+                              Desde ${proveedor.precio_minimo.toLocaleString("es-MX")}
                             </p>
                           ) : (
-                            <p className="proveedor-sin-precio">
-                              Sin servicios disponibles
-                            </p>
+                            <p className="proveedor-sin-precio">Sin servicios disponibles</p>
                           )}
 
                           <div className="proveedor-footer-home">
@@ -594,20 +550,42 @@ function Home() {
                 )}
               </div>
 
-              {/* Controles del carousel */}
-              <div className="carousel-navigation">
-                <button className="carousel-nav-btn" aria-label="Anterior">
-                  <span>←</span>
-                </button>
-                <div className="carousel-dots">
-                  <span className="dot active"></span>
-                  <span className="dot"></span>
-                  <span className="dot"></span>
-                </div>
-                <button className="carousel-nav-btn" aria-label="Siguiente">
-                  <span>→</span>
-                </button>
-              </div>
+              {/* Paginación */}
+              {totalPaginas > 1 && (
+                <nav className="hs-paginacion">
+                  <button
+                    className="hs-pag-btn hs-pag-nav"
+                    onClick={() => irAPagina(paginaActual - 1)}
+                    disabled={paginaActual === 1}
+                    aria-label="Página anterior"
+                  >
+                    <FaChevronLeft />
+                  </button>
+
+                  {getPaginas().map((n, i) =>
+                    n === "..." ? (
+                      <span key={`ellipsis-${i}`} className="hs-pag-ellipsis">…</span>
+                    ) : (
+                      <button
+                        key={n}
+                        className={`hs-pag-btn ${paginaActual === n ? "hs-pag-activa" : ""}`}
+                        onClick={() => irAPagina(n)}
+                      >
+                        {n}
+                      </button>
+                    )
+                  )}
+
+                  <button
+                    className="hs-pag-btn hs-pag-nav"
+                    onClick={() => irAPagina(paginaActual + 1)}
+                    disabled={paginaActual === totalPaginas}
+                    aria-label="Página siguiente"
+                  >
+                    <FaChevronRight />
+                  </button>
+                </nav>
+              )}
             </>
           )}
         </section>
@@ -618,16 +596,13 @@ function Home() {
             <h2>TU EVENTO IDEAL EMPIEZA AQUÍ</h2>
             {!user && (
               <div className="cta-buttons">
-                <Link to="/register" className="btn-cta btn-registrarse">
-                  REGISTRARSE
-                </Link>
-                <Link to="/login" className="btn-cta btn-acceder">
-                  ACCEDER
-                </Link>
+                <Link to="/register" className="btn-cta btn-registrarse">REGISTRARSE</Link>
+                <Link to="/login"    className="btn-cta btn-acceder">ACCEDER</Link>
               </div>
             )}
           </div>
         </section>
+
       </div>
     </Layout>
   );
