@@ -739,6 +739,21 @@
   flex-wrap: wrap;
 }
 
+.notif-admin-row--bloque {
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.notif-admin-row--bloque span:last-child {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.875rem;
+  color: #444;
+}
+
 .notif-admin-label {
   font-weight: 700;
   color: #1a4d5c;
