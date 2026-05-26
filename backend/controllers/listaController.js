@@ -41,7 +41,8 @@ const crearLista = async (req, res) => {
 const obtenerMisListas = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
-    const listas = await Lista.obtenerPorCliente(id_cliente);
+    const id_proveedor = req.query.id_proveedor ? parseInt(req.query.id_proveedor) : null;
+    const listas = await Lista.obtenerPorCliente(id_cliente, id_proveedor);
 
     res.json({
       success: true,

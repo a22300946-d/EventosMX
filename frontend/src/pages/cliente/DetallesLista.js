@@ -4,6 +4,7 @@ import ClienteLayout from "../../components/cliente/ClienteLayout";
 import { clienteService } from "../../services/clienteService";
 import { FaArrowLeft, FaMapMarkerAlt, FaTrash, FaUser, FaCompass } from "react-icons/fa";
 import { MdInbox } from "react-icons/md";
+import { ModalConfirm, ModalAlert, useModal } from "../../components/modales";
 import "./DetallesLista.css";
 
 function DetallesLista() {
@@ -13,6 +14,15 @@ function DetallesLista() {
   const [proveedores, setProveedores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actualizando, setActualizando] = useState(false);
+
+  const {
+    modalConfirm,
+    modalAlert,
+    mostrarAlerta,
+    mostrarConfirmacion,
+    cerrarConfirm,
+    cerrarAlert,
+  } = useModal();
 
   useEffect(() => {
     cargarDetalles();
@@ -46,25 +56,32 @@ function DetallesLista() {
       await cargarDetalles();
     } catch (error) {
       console.error("Error al cambiar estado:", error);
-      alert("Error al actualizar el estado");
+      mostrarAlerta("Error", "Error al actualizar el estado", "error");
     } finally {
       setActualizando(false);
     }
   };
 
-  const eliminarProveedor = async (idListaProveedor, nombreProveedor) => {
-    if (!window.confirm(`¿Eliminar "${nombreProveedor}" de esta lista?`)) return;
-    try {
-      setActualizando(true);
-      await clienteService.eliminarProveedorDeLista(idListaProveedor);
-      setProveedores(proveedores.filter(p => p.id_lista_proveedor !== idListaProveedor));
-      await cargarDetalles();
-    } catch (error) {
-      console.error("Error al eliminar proveedor:", error);
-      alert("Error al eliminar el proveedor");
-    } finally {
-      setActualizando(false);
-    }
+  const eliminarProveedor = (idListaProveedor, nombreProveedor) => {
+    mostrarConfirmacion({
+      title: "Eliminar proveedor",
+      message: `¿Eliminar "${nombreProveedor}" de esta lista?`,
+      confirmLabel: "Sí, eliminar",
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          setActualizando(true);
+          await clienteService.eliminarProveedorDeLista(idListaProveedor);
+          setProveedores(prev => prev.filter(p => p.id_lista_proveedor !== idListaProveedor));
+          await cargarDetalles();
+        } catch (error) {
+          console.error("Error al eliminar proveedor:", error);
+          mostrarAlerta("Error", "Error al eliminar el proveedor", "error");
+        } finally {
+          setActualizando(false);
+        }
+      },
+    });
   };
 
   const verPerfilProveedor = (idProveedor) => {
@@ -197,6 +214,16 @@ function DetallesLista() {
           </div>
         )}
       </div>
+
+      <ModalConfirm
+        config={modalConfirm}
+        onConfirm={modalConfirm?.onConfirm}
+        onCancel={cerrarConfirm}
+      />
+      <ModalAlert
+        config={modalAlert}
+        onClose={cerrarAlert}
+      />
     </ClienteLayout>
   );
 }

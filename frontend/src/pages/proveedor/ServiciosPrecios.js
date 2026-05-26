@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { proveedorService } from "../../services/proveedorService";
+import { ModalConfirm, ModalAlert, useModal } from "../../components/modales";
 import "./ServiciosPrecios.css";
 
 const TIPO_PRECIO_LABELS = {
@@ -24,13 +25,21 @@ function ServiciosPrecios() {
   const [editando, setEditando] = useState(null);
   const [eliminando, setEliminando] = useState(null);
   const [guardando, setGuardando] = useState(false);
-  const [confirmEliminar, setConfirmEliminar] = useState(null); // { id, nombre }
   const [formData, setFormData] = useState({
     nombre_servicio: "",
     descripcion: "",
     precio: "",
     tipo_precio: "por evento",
   });
+
+  const {
+    modalConfirm,
+    modalAlert,
+    mostrarAlerta,
+    mostrarConfirmacion,
+    cerrarConfirm,
+    cerrarAlert,
+  } = useModal();
 
   useEffect(() => {
     cargarServicios();
@@ -83,25 +92,35 @@ function ServiciosPrecios() {
       setShowModal(false);
       cargarServicios();
     } catch (error) {
-      alert(error.response?.data?.message || "Error al guardar servicio");
+      mostrarAlerta(
+        "Error al guardar",
+        error.response?.data?.message || "Error al guardar servicio",
+        "error"
+      );
     } finally {
       setGuardando(false);
     }
   };
 
-  const eliminarServicio = async () => {
-    if (!confirmEliminar) return;
-    const id = confirmEliminar.id;
-    setConfirmEliminar(null);
-    setEliminando(id);
-    try {
-      await proveedorService.eliminarServicio(id);
-      setServicios((prev) => prev.filter((s) => s.id_servicio !== id));
-    } catch (error) {
-      alert("Error al eliminar servicio");
-    } finally {
-      setEliminando(null);
-    }
+  const pedirEliminar = (servicio) => {
+    mostrarConfirmacion({
+      title: "¿Eliminar servicio?",
+      message: `Estás a punto de eliminar "${servicio.nombre_servicio}". Esta acción no se puede deshacer.`,
+      confirmLabel: "Sí, eliminar",
+      onConfirm: async () => {
+        cerrarConfirm();
+        const id = servicio.id_servicio;
+        setEliminando(id);
+        try {
+          await proveedorService.eliminarServicio(id);
+          setServicios((prev) => prev.filter((s) => s.id_servicio !== id));
+        } catch (error) {
+          mostrarAlerta("Error", "Error al eliminar servicio", "error");
+        } finally {
+          setEliminando(null);
+        }
+      },
+    });
   };
 
   return (
@@ -142,21 +161,17 @@ function ServiciosPrecios() {
                 key={servicio.id_servicio}
                 className={`sp-card ${eliminando === servicio.id_servicio ? "sp-card--eliminando" : ""}`}
               >
-                {/* Badge tipo precio */}
                 <div className="sp-badge">
                   <span className="sp-badge-icon">{TIPO_PRECIO_ICONS[servicio.tipo_precio] || "📋"}</span>
                   {TIPO_PRECIO_LABELS[servicio.tipo_precio] || servicio.tipo_precio}
                 </div>
 
-                {/* Nombre */}
                 <h3 className="sp-card-nombre">{servicio.nombre_servicio}</h3>
 
-                {/* Descripción */}
                 {servicio.descripcion && (
                   <p className="sp-card-descripcion">{servicio.descripcion}</p>
                 )}
 
-                {/* Precio */}
                 <div className="sp-card-precio">
                   <span className="sp-precio-label">Precio</span>
                   <span className="sp-precio-valor">
@@ -165,7 +180,6 @@ function ServiciosPrecios() {
                   </span>
                 </div>
 
-                {/* Acciones */}
                 <div className="sp-card-actions">
                   <button
                     className="sp-btn-editar"
@@ -176,7 +190,7 @@ function ServiciosPrecios() {
                   </button>
                   <button
                     className="sp-btn-eliminar"
-                    onClick={() => setConfirmEliminar({ id: servicio.id_servicio, nombre: servicio.nombre_servicio })}
+                    onClick={() => pedirEliminar(servicio)}
                     disabled={eliminando === servicio.id_servicio}
                   >
                     {eliminando === servicio.id_servicio ? "Eliminando..." : "🗑 Eliminar"}
@@ -185,7 +199,6 @@ function ServiciosPrecios() {
               </div>
             ))}
 
-            {/* Tarjeta agregar */}
             <div className="sp-card-add" onClick={() => abrirModal()}>
               <div className="sp-card-add-inner">
                 <span className="sp-card-add-icon">+</span>
@@ -285,32 +298,15 @@ function ServiciosPrecios() {
           </div>
         )}
 
-        {/* Modal confirmación eliminar */}
-        {confirmEliminar && (
-          <div className="sp-modal-overlay" onClick={() => setConfirmEliminar(null)}>
-            <div className="sp-modal sp-modal--confirm" onClick={(e) => e.stopPropagation()}>
-              <div className="sp-confirm-icon">🗑</div>
-              <h2 className="sp-confirm-title">¿Eliminar servicio?</h2>
-              <p className="sp-confirm-desc">
-                Estás a punto de eliminar <strong>"{confirmEliminar.nombre}"</strong>. Esta acción no se puede deshacer.
-              </p>
-              <div className="sp-modal-footer sp-confirm-footer">
-                <button
-                  className="sp-btn-cancel"
-                  onClick={() => setConfirmEliminar(null)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="sp-btn-eliminar-confirm"
-                  onClick={eliminarServicio}
-                >
-                  Sí, eliminar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ModalConfirm
+          config={modalConfirm}
+          onConfirm={modalConfirm?.onConfirm}
+          onCancel={cerrarConfirm}
+        />
+        <ModalAlert
+          config={modalAlert}
+          onClose={cerrarAlert}
+        />
       </div>
     </ProveedorLayout>
   );

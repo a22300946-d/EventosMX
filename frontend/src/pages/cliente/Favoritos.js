@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
 import { clienteService } from "../../services/clienteService";
+import { ModalConfirm, ModalAlert, useModal } from "../../components/modales";
 import { FaHeartBroken, FaTrash, FaStar, FaMapMarkerAlt, FaRegHeart } from "react-icons/fa";
 import { IoArrowBack } from "react-icons/io5";
 import "./Favoritos.css";
@@ -12,6 +13,15 @@ function Favoritos() {
   const [loading, setLoading] = useState(true);
   const [eliminando, setEliminando] = useState(false);
 
+  const {
+    modalConfirm,
+    modalAlert,
+    mostrarAlerta,
+    mostrarConfirmacion,
+    cerrarConfirm,
+    cerrarAlert,
+  } = useModal();
+
   useEffect(() => {
     cargarFavoritos();
   }, []);
@@ -20,7 +30,6 @@ function Favoritos() {
     try {
       setLoading(true);
       const response = await clienteService.obtenerListaFavoritos();
-      console.log('Favoritos cargados:', response.data.data);
       setFavoritos(response.data.data.proveedores || []);
     } catch (error) {
       console.error("Error al cargar favoritos:", error);
@@ -29,33 +38,31 @@ function Favoritos() {
     }
   };
 
-  const eliminarFavorito = async (idListaProveedor, nombreProveedor) => {
-    console.log('Intentando eliminar:', { idListaProveedor, nombreProveedor });
-    
+  const eliminarFavorito = (idListaProveedor, nombreProveedor) => {
     if (!idListaProveedor) {
       console.error('ID de lista_proveedor no definido');
-      alert("Error: ID no válido");
+      mostrarAlerta("Error", "ID no válido", "error");
       return;
     }
 
-    if (!window.confirm(`¿Eliminar "${nombreProveedor}" de tus favoritos?`)) {
-      return;
-    }
-
-    try {
-      setEliminando(true);
-      
-      await clienteService.eliminarDeFavoritos(idListaProveedor);
-      
-      setFavoritos(favoritos.filter(f => f.id_lista_proveedor !== idListaProveedor));
-      
-      console.log('Favorito eliminado correctamente');
-    } catch (error) {
-      console.error("Error al eliminar favorito:", error);
-      alert("Error al eliminar de favoritos");
-    } finally {
-      setEliminando(false);
-    }
+    mostrarConfirmacion({
+      title: "Eliminar favorito",
+      message: `¿Eliminar "${nombreProveedor}" de tus favoritos?`,
+      confirmLabel: "Sí, eliminar",
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          setEliminando(true);
+          await clienteService.eliminarDeFavoritos(idListaProveedor);
+          setFavoritos(prev => prev.filter(f => f.id_lista_proveedor !== idListaProveedor));
+        } catch (error) {
+          console.error("Error al eliminar favorito:", error);
+          mostrarAlerta("Error", "Error al eliminar de favoritos", "error");
+        } finally {
+          setEliminando(false);
+        }
+      },
+    });
   };
 
   const verPerfil = (idProveedor) => {
@@ -87,7 +94,7 @@ function Favoritos() {
               Todos tus proveedores favoritos en un solo lugar
             </p>
           </div>
-          
+
           <div className="favoritos-resumen">
             <div className="resumen-item">
               <span className="resumen-numero">{favoritos.length}</span>
@@ -112,61 +119,66 @@ function Favoritos() {
           </div>
         ) : (
           <div className="favoritos-lista">
-            {favoritos.map((favorito) => {
-              console.log('Renderizando favorito:', favorito);
-              
-              return (
-                <div key={favorito.id_lista_proveedor} className="favorito-item">
-                  <div className="favorito-imagen">
-                    <img
-                      src={favorito.logo || "https://via.placeholder.com/100"}
-                      alt={favorito.nombre_negocio}
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/100?text=Sin+Logo";
-                      }}
-                    />
-                  </div>
-
-                  <div className="favorito-info-detalle">
-                    <h3>{favorito.nombre_negocio}</h3>
-                    <p className="favorito-tipo">{favorito.tipo_servicio}</p>
-                    <p className="favorito-ciudad">
-                      <FaMapMarkerAlt /> {favorito.ciudad}
-                    </p>
-
-                    {favorito.calificacion_promedio && (
-                      <div className="favorito-rating">
-                        <FaStar /> {Number(favorito.calificacion_promedio * 5).toFixed(1)}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="favorito-acciones">
-                    <button
-                      className="btn-ver-perfil"
-                      onClick={() => verPerfil(favorito.id_proveedor)}
-                    >
-                      Ver perfil
-                    </button>
-
-                    <button
-                      className="btn-eliminar"
-                      onClick={() => eliminarFavorito(
-                        favorito.id_lista_proveedor, 
-                        favorito.nombre_negocio
-                      )}
-                      disabled={eliminando}
-                      title="Eliminar de favoritos"
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
+            {favoritos.map((favorito) => (
+              <div key={favorito.id_lista_proveedor} className="favorito-item">
+                <div className="favorito-imagen">
+                  <img
+                    src={favorito.logo || "https://via.placeholder.com/100"}
+                    alt={favorito.nombre_negocio}
+                    onError={(e) => {
+                      e.target.src = "https://via.placeholder.com/100?text=Sin+Logo";
+                    }}
+                  />
                 </div>
-              );
-            })}
+
+                <div className="favorito-info-detalle">
+                  <h3>{favorito.nombre_negocio}</h3>
+                  <p className="favorito-tipo">{favorito.tipo_servicio}</p>
+                  <p className="favorito-ciudad">
+                    <FaMapMarkerAlt /> {favorito.ciudad}
+                  </p>
+                  {favorito.calificacion_promedio && (
+                    <div className="favorito-rating">
+                      <FaStar /> {Number(favorito.calificacion_promedio * 5).toFixed(1)}
+                    </div>
+                  )}
+                </div>
+
+                <div className="favorito-acciones">
+                  <button
+                    className="btn-ver-perfil"
+                    onClick={() => verPerfil(favorito.id_proveedor)}
+                  >
+                    Ver perfil
+                  </button>
+
+                  <button
+                    className="btn-eliminar"
+                    onClick={() => eliminarFavorito(
+                      favorito.id_lista_proveedor,
+                      favorito.nombre_negocio
+                    )}
+                    disabled={eliminando}
+                    title="Eliminar de favoritos"
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
+
+      <ModalConfirm
+        config={modalConfirm}
+        onConfirm={modalConfirm?.onConfirm}
+        onCancel={cerrarConfirm}
+      />
+      <ModalAlert
+        config={modalAlert}
+        onClose={cerrarAlert}
+      />
     </ClienteLayout>
   );
 }

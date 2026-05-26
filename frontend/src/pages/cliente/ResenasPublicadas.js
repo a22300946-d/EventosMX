@@ -9,31 +9,33 @@ import {
   FaFilter, FaSortAmountDown,
 } from "react-icons/fa";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
+import { ModalConfirm, ModalAlert, useModal } from "../../components/modales";
 import api from "../../services/api";
 import "./ResenasPublicadas.css";
 
 const POR_PAGINA = 10;
 
 function ResenasPublicadas() {
-  const [resenas, setResenas]               = useState([]);
-  const [loading, setLoading]               = useState(true);
-  const [error, setError]                   = useState(null);
-  const [eliminando, setEliminando]         = useState(null);
+  const [resenas, setResenas]                     = useState([]);
+  const [loading, setLoading]                     = useState(true);
+  const [error, setError]                         = useState(null);
+  const [eliminando, setEliminando]               = useState(null);
   const [filtroSentimiento, setFiltroSentimiento] = useState("todos");
-  const [ordenResenas, setOrdenResenas]     = useState("recientes");
-  const [paginaActual, setPaginaActual]     = useState(1);
+  const [ordenResenas, setOrdenResenas]           = useState("recientes");
+  const [paginaActual, setPaginaActual]           = useState(1);
 
-  // Estado para el modal de confirmación
-  const [modalEliminar, setModalEliminar] = useState({
-    visible: false,
-    id_resena: null,
-    nombreProveedor: "",
-  });
+  const {
+    modalConfirm,
+    modalAlert,
+    mostrarAlerta,
+    mostrarConfirmacion,
+    cerrarConfirm,
+    cerrarAlert,
+  } = useModal();
 
   const navigate = useNavigate();
 
   useEffect(() => { cargarResenas(); }, []);
-
   useEffect(() => { setPaginaActual(1); }, [filtroSentimiento, ordenResenas]);
 
   const cargarResenas = async () => {
@@ -90,10 +92,10 @@ function ResenasPublicadas() {
     return filtradas;
   };
 
-  const todasFiltradas   = obtenerResenasFiltradas();
-  const totalPaginas     = Math.ceil(todasFiltradas.length / POR_PAGINA);
-  const inicio           = (paginaActual - 1) * POR_PAGINA;
-  const resenasPagina    = todasFiltradas.slice(inicio, inicio + POR_PAGINA);
+  const todasFiltradas = obtenerResenasFiltradas();
+  const totalPaginas   = Math.ceil(todasFiltradas.length / POR_PAGINA);
+  const inicio         = (paginaActual - 1) * POR_PAGINA;
+  const resenasPagina  = todasFiltradas.slice(inicio, inicio + POR_PAGINA);
 
   const irAPagina = (n) => {
     if (n < 1 || n > totalPaginas) return;
@@ -103,30 +105,29 @@ function ResenasPublicadas() {
 
   // ── Acciones ──────────────────────────────────────────────────────────────
 
-  // Abre el modal en lugar de window.confirm
   const handleSolicitarEliminar = (id_resena, nombreProveedor) => {
-    setModalEliminar({ visible: true, id_resena, nombreProveedor });
-  };
-
-  // Se ejecuta al confirmar en el modal
-  const handleConfirmarEliminar = async () => {
-    const { id_resena } = modalEliminar;
-    setModalEliminar({ visible: false, id_resena: null, nombreProveedor: "" });
-
-    try {
-      setEliminando(id_resena);
-      await api.delete(`/resenas/${id_resena}`);
-      setResenas((prev) => prev.filter((r) => r.id_resena !== id_resena));
-    } catch (error) {
-      console.error("Error al eliminar reseña:", error);
-      alert(error.response?.data?.message || "Error al eliminar la reseña. Por favor intenta de nuevo.");
-    } finally {
-      setEliminando(null);
-    }
-  };
-
-  const handleCancelarEliminar = () => {
-    setModalEliminar({ visible: false, id_resena: null, nombreProveedor: "" });
+    mostrarConfirmacion({
+      title: "Eliminar reseña",
+      message: `¿Estás seguro de que deseas eliminar tu reseña de "${nombreProveedor}"?`,
+      confirmLabel: "Eliminar reseña",
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          setEliminando(id_resena);
+          await api.delete(`/resenas/${id_resena}`);
+          setResenas((prev) => prev.filter((r) => r.id_resena !== id_resena));
+        } catch (error) {
+          console.error("Error al eliminar reseña:", error);
+          mostrarAlerta(
+            "Error al eliminar",
+            error.response?.data?.message || "Error al eliminar la reseña. Por favor intenta de nuevo.",
+            "error"
+          );
+        } finally {
+          setEliminando(null);
+        }
+      },
+    });
   };
 
   const handleVerProveedor = (id_proveedor) => navigate(`/perfil-proveedor/${id_proveedor}`);
@@ -194,37 +195,6 @@ function ResenasPublicadas() {
   return (
     <ClienteLayout>
       <div className="resenas-publicadas-container">
-
-        {/* Modal de confirmación para eliminar */}
-        {modalEliminar.visible && (
-          <div className="modal-overlay" onClick={handleCancelarEliminar}>
-            <div className="modal-contenido" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-icono-wrapper">
-                <FaTrashAlt className="modal-icono-trash" />
-              </div>
-              <h2 className="modal-titulo">Eliminar reseña</h2>
-              <p className="modal-desc">
-                ¿Estás seguro de que deseas eliminar tu reseña de{" "}
-                <strong>"{modalEliminar.nombreProveedor}"</strong>?
-              </p>
-              <p className="modal-aviso">Esta acción no se puede deshacer.</p>
-              <div className="modal-acciones">
-                <button
-                  className="modal-btn-cancelar"
-                  onClick={handleCancelarEliminar}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="modal-btn-confirmar"
-                  onClick={handleConfirmarEliminar}
-                >
-                  <FaTrashAlt /> Eliminar reseña
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Header */}
         <div className="resenas-header">
@@ -406,6 +376,16 @@ function ResenasPublicadas() {
             )}
           </>
         )}
+
+        <ModalConfirm
+          config={modalConfirm}
+          onConfirm={modalConfirm?.onConfirm}
+          onCancel={cerrarConfirm}
+        />
+        <ModalAlert
+          config={modalAlert}
+          onClose={cerrarAlert}
+        />
       </div>
     </ClienteLayout>
   );

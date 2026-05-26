@@ -3,9 +3,9 @@ import api from "../../services/api";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
 import { clienteService } from "../../services/clienteService";
 import { useAuth } from "../../hooks/useAuth";
+import { ModalConfirm, ModalAlert, useModal } from "../../components/modales";
 import "./EditarDatos.css";
 
-// React Icons
 import { FiCamera, FiTrash2, FiCheck, FiAlertTriangle, FiLoader } from "react-icons/fi";
 import { AiOutlineHourglass } from "react-icons/ai";
 
@@ -25,6 +25,15 @@ function EditarDatos() {
   const [errores, setErrores] = useState({});
   const [ciudades, setCiudades] = useState([]);
   const fileInputRef = useRef(null);
+
+  const {
+    modalConfirm,
+    modalAlert,
+    mostrarAlerta,
+    mostrarConfirmacion,
+    cerrarConfirm,
+    cerrarAlert,
+  } = useModal();
 
   useEffect(() => {
     cargarDatos();
@@ -62,12 +71,12 @@ function EditarDatos() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Solo se permiten imágenes");
+      mostrarAlerta("Formato no válido", "Solo se permiten imágenes.", "error");
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("La imagen no debe superar los 2MB");
+      mostrarAlerta("Archivo muy grande", "La imagen no debe superar los 2MB.", "error");
       return;
     }
 
@@ -89,40 +98,45 @@ function EditarDatos() {
         JSON.stringify({ ...userStorage, foto_perfil: response.data.data.foto_perfil })
       );
 
-      alert("Foto de perfil actualizada");
+      mostrarAlerta("Foto actualizada", "Tu foto de perfil se actualizó correctamente.", "success");
     } catch (error) {
       console.error("Error al actualizar foto:", error);
-      alert("Error al actualizar la foto de perfil");
+      mostrarAlerta("Error", "No se pudo actualizar la foto de perfil.", "error");
     } finally {
       setUploadingFoto(false);
     }
   };
 
-  const handleEliminarFoto = async () => {
+  const handleEliminarFoto = () => {
     if (!formData.foto_perfil) {
-      alert("No tienes una foto de perfil para eliminar");
+      mostrarAlerta("Sin foto", "No tienes una foto de perfil para eliminar.", "info");
       return;
     }
 
-    const confirmar = window.confirm("¿Estás seguro de que deseas eliminar tu foto de perfil?");
-    if (!confirmar) return;
+    mostrarConfirmacion({
+      title: "¿Eliminar foto de perfil?",
+      message: "Se eliminará tu foto de perfil actual.",
+      confirmLabel: "Eliminar",
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          setUploadingFoto(true);
+          await clienteService.eliminarFotoPerfil();
 
-    try {
-      setUploadingFoto(true);
-      await clienteService.eliminarFotoPerfil();
+          setFormData((prev) => ({ ...prev, foto_perfil: "" }));
 
-      setFormData((prev) => ({ ...prev, foto_perfil: "" }));
+          const userStorage = JSON.parse(localStorage.getItem("user"));
+          localStorage.setItem("user", JSON.stringify({ ...userStorage, foto_perfil: "" }));
 
-      const userStorage = JSON.parse(localStorage.getItem("user"));
-      localStorage.setItem("user", JSON.stringify({ ...userStorage, foto_perfil: "" }));
-
-      alert("Foto de perfil eliminada");
-    } catch (error) {
-      console.error("Error al eliminar foto:", error);
-      alert("Error al eliminar la foto de perfil");
-    } finally {
-      setUploadingFoto(false);
-    }
+          mostrarAlerta("Foto eliminada", "Tu foto de perfil fue eliminada.", "success");
+        } catch (error) {
+          console.error("Error al eliminar foto:", error);
+          mostrarAlerta("Error", "No se pudo eliminar la foto de perfil.", "error");
+        } finally {
+          setUploadingFoto(false);
+        }
+      },
+    });
   };
 
   const validarNombreCompleto = (valor) => {
@@ -233,11 +247,14 @@ function EditarDatos() {
           ciudad: formData.ciudad,
         })
       );
+
+      mostrarAlerta("¡Datos actualizados!", "Tus datos personales se guardaron correctamente.", "success");
     } catch (error) {
-      setMensaje({
-        tipo: "error",
-        texto: error.response?.data?.message || "Error al actualizar datos",
-      });
+      mostrarAlerta(
+        "Error al guardar",
+        error.response?.data?.message || "No se pudieron actualizar los datos.",
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -402,6 +419,16 @@ function EditarDatos() {
           </form>
         </div>
       </div>
+
+      <ModalConfirm
+        config={modalConfirm}
+        onConfirm={modalConfirm?.onConfirm}
+        onCancel={cerrarConfirm}
+      />
+      <ModalAlert
+        config={modalAlert}
+        onClose={cerrarAlert}
+      />
     </ClienteLayout>
   );
 }

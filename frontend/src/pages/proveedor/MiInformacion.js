@@ -3,9 +3,9 @@ import api from "../../services/api";
 import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { proveedorService } from "../../services/proveedorService";
 import { useAuth } from "../../hooks/useAuth";
+import { ModalConfirm, ModalAlert, useModal } from "../../components/modales";
 import "./MiInformacion.css";
 
-// React Icons
 import { FiCamera, FiTrash2, FiCheck, FiAlertTriangle, FiLoader, FiPlus, FiX } from "react-icons/fi";
 import { AiOutlineHourglass } from "react-icons/ai";
 
@@ -29,10 +29,18 @@ function MiInformacion() {
   const [ciudades, setCiudades] = useState([]);
   const fileInputRef = useRef(null);
 
-  // Estados para tipos de eventos
   const [tiposEventosDisponibles, setTiposEventosDisponibles] = useState([]);
   const [misEventos, setMisEventos] = useState([]);
   const [procesandoEvento, setProcesandoEvento] = useState(false);
+
+  const {
+    modalConfirm,
+    modalAlert,
+    mostrarAlerta,
+    mostrarConfirmacion,
+    cerrarConfirm,
+    cerrarAlert,
+  } = useModal();
 
   useEffect(() => {
     cargarDatos();
@@ -62,7 +70,6 @@ function MiInformacion() {
 
   const agregarEvento = async (id_tipo_evento) => {
     if (procesandoEvento) return;
-
     try {
       setProcesandoEvento(true);
       await api.post("/proveedor-eventos/mis-eventos", { id_tipo_evento });
@@ -70,9 +77,9 @@ function MiInformacion() {
     } catch (error) {
       console.error("Error al agregar evento:", error);
       if (error.response?.status === 409) {
-        alert("Este tipo de evento ya está agregado");
+        mostrarAlerta("Evento duplicado", "Este tipo de evento ya está agregado.", "error");
       } else {
-        alert("Error al agregar el tipo de evento");
+        mostrarAlerta("Error", "No se pudo agregar el tipo de evento.", "error");
       }
     } finally {
       setProcesandoEvento(false);
@@ -81,22 +88,20 @@ function MiInformacion() {
 
   const eliminarEvento = async (id_tipo_evento) => {
     if (procesandoEvento) return;
-
     try {
       setProcesandoEvento(true);
       await api.delete(`/proveedor-eventos/mis-eventos/${id_tipo_evento}`);
       await cargarMisEventos();
     } catch (error) {
       console.error("Error al eliminar evento:", error);
-      alert("Error al eliminar el tipo de evento");
+      mostrarAlerta("Error", "No se pudo eliminar el tipo de evento.", "error");
     } finally {
       setProcesandoEvento(false);
     }
   };
 
-  const estaEventoAgregado = (id_tipo_evento) => {
-    return misEventos.some((evento) => evento.id_tipo_evento === id_tipo_evento);
-  };
+  const estaEventoAgregado = (id_tipo_evento) =>
+    misEventos.some((evento) => evento.id_tipo_evento === id_tipo_evento);
 
   const cargarCategorias = async () => {
     try {
@@ -140,12 +145,12 @@ function MiInformacion() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Solo se permiten imágenes");
+      mostrarAlerta("Formato no válido", "Solo se permiten imágenes.", "error");
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("La imagen no debe superar los 2MB");
+      mostrarAlerta("Archivo muy grande", "La imagen no debe superar los 2MB.", "error");
       return;
     }
 
@@ -156,10 +161,7 @@ function MiInformacion() {
 
       const response = await proveedorService.actualizarFotoPerfil(formDataFoto);
 
-      setFormData((prev) => ({
-        ...prev,
-        logo: response.data.data.logo,
-      }));
+      setFormData((prev) => ({ ...prev, logo: response.data.data.logo }));
 
       const userStorage = JSON.parse(localStorage.getItem("user"));
       localStorage.setItem(
@@ -167,40 +169,45 @@ function MiInformacion() {
         JSON.stringify({ ...userStorage, logo: response.data.data.logo })
       );
 
-      alert("Foto de perfil actualizada");
+      mostrarAlerta("Foto actualizada", "Tu foto de perfil se actualizó correctamente.", "success");
     } catch (error) {
       console.error("Error al actualizar foto:", error);
-      alert("Error al actualizar la foto de perfil");
+      mostrarAlerta("Error", "No se pudo actualizar la foto de perfil.", "error");
     } finally {
       setUploadingFoto(false);
     }
   };
 
-  const handleEliminarFoto = async () => {
+  const handleEliminarFoto = () => {
     if (!formData.logo) {
-      alert("No tienes una foto de perfil para eliminar");
+      mostrarAlerta("Sin foto", "No tienes una foto de perfil para eliminar.", "info");
       return;
     }
 
-    const confirmar = window.confirm("¿Estás seguro de que deseas eliminar tu foto de perfil?");
-    if (!confirmar) return;
+    mostrarConfirmacion({
+      title: "¿Eliminar foto de perfil?",
+      message: "Se eliminará tu foto de perfil actual.",
+      confirmLabel: "Eliminar",
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          setUploadingFoto(true);
+          await proveedorService.eliminarFotoPerfil();
 
-    try {
-      setUploadingFoto(true);
-      await proveedorService.eliminarFotoPerfil();
+          setFormData((prev) => ({ ...prev, logo: "" }));
 
-      setFormData((prev) => ({ ...prev, logo: "" }));
+          const userStorage = JSON.parse(localStorage.getItem("user"));
+          localStorage.setItem("user", JSON.stringify({ ...userStorage, logo: "" }));
 
-      const userStorage = JSON.parse(localStorage.getItem("user"));
-      localStorage.setItem("user", JSON.stringify({ ...userStorage, logo: "" }));
-
-      alert("Foto de perfil eliminada");
-    } catch (error) {
-      console.error("Error al eliminar foto:", error);
-      alert("Error al eliminar la foto de perfil");
-    } finally {
-      setUploadingFoto(false);
-    }
+          mostrarAlerta("Foto eliminada", "Tu foto de perfil fue eliminada.", "success");
+        } catch (error) {
+          console.error("Error al eliminar foto:", error);
+          mostrarAlerta("Error", "No se pudo eliminar la foto de perfil.", "error");
+        } finally {
+          setUploadingFoto(false);
+        }
+      },
+    });
   };
 
   const validarNombreNegocio = (valor) => {
@@ -320,11 +327,14 @@ function MiInformacion() {
           tipo_servicio: formData.tipo_servicio,
         })
       );
+
+      mostrarAlerta("¡Datos actualizados!", "Tu información se guardó correctamente.", "success");
     } catch (error) {
-      setMensaje({
-        tipo: "error",
-        texto: error.response?.data?.message || "Error al actualizar datos",
-      });
+      mostrarAlerta(
+        "Error al guardar",
+        error.response?.data?.message || "No se pudieron actualizar los datos.",
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -356,7 +366,6 @@ function MiInformacion() {
                   <path d="M 25 75 Q 25 55, 50 55 Q 75 55, 75 75" fill="white" />
                 </svg>
               )}
-
               <div className="avatar-overlay">
                 {uploadingFoto ? (
                   <AiOutlineHourglass size={48} color="white" />
@@ -398,9 +407,7 @@ function MiInformacion() {
                 required
               />
               {errores.nombre_negocio && (
-                <span className="error-message">
-                  <FiAlertTriangle /> {errores.nombre_negocio}
-                </span>
+                <span className="error-message"><FiAlertTriangle /> {errores.nombre_negocio}</span>
               )}
               <small className="field-hint">{formData.nombre_negocio.length}/100 caracteres</small>
             </div>
@@ -429,9 +436,7 @@ function MiInformacion() {
                 maxLength="14"
               />
               {errores.telefono && (
-                <span className="error-message">
-                  <FiAlertTriangle /> {errores.telefono}
-                </span>
+                <span className="error-message"><FiAlertTriangle /> {errores.telefono}</span>
               )}
               <small className="field-hint">Ejemplo: 3312345678</small>
             </div>
@@ -451,9 +456,7 @@ function MiInformacion() {
                 ))}
               </select>
               {errores.ciudad && (
-                <span className="error-message">
-                  <FiAlertTriangle /> {errores.ciudad}
-                </span>
+                <span className="error-message"><FiAlertTriangle /> {errores.ciudad}</span>
               )}
             </div>
 
@@ -474,9 +477,7 @@ function MiInformacion() {
                 ))}
               </select>
               {errores.tipo_servicio && (
-                <span className="error-message">
-                  <FiAlertTriangle /> {errores.tipo_servicio}
-                </span>
+                <span className="error-message"><FiAlertTriangle /> {errores.tipo_servicio}</span>
               )}
             </div>
 
@@ -490,9 +491,7 @@ function MiInformacion() {
                 rows="4"
               />
               {errores.descripcion && (
-                <span className="error-message">
-                  <FiAlertTriangle /> {errores.descripcion}
-                </span>
+                <span className="error-message"><FiAlertTriangle /> {errores.descripcion}</span>
               )}
               <small className="field-hint">
                 {formData.descripcion.length}/1000 caracteres
@@ -500,7 +499,7 @@ function MiInformacion() {
               </small>
             </div>
 
-            {/* SECCIÓN DE TIPOS DE EVENTOS */}
+            {/* TIPOS DE EVENTOS */}
             <div className="form-group">
               <label className="eventos-label">
                 Tipos de eventos que atiendo
@@ -554,9 +553,7 @@ function MiInformacion() {
                 onChange={handleChange}
               />
               {errores.nueva_contrasena && (
-                <span className="error-message">
-                  <FiAlertTriangle /> {errores.nueva_contrasena}
-                </span>
+                <span className="error-message"><FiAlertTriangle /> {errores.nueva_contrasena}</span>
               )}
               <small className="field-hint">
                 Mínimo 8 caracteres, debe incluir mayúsculas, minúsculas y números
@@ -576,6 +573,16 @@ function MiInformacion() {
           </form>
         </div>
       </div>
+
+      <ModalConfirm
+        config={modalConfirm}
+        onConfirm={modalConfirm?.onConfirm}
+        onCancel={cerrarConfirm}
+      />
+      <ModalAlert
+        config={modalAlert}
+        onClose={cerrarAlert}
+      />
     </ProveedorLayout>
   );
 }

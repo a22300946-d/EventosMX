@@ -1733,3 +1733,123 @@ html, body {
   max-width: 100%;
   box-sizing: border-box;
 }
+
+/* ═══════════════════════════════════════════
+   APP MODAL — reemplaza alert() del navegador
+═══════════════════════════════════════════ */
+
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 1.5rem;
+  animation: am-fade 0.18s ease;
+}
+
+@keyframes am-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.app-modal-box {
+  background: white;
+  border-radius: 18px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  animation: am-slide 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+}
+
+@keyframes am-slide {
+  from { transform: translateY(24px) scale(0.96); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+.app-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.app-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.app-modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a2e35;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.app-modal-message {
+  font-size: 0.95rem;
+  color: #6c757d;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.app-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.app-modal-btn {
+  padding: 0.65rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  flex: 1;
+}
+
+.app-modal-btn--primary {
+  background: #1a4d5c;
+  color: white;
+}
+
+.app-modal-btn--primary:hover {
+  background: #0d3843;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+}
+
+.app-modal-btn--secondary {
+  background: #f1f3f5;
+  color: #495057;
+}
+
+.app-modal-btn--secondary:hover {
+  background: #e2e6ea;
+}
+
+@media (max-width: 480px) {
+  .app-modal-box { padding: 1.5rem; border-radius: 14px; }
+  .app-modal-icon { width: 48px; height: 48px; font-size: 1.35rem; }
+  .app-modal-title { font-size: 1rem; }
+  .app-modal-message { font-size: 0.9rem; }
+  .app-modal-actions { flex-direction: column; }
+}

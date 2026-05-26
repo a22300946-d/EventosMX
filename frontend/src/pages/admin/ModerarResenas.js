@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../services/api';
+import { ModalConfirm, useModal } from '../../components/modales';
 import './ModerarResenas.css';
 
 function ModerarResenas() {
@@ -9,16 +10,7 @@ function ModerarResenas() {
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
 
-  // Modal de confirmación homogéneo
-  const [modal, setModal] = useState({
-    visible: false,
-    icono: '',
-    titulo: '',
-    descripcion: '',
-    textoConfirmar: '',
-    tipo: '',   // 'peligro' | 'advertencia'
-    onConfirmar: null,
-  });
+  const { modalConfirm, mostrarConfirmacion, cerrarConfirm } = useModal();
 
   useEffect(() => { cargarResenas(); }, []);
 
@@ -35,59 +27,47 @@ function ModerarResenas() {
     }
   };
 
-  const confirmar = (opciones) => setModal({ visible: true, ...opciones });
-  const cerrarModal = () =>
-    setModal({ visible: false, icono: '', titulo: '', descripcion: '', textoConfirmar: '', tipo: '', onConfirmar: null });
+  const mostrarExito = (msg) => { setMensaje(msg); setTimeout(() => setMensaje(''), 3000); };
+  const mostrarError  = (msg) => { setError(msg);   setTimeout(() => setError(''),   3000); };
 
-  const ejecutarConfirmacion = async () => {
-    if (modal.onConfirmar) await modal.onConfirmar();
-    cerrarModal();
+  const pedirEliminar = (resena) => {
+    mostrarConfirmacion({
+      title: '¿Eliminar reseña?',
+      message: `Vas a eliminar la reseña de "${resena.nombre_cliente}" sobre "${resena.nombre_negocio}". Esta acción ocultará la reseña permanentemente.`,
+      confirmLabel: 'Sí, eliminar',
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          await api.delete(`/admin/resenas/${resena.id_resena}`);
+          mostrarExito('Reseña eliminada correctamente.');
+          await cargarResenas();
+        } catch {
+          mostrarError('Error al eliminar la reseña.');
+        }
+      },
+    });
   };
 
-  const pedirEliminar = (resena) => confirmar({
-    icono: '🗑️',
-    titulo: '¿Eliminar reseña?',
-    descripcion: `Vas a eliminar la reseña de "${resena.nombre_cliente}" sobre "${resena.nombre_negocio}". Esta acción ocultará la reseña permanentemente.`,
-    textoConfirmar: 'Sí, eliminar',
-    tipo: 'peligro',
-    onConfirmar: () => eliminar(resena.id_resena),
-  });
-
-  const eliminar = async (id) => {
-    try {
-      await api.delete(`/admin/resenas/${id}`);
-      setMensaje('Reseña eliminada correctamente.');
-      await cargarResenas();
-      setTimeout(() => setMensaje(''), 3000);
-    } catch {
-      setError('Error al eliminar la reseña.');
-      setTimeout(() => setError(''), 3000);
-    }
+  const pedirBloquearUsuario = (resena) => {
+    mostrarConfirmacion({
+      title: '¿Bloquear usuario?',
+      message: `Vas a bloquear la cuenta de "${resena.nombre_cliente}" (ID: ${resena.id_cliente}). El usuario no podrá iniciar sesión hasta que sea desbloqueado.`,
+      confirmLabel: 'Sí, bloquear',
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          await api.patch(`/admin/clientes/${resena.id_cliente}/estado`, { estado: 'bloqueado' });
+          mostrarExito(`Usuario "${resena.nombre_cliente}" bloqueado correctamente.`);
+        } catch {
+          mostrarError('Error al bloquear el usuario.');
+        }
+      },
+    });
   };
 
-  const pedirBloquearUsuario = (resena) => confirmar({
-    icono: '🚫',
-    titulo: '¿Bloquear usuario?',
-    descripcion: `Vas a bloquear la cuenta de "${resena.nombre_cliente}" (ID: ${resena.id_cliente}). El usuario no podrá iniciar sesión hasta que sea desbloqueado.`,
-    textoConfirmar: 'Sí, bloquear',
-    tipo: 'advertencia',
-    onConfirmar: () => bloquearUsuario(resena.id_cliente, resena.nombre_cliente),
-  });
-
-  const bloquearUsuario = async (idCliente, nombreCliente) => {
-    try {
-      await api.patch(`/admin/clientes/${idCliente}/estado`, { estado: 'bloqueado' });
-      setMensaje(`Usuario "${nombreCliente}" bloqueado correctamente.`);
-      setTimeout(() => setMensaje(''), 3000);
-    } catch {
-      setError('Error al bloquear el usuario.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-
-  const calcularEstrellas = (cal) => {
-    if (cal === null || cal === undefined) return 0;
-    return Math.round(parseFloat(cal) * 4) + 1;
+  const calcularEstrellas = (calificacion) => {
+    if (calificacion === null || calificacion === undefined) return 0;
+    return Math.round(parseFloat(calificacion) * 4) + 1;
   };
 
   const renderEstrellas = (cal) => {
@@ -125,10 +105,17 @@ function ModerarResenas() {
                     {renderEstrellas(r.calificacion)}
                   </div>
                   <div className="mr-header-der">
-                    <button className="mr-btn-bloquear" onClick={() => pedirBloquearUsuario(r)}>
+                    <button
+                      className="mr-btn-bloquear"
+                      onClick={() => pedirBloquearUsuario(r)}
+                      title={`Bloquear a ${r.nombre_cliente}`}
+                    >
                       🚫 Bloquear usuario
                     </button>
-                    <button className="mr-btn-eliminar" onClick={() => pedirEliminar(r)}>
+                    <button
+                      className="mr-btn-eliminar"
+                      onClick={() => pedirEliminar(r)}
+                    >
                       Eliminar
                     </button>
                     <span className={`mr-badge mr-badge-${r.sentimiento}`}>
@@ -150,27 +137,11 @@ function ModerarResenas() {
         )}
       </div>
 
-      {/* ── Modal de confirmación homogéneo ── */}
-      {modal.visible && (
-        <div className="modal-overlay-mr" onClick={cerrarModal}>
-          <div className="modal-card-mr" onClick={e => e.stopPropagation()}>
-            {modal.icono && <div className="modal-icono-mr">{modal.icono}</div>}
-            <h3 className="modal-titulo-mr">{modal.titulo}</h3>
-            <p className="modal-desc-mr">{modal.descripcion}</p>
-            <div className="modal-acciones-mr">
-              <button className="modal-btn-mr modal-btn-cancelar-mr" onClick={cerrarModal}>
-                Cancelar
-              </button>
-              <button
-                className={`modal-btn-mr modal-btn-confirmar-mr modal-btn-${modal.tipo}-mr`}
-                onClick={ejecutarConfirmacion}
-              >
-                {modal.textoConfirmar}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalConfirm
+        config={modalConfirm}
+        onConfirm={modalConfirm?.onConfirm}
+        onCancel={cerrarConfirm}
+      />
     </AdminLayout>
   );
 }

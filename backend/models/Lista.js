@@ -18,22 +18,26 @@ class Lista {
   }
 
   // Obtener listas de un cliente
-  static async obtenerPorCliente(id_cliente) {
-    const query = `
-      SELECT l.*,
-             COUNT(lp.id_lista_proveedor) as total_proveedores,
-             COUNT(CASE WHEN lp.estado = 'Adquirido' THEN 1 END) as proveedores_adquiridos,
-             COUNT(CASE WHEN lp.estado = 'Pendiente' THEN 1 END) as proveedores_pendientes
-      FROM Lista l
-      LEFT JOIN ListaProveedor lp ON l.id_lista = lp.id_lista
-      WHERE l.id_cliente = $1
-      GROUP BY l.id_lista
-      ORDER BY l.fecha_creacion DESC
-    `;
-    
-    const resultado = await pool.query(query, [id_cliente]);
-    return resultado.rows;
-  }
+  static async obtenerPorCliente(id_cliente, id_proveedor = null) {
+  const query = `
+    SELECT l.*,
+           COUNT(lp.id_lista_proveedor) as total_proveedores,
+           COUNT(CASE WHEN lp.estado = 'Adquirido' THEN 1 END) as proveedores_adquiridos,
+           COUNT(CASE WHEN lp.estado = 'Pendiente' THEN 1 END) as proveedores_pendientes,
+           EXISTS(
+             SELECT 1 FROM ListaProveedor lp2
+             WHERE lp2.id_lista = l.id_lista
+               AND lp2.id_proveedor = $2
+           ) as ya_incluido
+    FROM Lista l
+    LEFT JOIN ListaProveedor lp ON l.id_lista = lp.id_lista
+    WHERE l.id_cliente = $1
+    GROUP BY l.id_lista
+    ORDER BY l.fecha_creacion DESC
+  `;
+  const resultado = await pool.query(query, [id_cliente, id_proveedor]);
+  return resultado.rows;
+}
 
   // Obtener una lista por ID
   static async obtenerPorId(id_lista, id_cliente) {
