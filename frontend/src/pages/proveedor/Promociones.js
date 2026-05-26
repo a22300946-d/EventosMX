@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { proveedorService } from "../../services/proveedorService";
-import { FaTrash } from "react-icons/fa";
+import { ModalConfirm, ModalAlert, useModal } from "../../components/modales";
 import "./Promociones.css";
 
 function Promociones() {
@@ -10,7 +10,7 @@ function Promociones() {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     titulo: "",
     descripcion: "",
@@ -20,11 +20,14 @@ function Promociones() {
     fecha_fin: "",
   });
 
-  // Modal de confirmación para eliminar
-  const [modalConfirm, setModalConfirm] = useState({
-    visible: false,
-    promo: null,
-  });
+  const {
+    modalConfirm,
+    modalAlert,
+    mostrarAlerta,
+    mostrarConfirmacion,
+    cerrarConfirm,
+    cerrarAlert,
+  } = useModal();
 
   useEffect(() => {
     cargarPromociones();
@@ -62,15 +65,14 @@ function Promociones() {
   const abrirModalEditar = (promo) => {
     setIsEditing(true);
     setEditingId(promo.id_promocion);
-    
-    // Formatear las fechas a YYYY-MM-DD para que el input type="date" las cargue bien
+
     const formatearFecha = (fechaStr) => {
       if (!fechaStr) return "";
       const d = new Date(fechaStr);
-      const mes = `${d.getMonth() + 1}`.padStart(2, '0');
-      const dia = `${d.getDate()}`.padStart(2, '0');
+      const mes = `${d.getMonth() + 1}`.padStart(2, "0");
+      const dia = `${d.getDate()}`.padStart(2, "0");
       const anio = d.getFullYear();
-      return [anio, mes, dia].join('-');
+      return [anio, mes, dia].join("-");
     };
 
     setFormData({
@@ -92,7 +94,7 @@ function Promociones() {
       } else {
         await proveedorService.crearPromocion(formData);
       }
-      
+
       setShowModal(false);
       setFormData({
         titulo: "",
@@ -104,29 +106,29 @@ function Promociones() {
       });
       cargarPromociones();
     } catch (error) {
-      alert(error.response?.data?.message || `Error al ${isEditing ? "actualizar" : "crear"} promoción`);
+      mostrarAlerta(
+        "Error",
+        error.response?.data?.message || `Error al ${isEditing ? "actualizar" : "crear"} promoción`,
+        "error"
+      );
     }
   };
 
-  // Pide confirmación antes de eliminar
   const pedirEliminar = (promo) => {
-    setModalConfirm({ visible: true, promo });
-  };
-
-  const confirmarEliminar = async () => {
-    if (!modalConfirm.promo) return;
-    try {
-      await proveedorService.eliminarPromocion(modalConfirm.promo.id_promocion);
-      cargarPromociones();
-    } catch (error) {
-      alert("Error al eliminar promoción");
-    } finally {
-      setModalConfirm({ visible: false, promo: null });
-    }
-  };
-
-  const cerrarConfirm = () => {
-    setModalConfirm({ visible: false, promo: null });
+    mostrarConfirmacion({
+      title: "¿Eliminar promoción?",
+      message: `Vas a eliminar la promoción "${promo.titulo}". Esta acción no se puede deshacer.`,
+      confirmLabel: "Sí, eliminar",
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          await proveedorService.eliminarPromocion(promo.id_promocion);
+          cargarPromociones();
+        } catch (error) {
+          mostrarAlerta("Error", "Error al eliminar promoción", "error");
+        }
+      },
+    });
   };
 
   return (
@@ -151,9 +153,9 @@ function Promociones() {
                       <span className="promocion-precio-promo">${parseFloat(promo.precio_promocional).toLocaleString()}</span>
                     </div>
                     <div className="promocion-fechas">
-                      <span>Del {new Date(promo.fecha_inicio).toLocaleDateString('es-MX')} al {new Date(promo.fecha_fin).toLocaleDateString('es-MX')}</span>
+                      <span>Del {new Date(promo.fecha_inicio).toLocaleDateString("es-MX")} al {new Date(promo.fecha_fin).toLocaleDateString("es-MX")}</span>
                     </div>
-                    <button 
+                    <button
                       className="btn-editar-promo"
                       onClick={() => abrirModalEditar(promo)}
                     >
@@ -169,17 +171,14 @@ function Promociones() {
                 </div>
               ))}
 
-              <div
-                className="promocion-placeholder"
-                onClick={abrirModalCrear}
-              >
+              <div className="promocion-placeholder" onClick={abrirModalCrear}>
                 <p>Haz clic para agregar nueva promoción</p>
               </div>
             </>
           )}
         </div>
 
-        {/* Modal Único (Nueva / Editar) */}
+        {/* Modal Nueva / Editar */}
         {showModal && (
           <div className="modal-overlay" onClick={() => setShowModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -258,28 +257,15 @@ function Promociones() {
           </div>
         )}
 
-        {/* Modal confirmación eliminar */}
-        {modalConfirm.visible && (
-          <div className="promo-confirm-overlay" onClick={cerrarConfirm}>
-            <div className="promo-confirm-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="promo-confirm-icono">
-                <FaTrash />
-              </div>
-              <h3 className="promo-confirm-titulo">¿Eliminar promoción?</h3>
-              <p className="promo-confirm-desc">
-                Vas a eliminar la promoción <strong>"{modalConfirm.promo?.titulo}"</strong>. Esta acción no se puede deshacer.
-              </p>
-              <div className="promo-confirm-acciones">
-                <button className="promo-confirm-btn-cancelar" onClick={cerrarConfirm}>
-                  Cancelar
-                </button>
-                <button className="promo-confirm-btn-eliminar" onClick={confirmarEliminar}>
-                  Sí, eliminar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ModalConfirm
+          config={modalConfirm}
+          onConfirm={modalConfirm?.onConfirm}
+          onCancel={cerrarConfirm}
+        />
+        <ModalAlert
+          config={modalAlert}
+          onClose={cerrarAlert}
+        />
       </div>
     </ProveedorLayout>
   );

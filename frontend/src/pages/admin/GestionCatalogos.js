@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../services/api';
+import { ModalConfirm, useModal } from '../../components/modales';
 import './GestionCatalogos.css';
 import { FiMapPin, FiTool, FiCalendar, FiTrash2, FiSmile, FiChevronUp, FiChevronDown, FiX } from 'react-icons/fi';
 
@@ -81,7 +82,6 @@ function EmojiPicker({ grupos, valor, onChange, placeholder }) {
 
       {abierto && (
         <div className="ep-dropdown">
-          {/* Pestañas de grupo */}
           <div className="ep-grupos">
             {Object.keys(grupos).map((g) => (
               <button
@@ -95,9 +95,7 @@ function EmojiPicker({ grupos, valor, onChange, placeholder }) {
               </button>
             ))}
           </div>
-          {/* Etiqueta del grupo activo */}
           <p className="ep-grupo-label">{grupoActivo}</p>
-          {/* Grid de emojis */}
           <div className="ep-grid">
             {grupos[grupoActivo].map((emoji) => (
               <button
@@ -155,26 +153,6 @@ const SECCIONES = [
   },
 ];
 
-// ── Modal de confirmación ──────────────────────────────────────
-function ModalConfirmar({ modal, onCancelar, onConfirmar }) {
-  if (!modal.visible) return null;
-  return (
-    <div className="gc-modal-overlay" onClick={onCancelar}>
-      <div className="gc-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="gc-modal-icono">
-          <FiTrash2 size={28} />
-        </div>
-        <h3 className="gc-modal-titulo">{modal.titulo}</h3>
-        <p className="gc-modal-desc">{modal.descripcion}</p>
-        <div className="gc-modal-acciones">
-          <button className="gc-modal-btn-cancelar" onClick={onCancelar}>Cancelar</button>
-          <button className="gc-modal-btn-confirmar" onClick={onConfirmar}>Sí, eliminar</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Panel de una sección ───────────────────────────────────────
 function PanelSeccion({ seccion }) {
   const [items, setItems] = useState([]);
@@ -184,7 +162,12 @@ function PanelSeccion({ seccion }) {
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevoExtra, setNuevoExtra] = useState('');
   const [agregando, setAgregando] = useState(false);
-  const [modal, setModal] = useState({ visible: false, titulo: '', descripcion: '', id: null });
+
+  const {
+    modalConfirm,
+    mostrarConfirmacion,
+    cerrarConfirm,
+  } = useModal();
 
   const mostrarExito = (msg) => { setExito(msg); setTimeout(() => setExito(''), 3000); };
   const mostrarError  = (msg) => { setError(msg);  setTimeout(() => setError(''),  4000); };
@@ -223,24 +206,21 @@ function PanelSeccion({ seccion }) {
   };
 
   const pedirEliminar = (item) => {
-    setModal({
-      visible: true,
-      titulo: `¿Eliminar "${item[seccion.campoNombre]}"?`,
-      descripcion: 'Esta acción eliminará el elemento del catálogo. Los registros existentes que lo usen podrían verse afectados.',
-      id: item[seccion.campoId],
+    mostrarConfirmacion({
+      title: `¿Eliminar "${item[seccion.campoNombre]}"?`,
+      message: 'Esta acción eliminará el elemento del catálogo. Los registros existentes que lo usen podrían verse afectados.',
+      confirmLabel: 'Sí, eliminar',
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          await api.delete(`${seccion.endpoint}/${item[seccion.campoId]}`);
+          mostrarExito('Elemento eliminado correctamente.');
+          await cargar();
+        } catch {
+          mostrarError('Error al eliminar el elemento.');
+        }
+      },
     });
-  };
-
-  const confirmarEliminar = async () => {
-    try {
-      await api.delete(`${seccion.endpoint}/${modal.id}`);
-      mostrarExito('Elemento eliminado correctamente.');
-      await cargar();
-    } catch {
-      mostrarError('Error al eliminar el elemento.');
-    } finally {
-      setModal({ visible: false, titulo: '', descripcion: '', id: null });
-    }
   };
 
   return (
@@ -313,10 +293,10 @@ function PanelSeccion({ seccion }) {
         </ul>
       )}
 
-      <ModalConfirmar
-        modal={modal}
-        onCancelar={() => setModal({ visible: false })}
-        onConfirmar={confirmarEliminar}
+      <ModalConfirm
+        config={modalConfirm}
+        onConfirm={modalConfirm?.onConfirm}
+        onCancel={cerrarConfirm}
       />
     </div>
   );
@@ -332,7 +312,6 @@ function GestionCatalogos() {
       <div className="gc-container">
         <h1 className="gc-titulo">Gestión de catálogos</h1>
 
-        {/* Pestañas */}
         <div className="gc-tabs">
           {SECCIONES.map((s) => (
             <button
@@ -347,7 +326,6 @@ function GestionCatalogos() {
           ))}
         </div>
 
-        {/* Panel activo — se remonta al cambiar pestaña para resetear estado */}
         <PanelSeccion key={seccionActiva} seccion={seccion} />
       </div>
     </AdminLayout>

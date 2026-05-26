@@ -1,42 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { FaChevronLeft, FaChevronRight, FaCheckCircle, FaTimesCircle, FaTimes } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { proveedorService } from "../../services/proveedorService";
+import { ModalAlert, useModal } from "../../components/modales";
 import "./CalendarioDisponibilidad.css";
 
-// ─── Modal de notificación ────────────────────────────────────────────────────
-function NotificacionModal({ modal, onClose }) {
-  if (!modal.visible) return null;
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className={`modal-contenido ${modal.tipo}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-icono">
-          {modal.tipo === "exito" ? (
-            <FaCheckCircle size={40} />
-          ) : (
-            <FaTimesCircle size={40} />
-          )}
-        </div>
-        <h3 className="modal-titulo">
-          {modal.tipo === "exito" ? "¡Listo!" : "Algo salió mal"}
-        </h3>
-        <p className="modal-mensaje">{modal.mensaje}</p>
-        <button className="modal-btn-cerrar" onClick={onClose}>
-          Aceptar
-        </button>
-        <button className="modal-btn-x" onClick={onClose} aria-label="Cerrar">
-          <FaTimes size={14} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Componente principal ─────────────────────────────────────────────────────
 function CalendarioDisponibilidad() {
   const [mesCalendario, setMesCalendario] = useState(new Date());
   const [fechasBloqueadas, setFechasBloqueadas] = useState([]);
@@ -44,13 +12,7 @@ function CalendarioDisponibilidad() {
   const [loading, setLoading] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
 
-  const [modal, setModal] = useState({ visible: false, tipo: "exito", mensaje: "" });
-
-  const mostrarModal = (tipo, mensaje) =>
-    setModal({ visible: true, tipo, mensaje });
-
-  const cerrarModal = () =>
-    setModal((prev) => ({ ...prev, visible: false }));
+  const { modalAlert, mostrarAlerta, cerrarAlert } = useModal();
 
   const meses = [
     "Enero","Febrero","Marzo","Abril","Mayo","Junio",
@@ -117,7 +79,7 @@ function CalendarioDisponibilidad() {
     const fecha = new Date(year, month, day);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-    return fecha <= hoy; // ← cambio: <= para incluir el día de hoy
+    return fecha <= hoy;
   };
 
   const toggleDiaEdicion = (dia) => {
@@ -164,9 +126,9 @@ function CalendarioDisponibilidad() {
       setFechasBloqueadas([...fechasBloqueadasTemp]);
       setModoEdicion(false);
 
-      mostrarModal("exito", "Los cambios se guardaron exitosamente.");
+      mostrarAlerta("¡Listo!", "Los cambios se guardaron exitosamente.", "success");
     } catch (error) {
-      mostrarModal("error", "Error al guardar los cambios. Por favor, intenta nuevamente.");
+      mostrarAlerta("Algo salió mal", "Error al guardar los cambios. Por favor, intenta nuevamente.", "error");
     } finally {
       setLoading(false);
     }
@@ -297,7 +259,10 @@ function CalendarioDisponibilidad() {
         </div>
       </div>
 
-      <NotificacionModal modal={modal} onClose={cerrarModal} />
+      <ModalAlert
+        config={modalAlert}
+        onClose={cerrarAlert}
+      />
     </ProveedorLayout>
   );
 }

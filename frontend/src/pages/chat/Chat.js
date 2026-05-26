@@ -9,8 +9,34 @@ import ConversacionesList from './ConversacionesList';
 import ModalSolicitud from './ModalSolicitud';
 import ModalResena from './ModalResena';
 import './Chat.css';
-import { FiPaperclip, FiSend } from 'react-icons/fi';
+import { FiPaperclip, FiSend, FiX, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
+
+/* ── Modal de notificación ── */
+const Notificacion = ({ notif, onClose }) => {
+  if (!notif) return null;
+  return (
+    <div className="notif-overlay" onClick={onClose}>
+      <div
+        className={`notif-modal ${notif.tipo === 'error' ? 'notif-error' : 'notif-success'}`}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="notif-icon">
+          {notif.tipo === 'error'
+            ? <FiAlertCircle size={32} />
+            : <FiCheckCircle size={32} />}
+        </div>
+        <div className="notif-body">
+          <p className="notif-titulo">{notif.titulo}</p>
+          {notif.detalle && <p className="notif-detalle">{notif.detalle}</p>}
+        </div>
+        <button className="notif-close" onClick={onClose}>
+          <FiX size={20} />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const Chat = () => {
   const { id_solicitud } = useParams();
@@ -25,8 +51,15 @@ const Chat = () => {
   const [solicitudActual, setSolicitudActual] = useState(null);
   const [modalResenaOpen, setModalResenaOpen] = useState(false);
   const [puedeDejarResena, setPuedeDejarResena] = useState(false);
+  const [notif, setNotif] = useState(null); // { titulo, detalle, tipo }
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  const mostrarNotif = (titulo, detalle = '', tipo = 'success') => {
+    setNotif({ titulo, detalle, tipo });
+  };
+
+  const cerrarNotif = () => setNotif(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,11 +77,9 @@ const Chat = () => {
       try {
         const userData = JSON.parse(userFromStorage);
         console.log('Usuario cargado:', userData);
-        
-        if (!userData.token && token) {
-          userData.token = token;
-        }
-        
+
+        if (!userData.token && token) userData.token = token;
+
         if (!userData.tipo) {
           if (userData.id_cliente) {
             userData.tipo = 'cliente';
@@ -58,13 +89,13 @@ const Chat = () => {
             userData.id = userData.id_proveedor;
           }
         }
-        
+
         if (userData.nombre_completo && !userData.nombre) {
           userData.nombre = userData.nombre_completo.split(' ')[0];
         }
-        
+
         setUsuario(userData);
-        
+
         if (userData.token) {
           socketService.connect(userData.token);
         } else {
@@ -77,23 +108,16 @@ const Chat = () => {
       console.error('No se encontró usuario en localStorage');
     }
 
-    return () => {
-      socketService.disconnect();
-    };
+    return () => { socketService.disconnect(); };
   }, []);
 
-  useEffect(() => {
-    cargarConversaciones();
-  }, []);
+  useEffect(() => { cargarConversaciones(); }, []);
 
   useEffect(() => {
     if (id_solicitud) {
       cargarMensajes(id_solicitud);
       socketService.joinConversation(parseInt(id_solicitud));
-
-      return () => {
-        socketService.leaveConversation(parseInt(id_solicitud));
-      };
+      return () => { socketService.leaveConversation(parseInt(id_solicitud)); };
     }
   }, [id_solicitud]);
 
@@ -109,9 +133,7 @@ const Chat = () => {
       }
     });
 
-    socketService.onUserStopTyping((data) => {
-      setIsTyping(false);
-    });
+    socketService.onUserStopTyping(() => { setIsTyping(false); });
 
     return () => {
       socketService.off('new_message');
@@ -121,14 +143,10 @@ const Chat = () => {
   }, [usuario]);
 
   useEffect(() => {
-    if (conversacionActual) {
-      setSolicitudActual(conversacionActual);
-    }
+    if (conversacionActual) setSolicitudActual(conversacionActual);
   }, [conversacionActual]);
 
-  useEffect(() => {
-    verificarPuedeDejarResena();
-  }, [conversacionActual, usuario]);
+  useEffect(() => { verificarPuedeDejarResena(); }, [conversacionActual, usuario]);
 
   const cargarConversaciones = async () => {
     try {
@@ -147,16 +165,13 @@ const Chat = () => {
     try {
       const response = await mensajeService.obtenerMensajes(solicitudId);
       setMensajes(response.data || []);
-      
+
       await mensajeService.marcarComoLeidos(solicitudId);
       socketService.markAsRead(parseInt(solicitudId));
-      
+
       const conv = conversaciones.find(c => c.id_solicitud === parseInt(solicitudId));
       if (conv) {
-        setConversacionActual({
-          ...conv,
-          estado: conv.estado_solicitud || conv.estado
-        });
+        setConversacionActual({ ...conv, estado: conv.estado_solicitud || conv.estado });
       }
     } catch (error) {
       console.error('Error al cargar mensajes:', error);
@@ -165,9 +180,7 @@ const Chat = () => {
 
   const handleEnviarMensaje = async (e) => {
     e.preventDefault();
-    
     if (!nuevoMensaje.trim()) return;
-
     try {
       socketService.sendMessage(parseInt(id_solicitud), nuevoMensaje.trim());
       setNuevoMensaje('');
@@ -181,7 +194,7 @@ const Chat = () => {
     const conversacionActualizada = conversaciones.find(
       c => c.id_solicitud === parseInt(id_solicitud)
     );
-    
+
     if (conversacionActualizada) {
       setSolicitudActual({
         ...conversacionActualizada,
@@ -201,14 +214,14 @@ const Chat = () => {
     try {
       await solicitudService.aprobar(id_solicitud);
       socketService.sendMessage(parseInt(id_solicitud), 'He aprobado tu propuesta. ¡Nos vemos pronto!');
-      alert('Solicitud aprobada exitosamente');
+      mostrarNotif('¡Solicitud aprobada!', 'La propuesta fue aceptada exitosamente.');
       setConversacionActual(prev => prev ? ({ ...prev, estado: 'Aceptada' }) : null);
       setSolicitudActual(prev => prev ? ({ ...prev, estado: 'Aceptada' }) : null);
       await cargarConversaciones();
       await cargarMensajes(id_solicitud);
     } catch (error) {
       console.error('Error al aprobar solicitud:', error);
-      alert('Error al aprobar la solicitud. Por favor intenta de nuevo.');
+      mostrarNotif('Error al aprobar', 'Por favor intenta de nuevo.', 'error');
     }
   };
 
@@ -216,21 +229,21 @@ const Chat = () => {
     try {
       await solicitudService.rechazar(id_solicitud);
       socketService.sendMessage(parseInt(id_solicitud), 'Lamentablemente he decidido no continuar con esta solicitud. Gracias por tu tiempo.');
-      alert('Solicitud rechazada');
+      mostrarNotif('Solicitud rechazada', 'La solicitud fue rechazada correctamente.');
       setConversacionActual(prev => prev ? ({ ...prev, estado: 'Rechazada' }) : null);
       setSolicitudActual(prev => prev ? ({ ...prev, estado: 'Rechazada' }) : null);
       await cargarConversaciones();
       await cargarMensajes(id_solicitud);
     } catch (error) {
       console.error('Error al rechazar solicitud:', error);
-      alert('Error al rechazar la solicitud. Por favor intenta de nuevo.');
+      mostrarNotif('Error al rechazar', 'Por favor intenta de nuevo.', 'error');
     }
   };
 
   const handleEnviarPropuesta = async (id_solicitud, propuesta) => {
     try {
       await solicitudService.marcarComoRespondida(id_solicitud, propuesta);
-      
+
       const formatearFechaSinDesfase = (fechaString) => {
         if (!fechaString) return '';
         const [year, month, day] = fechaString.split('-').map(Number);
@@ -239,18 +252,18 @@ const Chat = () => {
           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
       };
-      
+
       const mensajePropuesta = `**Mi Propuesta**\n\n**Precio Total:** $${parseFloat(propuesta.precio).toLocaleString('es-MX')}\n\n**Descripción:**\n${propuesta.descripcion}\n\n${propuesta.fecha_servicio ? `**Fecha:** ${formatearFechaSinDesfase(propuesta.fecha_servicio)}` : ''}\n${propuesta.hora_servicio ? `**Hora:** ${propuesta.hora_servicio}` : ''}\n\n${propuesta.notas_adicionales ? `**Notas:**\n${propuesta.notas_adicionales}` : ''}\n\n¿Te parece bien esta propuesta? ¡Espero tu respuesta!`;
-      
+
       socketService.sendMessage(parseInt(id_solicitud), mensajePropuesta);
-      alert('Propuesta enviada exitosamente');
+      mostrarNotif('¡Propuesta enviada!', 'El cliente recibirá tu propuesta en breve.');
       setConversacionActual(prev => prev ? ({ ...prev, estado: 'Respondida' }) : null);
       setSolicitudActual(prev => prev ? ({ ...prev, estado: 'Respondida' }) : null);
       await cargarConversaciones();
       await cargarMensajes(id_solicitud);
     } catch (error) {
       console.error('Error al enviar propuesta:', error);
-      alert('Error al enviar la propuesta. Por favor intenta de nuevo.');
+      mostrarNotif('Error al enviar propuesta', 'Por favor intenta de nuevo.', 'error');
     }
   };
 
@@ -260,7 +273,7 @@ const Chat = () => {
       return;
     }
 
-    const estadoValido = conversacionActual.estado === 'Aceptada' || 
+    const estadoValido = conversacionActual.estado === 'Aceptada' ||
                          conversacionActual.estado_solicitud === 'Aceptada';
     const fechaEvento = conversacionActual.fecha_evento;
     const eventoYaPaso = fechaEvento && new Date(fechaEvento) < new Date();
@@ -269,8 +282,8 @@ const Chat = () => {
       try {
         const response = await resenaService.obtenerPorProveedor(conversacionActual.id_proveedor);
         const resenas = response.data || response;
-        const yaDejoResena = resenas.some(resena => 
-          resena.id_cliente === usuario.id && 
+        const yaDejoResena = resenas.some(resena =>
+          resena.id_cliente === usuario.id &&
           resena.id_solicitud === conversacionActual.id_solicitud
         );
         setPuedeDejarResena(!yaDejoResena);
@@ -287,18 +300,17 @@ const Chat = () => {
     try {
       const response = await resenaService.crear(datosResena);
       const resenaData = response.data || response;
-      
+
       socketService.sendMessage(
         parseInt(id_solicitud),
         'He dejado una reseña sobre mi experiencia con el servicio.'
       );
-      
-      if (resenaData.calificacion !== undefined && resenaData.sentimiento) {
-        alert(`Reseña publicada exitosamente!\n\nCalificación: ${resenaData.calificacion}/5\nSentimiento: ${resenaData.sentimiento}`);
-      } else {
-        alert('Reseña publicada exitosamente!');
-      }
-      
+
+      const detalle = resenaData.calificacion !== undefined && resenaData.sentimiento
+        ? `Calificación: ${resenaData.calificacion}/5 · Sentimiento: ${resenaData.sentimiento}`
+        : '';
+
+      mostrarNotif('¡Reseña publicada!', detalle);
       setModalResenaOpen(false);
       setPuedeDejarResena(false);
     } catch (error) {
@@ -314,9 +326,7 @@ const Chat = () => {
       socketService.typing(parseInt(id_solicitud));
     }
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     typingTimeoutRef.current = setTimeout(() => {
       socketService.stopTyping(parseInt(id_solicitud));
@@ -326,45 +336,35 @@ const Chat = () => {
 
   const formatearHora = (fecha) => {
     const date = new Date(fecha);
-    const horas = date.getHours().toString().padStart(2, '0');
-    const minutos = date.getMinutes().toString().padStart(2, '0');
-    return `${horas}:${minutos}`;
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
 
   const obtenerNombreContacto = () => {
     if (!conversacionActual) return '';
-    if (usuario?.tipo === 'cliente') {
-      return conversacionActual.nombre_proveedor || 'Proveedor';
-    } else {
-      return conversacionActual.nombre_cliente || 'Cliente';
-    }
+    return usuario?.tipo === 'cliente'
+      ? conversacionActual.nombre_proveedor || 'Proveedor'
+      : conversacionActual.nombre_cliente || 'Cliente';
   };
 
-  const esPropio = (mensaje) => {
-    return mensaje.tipo_remitente === usuario?.tipo && 
-           mensaje.id_remitente === usuario?.id;
-  };
+  const esPropio = (mensaje) =>
+    mensaje.tipo_remitente === usuario?.tipo && mensaje.id_remitente === usuario?.id;
 
   const esUltimoDelGrupo = (index) => {
     if (index === mensajes.length - 1) return true;
-    const mensajeActual = mensajes[index];
-    const mensajeSiguiente = mensajes[index + 1];
-    return mensajeActual.id_remitente !== mensajeSiguiente.id_remitente ||
-           mensajeActual.tipo_remitente !== mensajeSiguiente.tipo_remitente;
+    return mensajes[index].id_remitente !== mensajes[index + 1].id_remitente ||
+           mensajes[index].tipo_remitente !== mensajes[index + 1].tipo_remitente;
   };
 
   const esPrimeroDelGrupo = (index) => {
     if (index === 0) return true;
-    const mensajeActual = mensajes[index];
-    const mensajeAnterior = mensajes[index - 1];
-    return mensajeActual.id_remitente !== mensajeAnterior.id_remitente ||
-           mensajeActual.tipo_remitente !== mensajeAnterior.tipo_remitente;
+    return mensajes[index].id_remitente !== mensajes[index - 1].id_remitente ||
+           mensajes[index].tipo_remitente !== mensajes[index - 1].tipo_remitente;
   };
 
   return (
     <Layout>
       <div className="chat-container">
-        <ConversacionesList 
+        <ConversacionesList
           conversaciones={conversaciones}
           conversacionActiva={id_solicitud}
           usuarioTipo={usuario?.tipo}
@@ -425,7 +425,7 @@ const Chat = () => {
 
               <div className="chat-input-container">
                 {puedeDejarResena && (
-                  <button 
+                  <button
                     className="btn-dejar-resena"
                     onClick={() => setModalResenaOpen(true)}
                     title="Dejar una reseña sobre este servicio"
@@ -434,7 +434,7 @@ const Chat = () => {
                     Dejar Reseña
                   </button>
                 )}
-                
+
                 <form onSubmit={handleEnviarMensaje} className="chat-input-form">
                   <input
                     type="text"
@@ -444,8 +444,8 @@ const Chat = () => {
                     className="chat-input"
                   />
                   <div className="chat-input-actions">
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="chat-input-btn"
                       title={usuario?.tipo === 'cliente' ? 'Ver solicitud' : 'Enviar propuesta'}
                       onClick={handleAbrirModal}
@@ -488,6 +488,9 @@ const Chat = () => {
         }}
         onEnviar={handleEnviarResena}
       />
+
+      {/* Modal de notificación personalizado */}
+      <Notificacion notif={notif} onClose={cerrarNotif} />
     </Layout>
   );
 };

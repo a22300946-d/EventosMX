@@ -1,16 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  FaStar, FaStarHalfAlt, FaRegStar,
-  FaSmile, FaMeh, FaFrown,
-  FaThumbsUp, FaSortAmountDown, FaFilter,
+  FaStar,
+  FaStarHalfAlt,
+  FaRegStar,
+  FaSmile,
+  FaMeh,
+  FaFrown,
+  FaThumbsUp,
+  FaSortAmountDown,
+  FaFilter,
 } from "react-icons/fa";
 import Layout from "../../components/Layout";
 import api from "../../services/api";
 import { clienteService } from "../../services/clienteService";
 import "./PerfilProveedor.css";
 
-// React Icons
 import {
   FiMapPin,
   FiClipboard,
@@ -21,17 +26,158 @@ import {
   FiCalendar,
   FiList,
   FiClock,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiAlertTriangle,
+  FiInfo,
 } from "react-icons/fi";
 import { AiFillHeart } from "react-icons/ai";
-import {
-  MdOutlineStorefront,
-  MdStorefront,
-} from "react-icons/md";
+import { MdOutlineStorefront, MdStorefront } from "react-icons/md";
 import { BsTag, BsFileText } from "react-icons/bs";
 
+/* ─────────────────────────────────────────────────────────
+   HOOK: useModal  — reemplaza alert() / confirm()
+───────────────────────────────────────────────────────── */
+function useModal() {
+  const [modal, setModal] = useState(null);
+
+  const closeModal = useCallback(() => setModal(null), []);
+
+  const showModal = useCallback(
+    ({ type = "info", title, message, okText }) => {
+      return new Promise((resolve) => {
+        setModal({
+          type,
+          title,
+          message,
+          okText,
+          confirm: false,
+          onClose: () => {
+            closeModal();
+            resolve();
+          },
+        });
+      });
+    },
+    [closeModal],
+  );
+
+  const showConfirm = useCallback(
+    ({ type = "warning", title, message, confirmText, cancelText }) => {
+      return new Promise((resolve) => {
+        setModal({
+          type,
+          title,
+          message,
+          confirmText,
+          cancelText,
+          confirm: true,
+          onConfirm: () => {
+            closeModal();
+            resolve(true);
+          },
+          onCancel: () => {
+            closeModal();
+            resolve(false);
+          },
+        });
+      });
+    },
+    [closeModal],
+  );
+
+  return { modal, closeModal, showModal, showConfirm };
+}
+
+/* ─────────────────────────────────────────────────────────
+   COMPONENTE: AppModal
+───────────────────────────────────────────────────────── */
+function AppModal({ modal, onClose }) {
+  if (!modal) return null;
+
+  const config = {
+    success: { icon: <FiCheckCircle />, bg: "#EAF3DE", color: "#3B6D11" },
+    error: { icon: <FiAlertCircle />, bg: "#FCEBEB", color: "#A32D2D" },
+    warning: { icon: <FiAlertTriangle />, bg: "#FAEEDA", color: "#854F0B" },
+    info: { icon: <FiInfo />, bg: "#E6F1FB", color: "#185FA5" },
+  };
+  const { icon, bg, color } = config[modal.type] || config.info;
+
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      if (modal.confirm) modal.onCancel?.();
+      else modal.onClose?.();
+      onClose();
+    }
+  };
+
+  const handleConfirm = () => {
+    modal.onConfirm?.();
+    onClose();
+  };
+  const handleCancel = () => {
+    modal.onCancel?.();
+    onClose();
+  };
+  const handleOk = () => {
+    modal.onClose?.();
+    onClose();
+  };
+
+  return (
+    <div
+      className="app-modal-overlay"
+      onClick={handleOverlayClick}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="app-modal-box">
+        <div className="app-modal-icon" style={{ background: bg, color }}>
+          {icon}
+        </div>
+        <div className="app-modal-content">
+          {modal.title && <h3 className="app-modal-title">{modal.title}</h3>}
+          {modal.message && (
+            <p className="app-modal-message">{modal.message}</p>
+          )}
+        </div>
+        <div className="app-modal-actions">
+          {modal.confirm ? (
+            <>
+              <button
+                className="app-modal-btn app-modal-btn--secondary"
+                onClick={handleCancel}
+              >
+                {modal.cancelText || "Cancelar"}
+              </button>
+              <button
+                className="app-modal-btn app-modal-btn--primary"
+                onClick={handleConfirm}
+              >
+                {modal.confirmText || "Confirmar"}
+              </button>
+            </>
+          ) : (
+            <button
+              className="app-modal-btn app-modal-btn--primary"
+              onClick={handleOk}
+            >
+              {modal.okText || "Aceptar"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   COMPONENTE PRINCIPAL: PerfilProveedor
+───────────────────────────────────────────────────────── */
 function PerfilProveedor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { modal, closeModal, showModal, showConfirm } = useModal();
 
   const [proveedor, setProveedor] = useState(null);
   const [servicios, setServicios] = useState([]);
@@ -67,8 +213,18 @@ function PerfilProveedor() {
   const [procesandoFavorito, setProcesandoFavorito] = useState(false);
 
   const meses = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
   ];
   const diasSemana = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 
@@ -88,16 +244,19 @@ function PerfilProveedor() {
     let resenasFiltradas = [...resenas];
     if (filtroSentimiento !== "todos") {
       resenasFiltradas = resenasFiltradas.filter(
-        (resena) => obtenerSentimiento(resena.calificacion) === filtroSentimiento,
+        (resena) =>
+          obtenerSentimiento(resena.calificacion) === filtroSentimiento,
       );
     }
     if (ordenResenas === "mejores") {
       resenasFiltradas.sort(
-        (a, b) => parseFloat(b.calificacion || 0) - parseFloat(a.calificacion || 0),
+        (a, b) =>
+          parseFloat(b.calificacion || 0) - parseFloat(a.calificacion || 0),
       );
     } else if (ordenResenas === "peores") {
       resenasFiltradas.sort(
-        (a, b) => parseFloat(a.calificacion || 0) - parseFloat(b.calificacion || 0),
+        (a, b) =>
+          parseFloat(a.calificacion || 0) - parseFloat(b.calificacion || 0),
       );
     } else {
       resenasFiltradas.sort((a, b) => {
@@ -122,7 +281,9 @@ function PerfilProveedor() {
       const responseProveedor = await api.get(`/proveedores/publico/${id}`);
       setProveedor(responseProveedor.data.data);
       try {
-        const responseEventos = await api.get(`/proveedor-eventos/proveedor/${id}/eventos`);
+        const responseEventos = await api.get(
+          `/proveedor-eventos/proveedor/${id}/eventos`,
+        );
         setEventosProveedor(responseEventos.data.data || []);
       } catch (error) {
         setEventosProveedor([]);
@@ -145,7 +306,9 @@ function PerfilProveedor() {
         setGaleria([]);
       }
       try {
-        const responsePromociones = await api.get(`/promociones/proveedor/${id}`);
+        const responsePromociones = await api.get(
+          `/promociones/proveedor/${id}`,
+        );
         setPromociones(responsePromociones.data.data || []);
       } catch (error) {
         setPromociones([]);
@@ -221,10 +384,18 @@ function PerfilProveedor() {
     } catch (error) {
       console.error("Error al gestionar favorito:", error);
       if (error.response?.status === 401) {
-        alert("Debes iniciar sesión para guardar favoritos");
+        await showModal({
+          type: "warning",
+          title: "Sesión requerida",
+          message: "Debes iniciar sesión para guardar favoritos.",
+        });
         navigate("/login");
       } else {
-        alert("Error al actualizar favoritos");
+        await showModal({
+          type: "error",
+          title: "Error",
+          message: "No se pudo actualizar favoritos. Intenta de nuevo.",
+        });
       }
     } finally {
       setProcesandoFavorito(false);
@@ -233,22 +404,34 @@ function PerfilProveedor() {
 
   const cargarListasCliente = async () => {
     try {
-      const response = await clienteService.obtenerMisListas();
+      const response = await clienteService.obtenerMisListas(id);
       setListasDisponibles(response.data.data || []);
       setMostrarModalListas(true);
     } catch (error) {
       if (error.response?.status === 401) {
-        alert("Debes iniciar sesión para agregar a listas");
+        await showModal({
+          type: "warning",
+          title: "Sesión requerida",
+          message: "Debes iniciar sesión para agregar a listas.",
+        });
         navigate("/login");
       } else {
-        alert("Error al cargar tus listas");
+        await showModal({
+          type: "error",
+          title: "Error",
+          message: "No se pudieron cargar tus listas. Intenta de nuevo.",
+        });
       }
     }
   };
 
   const agregarALista = async () => {
     if (!listaSeleccionada) {
-      alert("Selecciona una lista");
+      await showModal({
+        type: "warning",
+        title: "Selecciona una lista",
+        message: "Por favor elige una lista antes de continuar.",
+      });
       return;
     }
     try {
@@ -257,19 +440,41 @@ function PerfilProveedor() {
         parseInt(listaSeleccionada),
         parseInt(proveedor.id_proveedor),
       );
-      alert("Proveedor agregado a la lista");
+      await showModal({
+        type: "success",
+        title: "¡Listo!",
+        message: "El proveedor fue agregado a tu lista correctamente.",
+      });
       setMostrarModalListas(false);
       setListaSeleccionada("");
     } catch (error) {
       if (error.response?.status === 409) {
-        alert("Este proveedor ya está en esa lista");
+        await showModal({
+          type: "info",
+          title: "Ya está en la lista",
+          message: "Este proveedor ya se encuentra en la lista seleccionada.",
+        });
       } else if (error.response?.status === 401) {
-        alert("Debes iniciar sesión para agregar a listas");
+        await showModal({
+          type: "warning",
+          title: "Sesión requerida",
+          message: "Debes iniciar sesión para agregar a listas.",
+        });
         navigate("/login");
       } else if (error.response?.status === 400) {
-        alert(error.response.data.message || "Datos inválidos");
+        await showModal({
+          type: "error",
+          title: "Datos inválidos",
+          message:
+            error.response.data.message ||
+            "Revisa los datos e intenta de nuevo.",
+        });
       } else {
-        alert("Error al agregar a la lista");
+        await showModal({
+          type: "error",
+          title: "Error",
+          message: "No se pudo agregar a la lista. Intenta de nuevo.",
+        });
       }
     } finally {
       setAgregandoALista(false);
@@ -291,13 +496,18 @@ function PerfilProveedor() {
     return fecha < hoy;
   };
 
-  const seleccionarFechaCalendario = (dia) => {
+  const seleccionarFechaCalendario = async (dia) => {
     const year = mesCalendario.getFullYear();
     const month = mesCalendario.getMonth();
     if (esFechaPasada(year, month, dia)) return;
     const fechaStr = `${year}-${(month + 1).toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
     if (esFechaBloqueada(fechaStr)) {
-      alert("Esta fecha no está disponible. Por favor selecciona otra fecha.");
+      await showModal({
+        type: "warning",
+        title: "Fecha no disponible",
+        message:
+          "Esta fecha no está disponible. Por favor selecciona otra fecha.",
+      });
       return;
     }
     setFormularioSolicitud((prev) => ({ ...prev, fecha_evento: fechaStr }));
@@ -310,9 +520,12 @@ function PerfilProveedor() {
     const primerDia = new Date(year, month, 1);
     const ultimoDia = new Date(year, month + 1, 0);
     const diasMes = [];
-    const primerDiaSemana = primerDia.getDay() === 0 ? 6 : primerDia.getDay() - 1;
+    const primerDiaSemana =
+      primerDia.getDay() === 0 ? 6 : primerDia.getDay() - 1;
     for (let i = 0; i < primerDiaSemana; i++) {
-      diasMes.push(<div key={`empty-${i}`} className="calendario-dia-modal vacio"></div>);
+      diasMes.push(
+        <div key={`empty-${i}`} className="calendario-dia-modal vacio"></div>,
+      );
     }
     for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
       const fechaStr = `${year}-${(month + 1).toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
@@ -323,7 +536,9 @@ function PerfilProveedor() {
         <div
           key={dia}
           className={`calendario-dia-modal ${bloqueado ? "bloqueado" : ""} ${pasado ? "pasado" : ""} ${seleccionado ? "seleccionado" : ""}`}
-          onClick={() => !bloqueado && !pasado && seleccionarFechaCalendario(dia)}
+          onClick={() =>
+            !bloqueado && !pasado && seleccionarFechaCalendario(dia)
+          }
         >
           {dia}
         </div>,
@@ -372,22 +587,40 @@ function PerfilProveedor() {
 
   const handleEnviarSolicitud = async () => {
     if (!formularioSolicitud.fecha_evento || !formularioSolicitud.tipo_evento) {
-      alert("Por favor completa los campos obligatorios: Fecha del evento y Tipo de evento");
+      await showModal({
+        type: "warning",
+        title: "Campos obligatorios",
+        message:
+          "Por favor completa la Fecha del evento y el Tipo de evento antes de continuar.",
+      });
       return;
     }
     if (serviciosSeleccionados.length === 0) {
-      alert("Por favor selecciona al menos un servicio para tu evento");
+      await showModal({
+        type: "warning",
+        title: "Selecciona un servicio",
+        message: "Por favor selecciona al menos un servicio para tu evento.",
+      });
       return;
     }
     if (esFechaBloqueada(formularioSolicitud.fecha_evento)) {
-      alert("La fecha seleccionada no está disponible. Por favor elige otra fecha.");
+      await showModal({
+        type: "error",
+        title: "Fecha no disponible",
+        message:
+          "La fecha seleccionada no está disponible. Por favor elige otra fecha.",
+      });
       return;
     }
     const fechaEvento = new Date(formularioSolicitud.fecha_evento);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     if (fechaEvento < hoy) {
-      alert("La fecha del evento debe ser futura");
+      await showModal({
+        type: "warning",
+        title: "Fecha inválida",
+        message: "La fecha del evento debe ser en el futuro.",
+      });
       return;
     }
     try {
@@ -402,23 +635,42 @@ function PerfilProveedor() {
         presupuesto_estimado: formularioSolicitud.presupuesto_estimado
           ? parseFloat(formularioSolicitud.presupuesto_estimado)
           : null,
-        descripcion_solicitud: formularioSolicitud.descripcion_solicitud || null,
+        descripcion_solicitud:
+          formularioSolicitud.descripcion_solicitud || null,
         servicios_solicitados: serviciosSeleccionados,
       };
       const response = await api.post("/solicitudes", datos);
       const nuevaSolicitud = response.data.data;
       const id_solicitud = nuevaSolicitud.id_solicitud;
       handleCerrarModalCotizacion();
-      alert("¡Solicitud enviada exitosamente! Ahora puedes chatear con el proveedor.");
+      await showModal({
+        type: "success",
+        title: "¡Solicitud enviada!",
+        message:
+          "Tu solicitud fue enviada exitosamente. Ahora puedes chatear con el proveedor.",
+      });
       navigate(`/chat/${id_solicitud}`);
     } catch (error) {
       if (error.response?.status === 401) {
-        alert("Debes iniciar sesión para solicitar una cotización");
+        await showModal({
+          type: "warning",
+          title: "Sesión requerida",
+          message: "Debes iniciar sesión para solicitar una cotización.",
+        });
         navigate("/login");
       } else if (error.response?.data?.message) {
-        alert(error.response.data.message);
+        await showModal({
+          type: "error",
+          title: "Error al enviar",
+          message: error.response.data.message,
+        });
       } else {
-        alert("Error al enviar la solicitud. Por favor, intenta nuevamente.");
+        await showModal({
+          type: "error",
+          title: "Error",
+          message:
+            "No se pudo enviar la solicitud. Por favor, intenta nuevamente.",
+        });
       }
     } finally {
       setEnviandoSolicitud(false);
@@ -450,12 +702,25 @@ function PerfilProveedor() {
     return estrellas;
   };
 
-  // ── Igual que ResenasCalificaciones ─────────────────────────────────────────
   const getBadge = (calificacion) => {
     const cal = parseFloat(calificacion || 0);
-    if (cal >= 0.625) return { class: "sr-badge-aceptada",  text: "Reseña positiva", icono: <FaSmile /> };
-    if (cal <= 0.375) return { class: "sr-badge-rechazada", text: "Reseña negativa", icono: <FaFrown /> };
-    return                   { class: "sr-badge-pendiente", text: "Reseña neutra",   icono: <FaMeh />   };
+    if (cal >= 0.625)
+      return {
+        class: "sr-badge-aceptada",
+        text: "Reseña positiva",
+        icono: <FaSmile />,
+      };
+    if (cal <= 0.375)
+      return {
+        class: "sr-badge-rechazada",
+        text: "Reseña negativa",
+        icono: <FaFrown />,
+      };
+    return {
+      class: "sr-badge-pendiente",
+      text: "Reseña neutra",
+      icono: <FaMeh />,
+    };
   };
 
   if (loading) {
@@ -488,6 +753,9 @@ function PerfilProveedor() {
 
   return (
     <Layout>
+      {/* ── Modal de notificaciones (reemplaza alert/confirm del navegador) ── */}
+      <AppModal modal={modal} onClose={closeModal} />
+
       <div className="perfil-proveedor-container">
         {/* Header del perfil */}
         <div className="perfil-header">
@@ -518,7 +786,9 @@ function PerfilProveedor() {
                   className={`btn-favorito-grande ${esFavorito ? "favorito-activo" : ""}`}
                   onClick={toggleFavorito}
                   disabled={procesandoFavorito}
-                  title={esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}
+                  title={
+                    esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"
+                  }
                 >
                   <span className="icono-corazon">
                     {esFavorito ? <AiFillHeart /> : <FiHeart />}
@@ -527,27 +797,39 @@ function PerfilProveedor() {
               </div>
               <div className="perfil-rating">
                 <div className="estrellas">{renderEstrellas(calificacion)}</div>
-                <span className="rating-numero">{calificacionDe5.toFixed(1)}/5</span>
-                <span className="total-resenas">({resenas.length} reseñas)</span>
+                <span className="rating-numero">
+                  {calificacionDe5.toFixed(1)}/5
+                </span>
+                <span className="total-resenas">
+                  ({resenas.length} reseñas)
+                </span>
               </div>
               <div className="perfil-detalles">
                 <div className="detalle-item">
-                  <span className="icono"><FiMapPin /></span>
+                  <span className="icono">
+                    <FiMapPin />
+                  </span>
                   <span>{proveedor.ciudad}</span>
                 </div>
                 <div className="detalle-item">
-                  <span className="icono"><FiClipboard /></span>
+                  <span className="icono">
+                    <FiClipboard />
+                  </span>
                   <span>{proveedor.tipo_servicio}</span>
                 </div>
                 {proveedor.telefono && (
                   <div className="detalle-item">
-                    <span className="icono"><FiPhone /></span>
+                    <span className="icono">
+                      <FiPhone />
+                    </span>
                     <span>{proveedor.telefono}</span>
                   </div>
                 )}
                 {proveedor.correo && (
                   <div className="detalle-item">
-                    <span className="icono"><FiMail /></span>
+                    <span className="icono">
+                      <FiMail />
+                    </span>
                     <span>{proveedor.correo}</span>
                   </div>
                 )}
@@ -559,7 +841,10 @@ function PerfilProveedor() {
                 >
                   Solicitar Cotización
                 </button>
-                <button className="btn-agregar-lista" onClick={cargarListasCliente}>
+                <button
+                  className="btn-agregar-lista"
+                  onClick={cargarListasCliente}
+                >
                   + Agregar a lista
                 </button>
               </div>
@@ -583,7 +868,9 @@ function PerfilProveedor() {
               {eventosProveedor.map((evento) => (
                 <span key={evento.id_tipo_evento} className="evento-tag-perfil">
                   <span className="evento-icono-perfil">{evento.icono}</span>
-                  <span className="evento-nombre-perfil">{evento.nombre_evento}</span>
+                  <span className="evento-nombre-perfil">
+                    {evento.nombre_evento}
+                  </span>
                 </span>
               ))}
             </div>
@@ -636,14 +923,19 @@ function PerfilProveedor() {
                         <span className="servicio-precio-badge">
                           ${parseFloat(servicio.precio).toLocaleString("es-MX")}
                           {servicio.tipo_precio && (
-                            <span className="servicio-tipo-precio"> / {servicio.tipo_precio}</span>
+                            <span className="servicio-tipo-precio">
+                              {" "}
+                              / {servicio.tipo_precio}
+                            </span>
                           )}
                         </span>
                       </div>
                       <div className="servicio-card-body">
                         <h3>{servicio.nombre_servicio}</h3>
                         {servicio.descripcion && (
-                          <p className="servicio-descripcion">{servicio.descripcion}</p>
+                          <p className="servicio-descripcion">
+                            {servicio.descripcion}
+                          </p>
                         )}
                       </div>
                       {servicio.duracion && (
@@ -678,7 +970,8 @@ function PerfilProveedor() {
                         src={foto.url_foto}
                         alt={foto.titulo || "Foto de galería"}
                         onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/400?text=Error+al+cargar";
+                          e.target.src =
+                            "https://via.placeholder.com/400?text=Error+al+cargar";
                         }}
                       />
                       <div className="galeria-overlay">
@@ -686,16 +979,21 @@ function PerfilProveedor() {
                           <span className="galeria-titulo">{foto.titulo}</span>
                         )}
                         {foto.descripcion && (
-                          <span className="galeria-descripcion">{foto.descripcion}</span>
+                          <span className="galeria-descripcion">
+                            {foto.descripcion}
+                          </span>
                         )}
                         {foto.fecha_subida && (
                           <span className="galeria-fecha">
                             <FiCalendar size={12} />
-                            {new Date(foto.fecha_subida).toLocaleDateString("es-MX", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
+                            {new Date(foto.fecha_subida).toLocaleDateString(
+                              "es-MX",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}
                           </span>
                         )}
                       </div>
@@ -720,18 +1018,29 @@ function PerfilProveedor() {
                         <BsTag /> OFERTA
                       </div>
                       <h3>{promo.titulo}</h3>
-                      <p className="promocion-descripcion">{promo.descripcion}</p>
+                      <p className="promocion-descripcion">
+                        {promo.descripcion}
+                      </p>
                       <div className="promocion-precio">
                         <span className="precio-original">
-                          ${parseFloat(promo.precio_original || 0).toLocaleString("es-MX")}
+                          $
+                          {parseFloat(
+                            promo.precio_original || 0,
+                          ).toLocaleString("es-MX")}
                         </span>
                         <span className="precio-promocional">
-                          ${parseFloat(promo.precio_promocional).toLocaleString("es-MX")}
+                          $
+                          {parseFloat(promo.precio_promocional).toLocaleString(
+                            "es-MX",
+                          )}
                         </span>
                       </div>
                       <div className="promocion-vigencia">
                         <span>
-                          Válida hasta: {new Date(promo.fecha_fin).toLocaleDateString("es-MX")}
+                          Válida hasta:{" "}
+                          {new Date(promo.fecha_fin).toLocaleDateString(
+                            "es-MX",
+                          )}
                         </span>
                       </div>
                     </div>
@@ -747,7 +1056,6 @@ function PerfilProveedor() {
               <div className="resenas-header-section">
                 <h2>Opiniones de Clientes</h2>
 
-                {/* Controles — misma estructura que ResenasCalificaciones */}
                 {resenas.length > 0 && (
                   <div className="sr-controles">
                     <div className="sr-filtros">
@@ -762,7 +1070,8 @@ function PerfilProveedor() {
                         className={`sr-pill ${filtroSentimiento === "positivo" ? "sr-pill-activo" : ""}`}
                         onClick={() => setFiltroSentimiento("positivo")}
                       >
-                        <FaSmile /> Positivas ({contarPorSentimiento("positivo")})
+                        <FaSmile /> Positivas (
+                        {contarPorSentimiento("positivo")})
                       </button>
                       <button
                         className={`sr-pill ${filtroSentimiento === "neutro" ? "sr-pill-activo" : ""}`}
@@ -774,7 +1083,8 @@ function PerfilProveedor() {
                         className={`sr-pill ${filtroSentimiento === "negativo" ? "sr-pill-activo" : ""}`}
                         onClick={() => setFiltroSentimiento("negativo")}
                       >
-                        <FaFrown /> Negativas ({contarPorSentimiento("negativo")})
+                        <FaFrown /> Negativas (
+                        {contarPorSentimiento("negativo")})
                       </button>
                     </div>
                     <div className="sr-orden">
@@ -794,9 +1104,13 @@ function PerfilProveedor() {
               </div>
 
               {resenas.length === 0 ? (
-                <p className="mensaje-vacio">Aún no hay reseñas para este proveedor</p>
+                <p className="mensaje-vacio">
+                  Aún no hay reseñas para este proveedor
+                </p>
               ) : resenasMostradas.length === 0 ? (
-                <p className="mensaje-vacio">No hay reseñas que coincidan con los filtros seleccionados</p>
+                <p className="mensaje-vacio">
+                  No hay reseñas que coincidan con los filtros seleccionados
+                </p>
               ) : (
                 <div className="resenas-lista">
                   {resenasMostradas.map((resena) => {
@@ -818,19 +1132,28 @@ function PerfilProveedor() {
                               ) : null}
                               <div
                                 className="avatar-inicial"
-                                style={{ display: resena.cliente_foto ? "none" : "flex" }}
+                                style={{
+                                  display: resena.cliente_foto
+                                    ? "none"
+                                    : "flex",
+                                }}
                               >
-                                {(resena.cliente_nombre || "C").charAt(0).toUpperCase()}
+                                {(resena.cliente_nombre || "C")
+                                  .charAt(0)
+                                  .toUpperCase()}
                               </div>
                             </div>
                             <div className="resena-info">
-                              <h3>{resena.cliente_nombre || "Cliente Anónimo"}</h3>
+                              <h3>
+                                {resena.cliente_nombre || "Cliente Anónimo"}
+                              </h3>
                               <div className="estrellas">
                                 {renderEstrellas(resena.calificacion)}
                               </div>
                               <p className="resena-fecha">
                                 {new Date(
-                                  resena.fecha_resena || resena.fecha_publicacion,
+                                  resena.fecha_resena ||
+                                    resena.fecha_publicacion,
                                 ).toLocaleDateString("es-MX", {
                                   year: "numeric",
                                   month: "long",
@@ -839,7 +1162,6 @@ function PerfilProveedor() {
                               </p>
                             </div>
                           </div>
-                          {/* Badge unificado con ResenasCalificaciones */}
                           <span className={`sr-badge ${badge.class}`}>
                             {badge.icono} {badge.text}
                           </span>
@@ -858,7 +1180,10 @@ function PerfilProveedor() {
       {/* Modal imagen */}
       {imagenModalAbierta && imagenSeleccionada && (
         <div className="modal-overlay" onClick={handleCerrarImagen}>
-          <div className="modal-imagen-container" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-imagen-container"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button className="modal-cerrar" onClick={handleCerrarImagen}>
               <FiX />
             </button>
@@ -870,12 +1195,18 @@ function PerfilProveedor() {
               imagenSeleccionada.descripcion ||
               imagenSeleccionada.fecha_subida) && (
               <div className="modal-imagen-info">
-                {imagenSeleccionada.titulo && <h3>{imagenSeleccionada.titulo}</h3>}
-                {imagenSeleccionada.descripcion && <p>{imagenSeleccionada.descripcion}</p>}
+                {imagenSeleccionada.titulo && (
+                  <h3>{imagenSeleccionada.titulo}</h3>
+                )}
+                {imagenSeleccionada.descripcion && (
+                  <p>{imagenSeleccionada.descripcion}</p>
+                )}
                 {imagenSeleccionada.fecha_subida && (
                   <span className="modal-imagen-fecha">
                     <FiCalendar size={13} />
-                    {new Date(imagenSeleccionada.fecha_subida).toLocaleDateString("es-MX", {
+                    {new Date(
+                      imagenSeleccionada.fecha_subida,
+                    ).toLocaleDateString("es-MX", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
@@ -891,17 +1222,25 @@ function PerfilProveedor() {
       {/* Modal cotización */}
       {modalCotizacionAbierto && (
         <div className="modal-overlay" onClick={handleCerrarModalCotizacion}>
-          <div className="modal-cotizacion" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-cotizacion"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
-              <h2><BsFileText /> Solicitar Cotización</h2>
-              <button className="btn-cerrar-modal" onClick={handleCerrarModalCotizacion}>
+              <h2>
+                <BsFileText /> Solicitar Cotización
+              </h2>
+              <button
+                className="btn-cerrar-modal"
+                onClick={handleCerrarModalCotizacion}
+              >
                 <FiX />
               </button>
             </div>
             <div className="modal-body">
               <p className="modal-descripcion">
-                Completa los detalles de tu evento y {proveedor?.nombre_negocio} te enviará
-                una cotización personalizada.
+                Completa los detalles de tu evento y {proveedor?.nombre_negocio}{" "}
+                te enviará una cotización personalizada.
               </p>
               {/* Fecha */}
               <div className="form-group">
@@ -949,7 +1288,8 @@ function PerfilProveedor() {
                           &lt;
                         </button>
                         <h3>
-                          {meses[mesCalendario.getMonth()]} {mesCalendario.getFullYear()}
+                          {meses[mesCalendario.getMonth()]}{" "}
+                          {mesCalendario.getFullYear()}
                         </h3>
                         <button
                           type="button"
@@ -961,10 +1301,17 @@ function PerfilProveedor() {
                       </div>
                       <div className="calendario-semana-modal">
                         {diasSemana.map((dia) => (
-                          <div key={dia} className="calendario-dia-semana-modal">{dia}</div>
+                          <div
+                            key={dia}
+                            className="calendario-dia-semana-modal"
+                          >
+                            {dia}
+                          </div>
                         ))}
                       </div>
-                      <div className="calendario-grid-modal">{renderCalendario()}</div>
+                      <div className="calendario-grid-modal">
+                        {renderCalendario()}
+                      </div>
                       <div className="calendario-leyenda">
                         <div className="leyenda-item">
                           <div className="leyenda-color disponible"></div>
@@ -1001,7 +1348,9 @@ function PerfilProveedor() {
                   <option value="Cumpleaños">Cumpleaños</option>
                   <option value="Graduación">Graduación</option>
                   <option value="Conferencia">Conferencia</option>
-                  <option value="Reunión Empresarial">Reunión Empresarial</option>
+                  <option value="Reunión Empresarial">
+                    Reunión Empresarial
+                  </option>
                   <option value="Aniversario">Aniversario</option>
                   <option value="Fiesta Infantil">Fiesta Infantil</option>
                   <option value="XV Años">XV Años</option>
@@ -1012,7 +1361,8 @@ function PerfilProveedor() {
               {/* Servicios checklist */}
               <div className="form-group">
                 <label>
-                  Servicios que Necesitas <span className="campo-obligatorio">*</span>
+                  Servicios que Necesitas{" "}
+                  <span className="campo-obligatorio">*</span>
                 </label>
                 <div className="servicios-checklist">
                   {servicios.length === 0 ? (
@@ -1021,17 +1371,30 @@ function PerfilProveedor() {
                     </p>
                   ) : (
                     servicios.map((servicio) => (
-                      <label key={servicio.id_servicio} className="servicio-item">
+                      <label
+                        key={servicio.id_servicio}
+                        className="servicio-item"
+                      >
                         <input
                           type="checkbox"
-                          checked={serviciosSeleccionados.includes(servicio.id_servicio)}
-                          onChange={() => handleToggleServicio(servicio.id_servicio)}
+                          checked={serviciosSeleccionados.includes(
+                            servicio.id_servicio,
+                          )}
+                          onChange={() =>
+                            handleToggleServicio(servicio.id_servicio)
+                          }
                         />
                         <div className="servicio-info">
-                          <span className="servicio-nombre">{servicio.nombre_servicio}</span>
+                          <span className="servicio-nombre">
+                            {servicio.nombre_servicio}
+                          </span>
                           <span className="servicio-precio">
-                            ${parseFloat(servicio.precio || 0).toLocaleString("es-MX")}
-                            {servicio.tipo_precio && ` / ${servicio.tipo_precio}`}
+                            $
+                            {parseFloat(servicio.precio || 0).toLocaleString(
+                              "es-MX",
+                            )}
+                            {servicio.tipo_precio &&
+                              ` / ${servicio.tipo_precio}`}
                           </span>
                         </div>
                       </label>
@@ -1041,7 +1404,8 @@ function PerfilProveedor() {
                 {serviciosSeleccionados.length > 0 && (
                   <p className="servicios-seleccionados-count">
                     {serviciosSeleccionados.length} servicio
-                    {serviciosSeleccionados.length !== 1 ? "s" : ""} seleccionado
+                    {serviciosSeleccionados.length !== 1 ? "s" : ""}{" "}
+                    seleccionado
                     {serviciosSeleccionados.length !== 1 ? "s" : ""}
                   </p>
                 )}
@@ -1062,7 +1426,9 @@ function PerfilProveedor() {
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="presupuesto_estimado">Presupuesto Estimado</label>
+                  <label htmlFor="presupuesto_estimado">
+                    Presupuesto Estimado
+                  </label>
                   <input
                     type="number"
                     id="presupuesto_estimado"
@@ -1079,7 +1445,9 @@ function PerfilProveedor() {
               </div>
               {/* Descripción */}
               <div className="form-group">
-                <label htmlFor="descripcion_solicitud">Descripción del Evento</label>
+                <label htmlFor="descripcion_solicitud">
+                  Descripción del Evento
+                </label>
                 <textarea
                   id="descripcion_solicitud"
                   name="descripcion_solicitud"
@@ -1115,10 +1483,15 @@ function PerfilProveedor() {
 
       {/* Modal listas */}
       {mostrarModalListas && (
-        <div className="modal-overlay" onClick={() => setMostrarModalListas(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setMostrarModalListas(false)}
+        >
           <div className="modal-listas" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2><FiList /> Agregar a Lista</h2>
+              <h2>
+                <FiList /> Agregar a Lista
+              </h2>
               <button
                 className="btn-cerrar-modal"
                 onClick={() => setMostrarModalListas(false)}
@@ -1128,14 +1501,19 @@ function PerfilProveedor() {
             </div>
             <div className="modal-body">
               <p className="modal-descripcion">
-                Selecciona la lista donde deseas agregar a {proveedor?.nombre_negocio}
+                Selecciona la lista donde deseas agregar a{" "}
+                {proveedor?.nombre_negocio}
               </p>
               {listasDisponibles.length === 0 ? (
                 <div className="sin-listas">
                   <p>
-                    Aún no tienes listas creadas. Ve a "Mis Eventos" para crear una nueva lista.
+                    Aún no tienes listas creadas. Ve a "Mis Eventos" para crear
+                    una nueva lista.
                   </p>
-                  <button className="btn-ir-listas" onClick={() => navigate("/mis-eventos")}>
+                  <button
+                    className="btn-ir-listas"
+                    onClick={() => navigate("/mis-eventos")}
+                  >
                     Ir a Mis Eventos
                   </button>
                 </div>
@@ -1145,26 +1523,36 @@ function PerfilProveedor() {
                     {listasDisponibles.map((lista) => (
                       <label
                         key={lista.id_lista}
-                        className={`lista-option ${
-                          listaSeleccionada === lista.id_lista.toString() ? "seleccionada" : ""
-                        }`}
+                        className={`lista-option 
+    ${listaSeleccionada === lista.id_lista.toString() ? "seleccionada" : ""}
+    ${lista.ya_incluido ? "ya-incluida" : ""}
+  `}
                       >
                         <input
                           type="radio"
                           name="lista"
                           value={lista.id_lista}
-                          checked={listaSeleccionada === lista.id_lista.toString()}
+                          checked={
+                            listaSeleccionada === lista.id_lista.toString()
+                          }
                           onChange={(e) => setListaSeleccionada(e.target.value)}
+                          disabled={lista.ya_incluido}
                         />
                         <div className="lista-info">
-                          <span className="lista-nombre">{lista.nombre_lista}</span>
-                          {lista.descripcion && (
-                            <span className="lista-descripcion">{lista.descripcion}</span>
-                          )}
-                          <span className="lista-contador">
-                            {lista.cantidad_proveedores || 0} proveedor
-                            {lista.cantidad_proveedores !== 1 ? "es" : ""}
+                          <span className="lista-nombre">
+                            {lista.nombre_lista}
                           </span>
+                          {lista.descripcion && (
+                            <span className="lista-descripcion">
+                              {lista.descripcion}
+                            </span>
+                          )}
+                          
+                          {lista.ya_incluido && (
+                            <span className="lista-ya-incluida">
+                              ✓ Ya está en esta lista
+                            </span>
+                          )}
                         </div>
                       </label>
                     ))}

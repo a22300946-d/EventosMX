@@ -8,7 +8,7 @@ function SidebarCliente() {
   const menuItems = [
     { path: '/cliente/cuenta/datos', label: 'Mis datos' },
     { path: '/cliente/cuenta/preferencias', label: 'Preferencias' },
-    { path: '/cliente/cuenta/listas', label: 'Mis listas' },
+    { path: '/cliente/cuenta/listas', label: 'Mis eventos' },
     { path: '/cliente/cuenta/historial', label: 'Historial de solicitudes' },
     { path: '/cliente/cuenta/resenas', label: 'Reseñas publicadas' }
   ];

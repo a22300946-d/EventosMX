@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
 import { clienteService } from "../../services/clienteService";
+import { ModalConfirm, ModalAlert, useModal } from "../../components/modales";
 import {
   FaPlus,
-  FaHeart,
   FaChevronRight,
   FaEllipsisV,
   FaPencilAlt,
@@ -37,6 +37,15 @@ function MisListas() {
   const [errorRenombrar, setErrorRenombrar] = useState("");
   const [procesando, setProcesando] = useState({});
   const [mostrarMenuLista, setMostrarMenuLista] = useState(null);
+
+  const {
+    modalConfirm,
+    modalAlert,
+    mostrarAlerta,
+    mostrarConfirmacion,
+    cerrarConfirm,
+    cerrarAlert,
+  } = useModal();
 
   useEffect(() => {
     cargarListas();
@@ -121,7 +130,7 @@ function MisListas() {
       setShowRenombrarModal(false);
       setListaARenombrar(null);
       await cargarListas();
-      alert("Lista actualizada correctamente");
+      mostrarAlerta("¡Lista actualizada!", "Los cambios se guardaron correctamente.", "success");
     } catch (error) {
       console.error("Error al renombrar lista:", error);
       setErrorRenombrar(error.response?.data?.message || "Error al actualizar la lista");
@@ -156,33 +165,41 @@ function MisListas() {
         );
       }
       await cargarListas();
-      alert(`Lista "${nuevoNombre}" creada con ${proveedoresOriginales.length} proveedor(es) copiado(s)`);
+      mostrarAlerta(
+        "Lista duplicada",
+        `Se creó "${nuevoNombre}" con ${proveedoresOriginales.length} proveedor(es) copiado(s).`,
+        "info"
+      );
     } catch (error) {
       console.error("Error al duplicar lista:", error);
-      alert("Error al duplicar la lista");
+      mostrarAlerta("Error", "No se pudo duplicar la lista. Intenta de nuevo.", "error");
     } finally {
       setProcesando((prev) => ({ ...prev, [lista.id_lista]: false }));
     }
   };
 
-  const eliminarLista = async (lista, e) => {
+  const eliminarLista = (lista, e) => {
     e.stopPropagation();
     setMostrarMenuLista(null);
-    const confirmacion = window.confirm(
-      `¿Estás seguro de eliminar "${lista.nombre_lista}"?\n\nEsta acción no se puede deshacer.`
-    );
-    if (!confirmacion) return;
-    try {
-      setProcesando((prev) => ({ ...prev, [lista.id_lista]: true }));
-      await clienteService.eliminarLista(lista.id_lista);
-      setListas(listas.filter((l) => l.id_lista !== lista.id_lista));
-      alert("Lista eliminada correctamente");
-    } catch (error) {
-      console.error("Error al eliminar lista:", error);
-      alert("Error al eliminar la lista");
-    } finally {
-      setProcesando((prev) => ({ ...prev, [lista.id_lista]: false }));
-    }
+    mostrarConfirmacion({
+      title: "¿Eliminar evento?",
+      message: `¿Estás seguro de eliminar "${lista.nombre_lista}"? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          setProcesando((prev) => ({ ...prev, [lista.id_lista]: true }));
+          await clienteService.eliminarLista(lista.id_lista);
+          setListas((prev) => prev.filter((l) => l.id_lista !== lista.id_lista));
+          mostrarAlerta("Lista eliminada", "El evento fue eliminado correctamente.", "success");
+        } catch (error) {
+          console.error("Error al eliminar lista:", error);
+          mostrarAlerta("Error", "No se pudo eliminar la lista. Intenta de nuevo.", "error");
+        } finally {
+          setProcesando((prev) => ({ ...prev, [lista.id_lista]: false }));
+        }
+      },
+    });
   };
 
   const toggleMenu = (idLista, e) => {
@@ -217,7 +234,7 @@ function MisListas() {
           </div>
         ) : (
           <div className="listas-grid">
-             {/* Proveedores Guardados */}
+            {/* Proveedores Guardados */}
             <div className="lista-card lista-favoritos" onClick={verProveedoresGuardados}>
               <div className="lista-icon">
                 <span className="icon-favorito">♡</span>
@@ -468,6 +485,16 @@ function MisListas() {
             </div>
           </div>
         )}
+
+        <ModalConfirm
+          config={modalConfirm}
+          onConfirm={modalConfirm?.onConfirm}
+          onCancel={cerrarConfirm}
+        />
+        <ModalAlert
+          config={modalAlert}
+          onClose={cerrarAlert}
+        />
       </div>
     </ClienteLayout>
   );

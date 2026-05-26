@@ -54,9 +54,10 @@ export const clienteService = {
     return await api.post('/listas', datos);
   },
 
-  obtenerMisListas: async () => {
-    return await api.get('/listas');
-  },
+  obtenerMisListas: async (idProveedor = null) => {
+  const params = idProveedor ? { id_proveedor: idProveedor } : {};
+  return await api.get('/listas', { params });
+},
 
   obtenerListaPorId: async (idLista) => {
     return await api.get(`/listas/${idLista}`);
