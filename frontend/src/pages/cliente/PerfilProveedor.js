@@ -177,7 +177,7 @@ function AppModal({ modal, onClose }) {
 function PerfilProveedor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { modal, closeModal, showModal, showConfirm } = useModal();
+  const { modal, closeModal, showModal } = useModal();
 
   const [proveedor, setProveedor] = useState(null);
   const [servicios, setServicios] = useState([]);
@@ -231,6 +231,7 @@ function PerfilProveedor() {
   useEffect(() => {
     cargarDatosProveedor();
     verificarSiEsFavorito();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const obtenerSentimiento = (calificacion) => {

@@ -30,36 +30,24 @@ const registrarProveedor = async (req, res) => {
       });
     }
 
-    // Crear proveedor
-    const nuevoProveedor = await Proveedor.crear({
-      nombre_negocio,
-      correo,
-      contrasena,
-      telefono,
-      ciudad,
-      tipo_servicio,
-      descripcion
-    });
+    // Crear proveedor en BD y en Firebase en paralelo para reducir tiempo de espera
+    const [nuevoProveedor, firebaseUser] = await Promise.all([
+      Proveedor.crear({
+        nombre_negocio, correo, contrasena, telefono,
+        ciudad, tipo_servicio, descripcion
+      }),
+      admin.auth().createUser({
+        email: correo,
+        password: contrasena,
+        displayName: nombre_negocio,
+        emailVerified: false
+      })
+    ]);
 
-    // Crear en Firebase
-    const firebaseUser = await admin.auth().createUser({
-      email: correo,
-      password: contrasena,
-      displayName: nombre_negocio,
-      emailVerified: false
-    });
+    // Enviar verificación y notificación de socket sin bloquear la respuesta
+    emailService.enviarVerificacion({ email: correo, nombre: nombre_negocio })
+      .catch(err => console.error('Error al enviar verificación (no crítico):', err));
 
-    // Enviar verificación
-    await emailService.enviarVerificacion({ email: correo, nombre: nombre_negocio });
-
-    // Generar token
-    const token = generarToken({
-      id: nuevoProveedor.id_proveedor,
-      correo: nuevoProveedor.correo,
-      rol: 'proveedor'
-    });
-
-    // Notificar al admin por socket sobre el nuevo registro
     try {
       const { getIO } = require('../config/socket');
       const io = getIO();
@@ -78,6 +66,13 @@ const registrarProveedor = async (req, res) => {
     } catch (socketError) {
       console.error('Error al emitir socket de nuevo proveedor:', socketError);
     }
+
+    // Generar token
+    const token = generarToken({
+      id: nuevoProveedor.id_proveedor,
+      correo: nuevoProveedor.correo,
+      rol: 'proveedor'
+    });
 
     res.status(201).json({
       success: true,
@@ -125,6 +120,8 @@ const loginProveedor = async (req, res) => {
       });
     }
 
+    // Verificar contraseña — el login de proveedor no requiere verificar Firebase
+    // porque los proveedores son aprobados manualmente por el admin
     const contrasenaValida = await Proveedor.verificarContrasena(contrasena, proveedor.contrasena);
     
     if (!contrasenaValida) {
@@ -199,7 +196,6 @@ const actualizarPerfil = async (req, res) => {
       descripcion, nueva_contrasena
     } = req.body;
 
-    // Preparar datos a actualizar
     const datosActualizar = {};
 
     if (nombre_negocio !== undefined) datosActualizar.nombre_negocio = nombre_negocio;
@@ -208,16 +204,12 @@ const actualizarPerfil = async (req, res) => {
     if (tipo_servicio !== undefined) datosActualizar.tipo_servicio = tipo_servicio;
     if (descripcion !== undefined) datosActualizar.descripcion = descripcion;
 
-    // Si se proporciona nueva contraseña, hashearla
     if (nueva_contrasena) {
       const salt = await bcrypt.genSalt(10);
       datosActualizar.contrasena = await bcrypt.hash(nueva_contrasena, salt);
     }
 
-    const proveedorActualizado = await Proveedor.actualizarPerfil(
-      id_proveedor, 
-      datosActualizar
-    );
+    const proveedorActualizado = await Proveedor.actualizarPerfil(id_proveedor, datosActualizar);
 
     if (!proveedorActualizado) {
       return res.status(404).json({
@@ -226,7 +218,6 @@ const actualizarPerfil = async (req, res) => {
       });
     }
 
-    // No enviar la contraseña
     delete proveedorActualizado.contrasena;
 
     res.json({
@@ -245,12 +236,11 @@ const actualizarPerfil = async (req, res) => {
   }
 };
 
-// ⭐ NUEVO: Actualizar foto de perfil
+// Actualizar foto de perfil
 const actualizarFotoPerfil = async (req, res) => {
   try {
     const id_proveedor = req.usuario.id;
 
-    // Validar que se haya subido un archivo
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -258,51 +248,37 @@ const actualizarFotoPerfil = async (req, res) => {
       });
     }
 
-    // La URL de Cloudinary viene en req.file.path
     const nueva_foto = req.file.path;
 
-    // Obtener el proveedor para ver si tiene foto anterior
-    const proveedorActual = await Proveedor.buscarPorId(id_proveedor);
+    // Obtener foto anterior y actualizar en paralelo
+    const [proveedorActual, proveedorActualizado] = await Promise.all([
+      Proveedor.buscarPorId(id_proveedor),
+      Proveedor.actualizarFotoPerfil(id_proveedor, nueva_foto)
+    ]);
 
-    // Actualizar en la base de datos
-    const proveedorActualizado = await Proveedor.actualizarFotoPerfil(
-      id_proveedor,
-      nueva_foto
-    );
-
-    // Si tenía una foto anterior en Cloudinary, eliminarla
-    if (proveedorActual.logo && proveedorActual.logo.includes('cloudinary')) {
+    // Eliminar logo anterior de Cloudinary sin bloquear la respuesta
+    if (proveedorActual?.logo?.includes('cloudinary')) {
       const publicId = extraerPublicId(proveedorActual.logo);
       if (publicId) {
-        try {
-          await eliminarImagen(publicId);
-        } catch (error) {
-          console.error('Error al eliminar foto anterior de Cloudinary:', error);
-          // No fallar si no se puede eliminar la foto anterior
-        }
+        eliminarImagen(publicId)
+          .catch(err => console.error('Error al eliminar foto anterior de Cloudinary:', err));
       }
     }
 
     res.json({
       success: true,
       message: 'Foto de perfil actualizada exitosamente',
-      data: {
-        logo: nueva_foto
-      }
+      data: { logo: nueva_foto }
     });
 
   } catch (error) {
     console.error('Error en actualizarFotoPerfil:', error);
     
-    // Si falla, intentar eliminar la imagen que se acaba de subir
-    if (req.file && req.file.path) {
+    if (req.file?.path) {
       const publicId = extraerPublicId(req.file.path);
       if (publicId) {
-        try {
-          await eliminarImagen(publicId);
-        } catch (err) {
-          console.error('Error al eliminar imagen tras fallo:', err);
-        }
+        eliminarImagen(publicId)
+          .catch(err => console.error('Error al eliminar imagen tras fallo:', err));
       }
     }
 
@@ -384,7 +360,7 @@ const solicitarRecuperacion = async (req, res) => {
   if (!correo) return res.status(400).json({ success: false, message: 'Correo requerido' });
 
   try {
-    await admin.auth().getUserByEmail(correo); // verifica que existe
+    await admin.auth().getUserByEmail(correo);
     await emailService.enviarRecuperacion({ email: correo });
   } catch (e) {
     // No revelar si existe o no por seguridad
@@ -396,38 +372,37 @@ const solicitarRecuperacion = async (req, res) => {
 const eliminarFotoPerfil = async (req, res) => {
   try {
     const id_proveedor = req.usuario.id;
- 
-    // Obtener el proveedor para ver si tiene foto
+
     const proveedorActual = await Proveedor.buscarPorId(id_proveedor);
- 
+
     if (!proveedorActual.logo) {
       return res.status(400).json({
         success: false,
         message: 'No tienes una foto de perfil para eliminar'
       });
     }
- 
-    // Eliminar de Cloudinary si existe
+
+    // Eliminar de Cloudinary y BD en paralelo
+    const promesas = [Proveedor.actualizarFotoPerfil(id_proveedor, null)];
+
     if (proveedorActual.logo.includes('cloudinary')) {
       const publicId = extraerPublicId(proveedorActual.logo);
       if (publicId) {
-        try {
-          await eliminarImagen(publicId);
-        } catch (error) {
-          console.error('Error al eliminar de Cloudinary:', error);
-          // Continuar aunque falle la eliminación de Cloudinary
-        }
+        promesas.push(
+          eliminarImagen(publicId).catch(err =>
+            console.error('Error al eliminar de Cloudinary:', err)
+          )
+        );
       }
     }
- 
-    // Actualizar en la base de datos (poner null)
-    await Proveedor.actualizarFotoPerfil(id_proveedor, null);
- 
+
+    await Promise.all(promesas);
+
     res.json({
       success: true,
       message: 'Foto de perfil eliminada exitosamente'
     });
- 
+
   } catch (error) {
     console.error('Error en eliminarFotoPerfil:', error);
     res.status(500).json({
@@ -443,7 +418,7 @@ module.exports = {
   loginProveedor,
   obtenerPerfil,
   actualizarPerfil,
-  actualizarFotoPerfil, 
+  actualizarFotoPerfil,
   eliminarFotoPerfil,
   buscarProveedores,
   obtenerProveedorPublico,

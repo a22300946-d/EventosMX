@@ -34,6 +34,7 @@ function ResenasCalificaciones() {
 
   useEffect(() => {
     if (user && user.id_proveedor) cargarResenas();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => { setPaginaActual(1); }, [filtroSentimiento, ordenResenas]);

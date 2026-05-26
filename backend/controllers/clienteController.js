@@ -27,25 +27,20 @@ const registrarCliente = async (req, res) => {
       });
     }
 
-    // Crear cliente
-    const nuevoCliente = await Cliente.crear({
-      nombre_completo,
-      correo,
-      contrasena,
-      telefono,
-      ciudad
-    });
+    // Crear cliente en BD y en Firebase en paralelo para reducir tiempo de espera
+    const [nuevoCliente, firebaseUser] = await Promise.all([
+      Cliente.crear({ nombre_completo, correo, contrasena, telefono, ciudad }),
+      admin.auth().createUser({
+        email: correo,
+        password: contrasena,
+        displayName: nombre_completo,
+        emailVerified: false
+      })
+    ]);
 
-    // Crear en Firebase
-    const firebaseUser = await admin.auth().createUser({
-      email: correo,
-      password: contrasena,
-      displayName: nombre_completo,
-      emailVerified: false
-    });
-
-    // Enviar verificación
-    await emailService.enviarVerificacion({ email: correo, nombre: nombre_completo });
+    // Enviar verificación sin bloquear la respuesta — el usuario ya está creado
+    emailService.enviarVerificacion({ email: correo, nombre: nombre_completo })
+      .catch(err => console.error('Error al enviar verificación (no crítico):', err));
 
     // Generar token
     const token = generarToken({
@@ -103,35 +98,38 @@ const loginCliente = async (req, res) => {
       });
     }
 
-    // Verificar contraseña
-    const contrasenaValida = await Cliente.verificarContrasena(contrasena, cliente.contrasena);
-    
+    // Verificar contraseña y estado Firebase en paralelo para reducir latencia
+    const [contrasenaValida, firebaseUser] = await Promise.all([
+      Cliente.verificarContrasena(contrasena, cliente.contrasena),
+      admin.auth().getUserByEmail(correo).catch(err => {
+        console.error('Error al verificar Firebase (no crítico):', err);
+        return null; // Si Firebase falla, no bloqueamos el login
+      })
+    ]);
+
     if (!contrasenaValida) {
-      // Incrementar intentos fallidos
-      await Cliente.incrementarIntentosFallidos(cliente.id_cliente);
-      
+      // Incrementar intentos fallidos sin bloquear la respuesta
+      Cliente.incrementarIntentosFallidos(cliente.id_cliente)
+        .catch(err => console.error('Error al incrementar intentos:', err));
+
       return res.status(401).json({
         success: false,
         message: 'Credenciales incorrectas'
       });
     }
 
-    // Resetear intentos fallidos
-    await Cliente.resetearIntentosFallidos(cliente.id_cliente);
-
-    // Verificar si el correo fue verificado en Firebase
-    try {
-      const firebaseUser = await admin.auth().getUserByEmail(correo);
-      if (!firebaseUser.emailVerified) {
-        return res.status(403).json({
-          success: false,
-          message: 'Debes verificar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.',
-          emailVerified: false
-        });
-      }
-    } catch (firebaseError) {
-      console.error('Error al verificar Firebase:', firebaseError);
+    // Verificar email en Firebase (solo si obtuvimos respuesta)
+    if (firebaseUser && !firebaseUser.emailVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Debes verificar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.',
+        emailVerified: false
+      });
     }
+
+    // Resetear intentos fallidos sin bloquear la respuesta
+    Cliente.resetearIntentosFallidos(cliente.id_cliente)
+      .catch(err => console.error('Error al resetear intentos:', err));
 
     // Generar token
     const token = generarToken({
@@ -197,23 +195,18 @@ const actualizarPerfil = async (req, res) => {
     const id_cliente = req.usuario.id;
     const { nombre_completo, telefono, ciudad, nueva_contrasena } = req.body;
 
-    // Preparar datos a actualizar
     const datosActualizar = {};
 
     if (nombre_completo !== undefined) datosActualizar.nombre_completo = nombre_completo;
     if (telefono !== undefined) datosActualizar.telefono = telefono;
     if (ciudad !== undefined) datosActualizar.ciudad = ciudad;
 
-    // Si se proporciona nueva contraseña, hashearla
     if (nueva_contrasena) {
       const salt = await bcrypt.genSalt(10);
       datosActualizar.contrasena = await bcrypt.hash(nueva_contrasena, salt);
     }
 
-    const clienteActualizado = await Cliente.actualizarPerfil(
-      id_cliente,
-      datosActualizar
-    );
+    const clienteActualizado = await Cliente.actualizarPerfil(id_cliente, datosActualizar);
 
     if (!clienteActualizado) {
       return res.status(404).json({
@@ -222,7 +215,6 @@ const actualizarPerfil = async (req, res) => {
       });
     }
 
-    // No enviar la contraseña
     delete clienteActualizado.contrasena;
 
     res.json({
@@ -241,12 +233,11 @@ const actualizarPerfil = async (req, res) => {
   }
 };
 
-// ⭐ NUEVO: Actualizar foto de perfil
+// Actualizar foto de perfil
 const actualizarFotoPerfil = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
 
-    // Validar que se haya subido un archivo
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -254,51 +245,37 @@ const actualizarFotoPerfil = async (req, res) => {
       });
     }
 
-    // La URL de Cloudinary viene en req.file.path
     const nueva_foto = req.file.path;
 
-    // Obtener el cliente para ver si tiene foto anterior
-    const clienteActual = await Cliente.buscarPorId(id_cliente);
+    // Obtener foto anterior y actualizar en paralelo
+    const [clienteActual, clienteActualizado] = await Promise.all([
+      Cliente.buscarPorId(id_cliente),
+      Cliente.actualizarFotoPerfil(id_cliente, nueva_foto)
+    ]);
 
-    // Actualizar en la base de datos
-    const clienteActualizado = await Cliente.actualizarFotoPerfil(
-      id_cliente,
-      nueva_foto
-    );
-
-    // Si tenía una foto anterior en Cloudinary, eliminarla
-    if (clienteActual.foto_perfil && clienteActual.foto_perfil.includes('cloudinary')) {
+    // Eliminar foto anterior de Cloudinary sin bloquear la respuesta
+    if (clienteActual?.foto_perfil?.includes('cloudinary')) {
       const publicId = extraerPublicId(clienteActual.foto_perfil);
       if (publicId) {
-        try {
-          await eliminarImagen(publicId);
-        } catch (error) {
-          console.error('Error al eliminar foto anterior de Cloudinary:', error);
-          // No fallar si no se puede eliminar la foto anterior
-        }
+        eliminarImagen(publicId)
+          .catch(err => console.error('Error al eliminar foto anterior de Cloudinary:', err));
       }
     }
 
     res.json({
       success: true,
       message: 'Foto de perfil actualizada exitosamente',
-      data: {
-        foto_perfil: nueva_foto
-      }
+      data: { foto_perfil: nueva_foto }
     });
 
   } catch (error) {
     console.error('Error en actualizarFotoPerfil:', error);
     
-    // Si falla, intentar eliminar la imagen que se acaba de subir
-    if (req.file && req.file.path) {
+    if (req.file?.path) {
       const publicId = extraerPublicId(req.file.path);
       if (publicId) {
-        try {
-          await eliminarImagen(publicId);
-        } catch (err) {
-          console.error('Error al eliminar imagen tras fallo:', err);
-        }
+        eliminarImagen(publicId)
+          .catch(err => console.error('Error al eliminar imagen tras fallo:', err));
       }
     }
 
@@ -315,7 +292,7 @@ const solicitarRecuperacion = async (req, res) => {
   if (!correo) return res.status(400).json({ success: false, message: 'Correo requerido' });
 
   try {
-    await admin.auth().getUserByEmail(correo); // verifica que existe
+    await admin.auth().getUserByEmail(correo);
     await emailService.enviarRecuperacion({ email: correo });
   } catch (e) {
     // No revelar si existe o no por seguridad
@@ -327,38 +304,37 @@ const solicitarRecuperacion = async (req, res) => {
 const eliminarFotoPerfil = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
- 
-    // Obtener el cliente para ver si tiene foto
+
     const clienteActual = await Cliente.buscarPorId(id_cliente);
- 
+
     if (!clienteActual.foto_perfil) {
       return res.status(400).json({
         success: false,
         message: 'No tienes una foto de perfil para eliminar'
       });
     }
- 
-    // Eliminar de Cloudinary si existe
+
+    // Eliminar de Cloudinary y BD en paralelo
+    const promesas = [Cliente.actualizarFotoPerfil(id_cliente, null)];
+
     if (clienteActual.foto_perfil.includes('cloudinary')) {
       const publicId = extraerPublicId(clienteActual.foto_perfil);
       if (publicId) {
-        try {
-          await eliminarImagen(publicId);
-        } catch (error) {
-          console.error('Error al eliminar de Cloudinary:', error);
-          // Continuar aunque falle la eliminación de Cloudinary
-        }
+        promesas.push(
+          eliminarImagen(publicId).catch(err =>
+            console.error('Error al eliminar de Cloudinary:', err)
+          )
+        );
       }
     }
- 
-    // Actualizar en la base de datos (poner null)
-    await Cliente.actualizarFotoPerfil(id_cliente, null);
- 
+
+    await Promise.all(promesas);
+
     res.json({
       success: true,
       message: 'Foto de perfil eliminada exitosamente'
     });
- 
+
   } catch (error) {
     console.error('Error en eliminarFotoPerfil:', error);
     res.status(500).json({
@@ -374,7 +350,7 @@ module.exports = {
   loginCliente,
   obtenerPerfil,
   actualizarPerfil,
-  actualizarFotoPerfil, 
-  eliminarFotoPerfil, 
+  actualizarFotoPerfil,
+  eliminarFotoPerfil,
   solicitarRecuperacion
 };

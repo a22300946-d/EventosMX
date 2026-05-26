@@ -460,7 +460,7 @@ function SolicitudesRecibidas() {
                           <div className="sr-acciones">
                             <button
                               className="sr-btn-chat"
-                              onClick={() => navigate(`/proveedor/chat/${sol.id_solicitud}`)}
+                              onClick={() => navigate(`/chat/${sol.id_solicitud}`)}
                             >
                               <FaCommentDots /> Abrir chat
                             </button>

@@ -1,0 +1,158 @@
+/* ── Página completa ────────────────────────────────────────────────────── */
+
+.verificar-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f4f4;
+  font-family: Arial, sans-serif;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* ── Tarjeta central ────────────────────────────────────────────────────── */
+
+.verificar-card {
+  background: white;
+  border-radius: 12px;
+  padding: 50px 40px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+/* ── Spinner de carga ───────────────────────────────────────────────────── */
+
+.verificar-spinner {
+  font-size: 56px;
+  margin-bottom: 16px;
+  animation: verificar-pulsar 1.2s ease-in-out infinite;
+}
+
+@keyframes verificar-pulsar {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.9); }
+}
+
+.verificar-cargando-texto {
+  color: #6c757d;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* ── Ícono ──────────────────────────────────────────────────────────────── */
+
+.verificar-icono {
+  font-size: 72px;
+  margin-bottom: 20px;
+  line-height: 1;
+}
+
+.verificar-icono-error {
+  font-size: 60px;
+}
+
+/* ── Título ─────────────────────────────────────────────────────────────── */
+
+.verificar-titulo {
+  color: #1a4d5c;
+  font-size: 1.75rem;
+  font-weight: bold;
+  margin: 0 0 15px 0;
+}
+
+/* ── Texto descriptivo ──────────────────────────────────────────────────── */
+
+.verificar-texto {
+  color: #555;
+  line-height: 1.7;
+  font-size: 0.95rem;
+  margin: 0 0 20px 0;
+}
+
+/* ── Caja informativa ───────────────────────────────────────────────────── */
+
+.verificar-info {
+  background: #f0f7f9;
+  border: 1px solid #c8e0e8;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 0.875rem;
+  color: #555;
+  margin-bottom: 28px;
+}
+
+/* ── Botones ────────────────────────────────────────────────────────────── */
+
+.verificar-botones {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.verificar-btn {
+  display: inline-block;
+  padding: 12px 26px;
+  border-radius: 25px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  min-width: 160px;
+  box-sizing: border-box;
+}
+
+.verificar-btn-cliente {
+  background-color: #1a4d5c;
+  color: white;
+}
+
+.verificar-btn-cliente:hover {
+  background-color: #143d4a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+}
+
+.verificar-btn-proveedor {
+  background-color: #2d7a8a;
+  color: white;
+}
+
+.verificar-btn-proveedor:hover {
+  background-color: #256070;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(45, 122, 138, 0.3);
+}
+
+.verificar-btn-secundario {
+  background-color: #f8f9fa;
+  color: #1a4d5c;
+  border: 2px solid #1a4d5c;
+}
+
+.verificar-btn-secundario:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .verificar-card {
+    padding: 36px 24px;
+  }
+
+  .verificar-titulo {
+    font-size: 1.4rem;
+  }
+
+  .verificar-btn {
+    width: 100%;
+  }
+}

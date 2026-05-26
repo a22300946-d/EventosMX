@@ -10,7 +10,6 @@ import { FiCamera, FiTrash2, FiCheck, FiAlertTriangle, FiLoader } from "react-ic
 import { AiOutlineHourglass } from "react-icons/ai";
 
 function EditarDatos() {
-  const { user } = useAuth();
   const [formData, setFormData] = useState({
     nombre_completo: "",
     correo: "",

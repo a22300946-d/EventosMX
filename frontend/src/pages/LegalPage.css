@@ -1,0 +1,140 @@
+/* ── Página completa ────────────────────────────────────────────────────── */
+
+.legal-page {
+  width: 100%;
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+
+.legal-hero {
+  background-color: #1a4d5c;
+  padding: 3.5rem 2rem;
+  text-align: center;
+}
+
+.legal-hero-content {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.legal-hero-icono {
+  font-size: 44px;
+  margin-bottom: 0.75rem;
+  line-height: 1;
+}
+
+.legal-hero-titulo {
+  color: white;
+  font-size: 2.2rem;
+  font-weight: bold;
+  margin: 0 0 0.5rem 0;
+}
+
+.legal-hero-sub {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ── Documento ──────────────────────────────────────────────────────────── */
+
+.legal-documento {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+/* ── Párrafo introductorio ──────────────────────────────────────────────── */
+
+.legal-intro-texto {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #555;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid #c5dde8;
+  margin: 0 0 2.5rem 0;
+}
+
+/* ── Sección del documento ──────────────────────────────────────────────── */
+
+.legal-doc-seccion {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.legal-doc-seccion:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* ── Títulos H2 ─────────────────────────────────────────────────────────── */
+
+.legal-doc-h2 {
+  color: #1a4d5c;
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #c5dde8;
+  display: inline-block;
+}
+
+/* ── Títulos H3 ─────────────────────────────────────────────────────────── */
+
+.legal-doc-h3 {
+  color: #2c3e50;
+  font-size: 1rem;
+  font-weight: bold;
+  margin: 1.25rem 0 0.5rem 0;
+}
+
+/* ── Párrafos ───────────────────────────────────────────────────────────── */
+
+.legal-doc-seccion p {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  margin: 0 0 0.85rem 0;
+}
+
+.legal-doc-seccion p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Listas ─────────────────────────────────────────────────────────────── */
+
+.legal-doc-lista {
+  margin: 0.5rem 0 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.legal-doc-lista li {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  margin-bottom: 0.3rem;
+}
+
+.legal-doc-lista li strong {
+  color: #2c3e50;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .legal-hero-titulo {
+    font-size: 1.7rem;
+  }
+
+  .legal-documento {
+    padding: 2rem 1.25rem 3rem;
+  }
+
+  .legal-doc-h2 {
+    font-size: 1.1rem;
+  }
+}

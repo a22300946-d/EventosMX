@@ -46,7 +46,6 @@ const Chat = () => {
   const [conversacionActual, setConversacionActual] = useState(null);
   const [usuario, setUsuario] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [solicitudActual, setSolicitudActual] = useState(null);
   const [modalResenaOpen, setModalResenaOpen] = useState(false);
@@ -123,6 +122,7 @@ const Chat = () => {
       socketService.joinConversation(parseInt(id_solicitud));
       return () => { socketService.leaveConversation(parseInt(id_solicitud)); };
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id_solicitud]);
 
   useEffect(() => {
@@ -150,6 +150,7 @@ const Chat = () => {
     if (conversacionActual) setSolicitudActual(conversacionActual);
   }, [conversacionActual]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { verificarPuedeDejarResena(); }, [conversacionActual, usuario]);
 
   const cargarConversaciones = async () => {

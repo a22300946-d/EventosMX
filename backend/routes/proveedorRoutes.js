@@ -10,12 +10,14 @@ const {
   actualizarFotoPerfil,
   eliminarFotoPerfil,
   buscarProveedores,
-  obtenerProveedorPublico
+  obtenerProveedorPublico,
+  solicitarRecuperacion
 } = require('../controllers/proveedorController');
 
 // ========== RUTAS PÚBLICAS ==========
 router.post('/registro', registrarProveedor);
 router.post('/login', loginProveedor);
+router.post('/recuperar-contrasena', solicitarRecuperacion);
 router.get('/buscar', buscarProveedores);
 router.get('/publico/:id', obtenerProveedorPublico);
 

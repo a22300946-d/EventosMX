@@ -3,7 +3,7 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../services/api';
 import { ModalConfirm, useModal } from '../../components/modales';
 import './GestionCatalogos.css';
-import { FiMapPin, FiTool, FiCalendar, FiTrash2, FiSmile, FiChevronUp, FiChevronDown, FiX } from 'react-icons/fi';
+import { FiMapPin, FiTool, FiCalendar, FiSmile, FiChevronUp, FiChevronDown, FiX } from 'react-icons/fi';
 
 // ── Emojis disponibles por categoría ──────────────────────────
 const EMOJIS_SERVICIO = {
