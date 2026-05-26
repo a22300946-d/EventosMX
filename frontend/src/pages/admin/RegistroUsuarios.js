@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../services/api';
+import { ModalConfirm, useModal } from '../../components/modales';
 import './RegistroUsuarios.css';
 
 function RegistroUsuarios() {
@@ -10,15 +11,7 @@ function RegistroUsuarios() {
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
 
-  // Modal de confirmación
-  const [modal, setModal] = useState({
-    visible: false,
-    titulo: '',
-    descripcion: '',
-    textoConfirmar: '',
-    esBloqueado: false,
-    onConfirmar: null,
-  });
+  const { modalConfirm, mostrarConfirmacion, cerrarConfirm } = useModal();
 
   useEffect(() => {
     cargarClientes();
@@ -37,43 +30,33 @@ function RegistroUsuarios() {
     }
   };
 
+  const mostrarExito = (msg) => { setMensaje(msg); setTimeout(() => setMensaje(''), 3000); };
+  const mostrarError  = (msg) => { setError(msg);   setTimeout(() => setError(''),   3000); };
+
   const pedirToggleEstado = () => {
     if (!seleccionado) return;
     const cliente = clientes.find(c => c.id_cliente === seleccionado);
     const bloqueado = cliente.estado_cuenta === 'bloqueado';
 
-    setModal({
-      visible: true,
-      titulo: bloqueado ? '¿Desbloquear usuario?' : '¿Bloquear usuario?',
-      descripcion: bloqueado
+    mostrarConfirmacion({
+      title: bloqueado ? '¿Desbloquear usuario?' : '¿Bloquear usuario?',
+      message: bloqueado
         ? `Vas a desbloquear la cuenta de "${cliente.nombre_completo}". El usuario podrá iniciar sesión nuevamente.`
         : `Vas a bloquear la cuenta de "${cliente.nombre_completo}". No podrá iniciar sesión hasta que sea desbloqueado.`,
-      textoConfirmar: bloqueado ? 'Sí, desbloquear' : 'Sí, bloquear',
-      esBloqueado: bloqueado,
-      onConfirmar: () => ejecutarToggle(cliente, bloqueado),
+      confirmLabel: bloqueado ? 'Sí, desbloquear' : 'Sí, bloquear',
+      onConfirm: async () => {
+        cerrarConfirm();
+        const nuevoEstado = bloqueado ? 'activo' : 'bloqueado';
+        try {
+          await api.patch(`/admin/clientes/${cliente.id_cliente}/estado`, { estado: nuevoEstado });
+          mostrarExito(`Usuario ${nuevoEstado === 'bloqueado' ? 'bloqueado' : 'desbloqueado'} correctamente.`);
+          setSeleccionado(null);
+          await cargarClientes();
+        } catch (err) {
+          mostrarError('Error al cambiar el estado del usuario.');
+        }
+      },
     });
-  };
-
-  const ejecutarToggle = async (cliente, esBloqueado) => {
-    const nuevoEstado = esBloqueado ? 'activo' : 'bloqueado';
-    try {
-      await api.patch(`/admin/clientes/${cliente.id_cliente}/estado`, { estado: nuevoEstado });
-      setMensaje(`Usuario ${nuevoEstado === 'bloqueado' ? 'bloqueado' : 'desbloqueado'} correctamente.`);
-      setSeleccionado(null);
-      await cargarClientes();
-      setTimeout(() => setMensaje(''), 3000);
-    } catch (err) {
-      setError('Error al cambiar el estado del usuario.');
-    }
-  };
-
-  const cerrarModal = () => {
-    setModal({ visible: false, titulo: '', descripcion: '', textoConfirmar: '', esBloqueado: false, onConfirmar: null });
-  };
-
-  const confirmarModal = async () => {
-    if (modal.onConfirmar) await modal.onConfirmar();
-    cerrarModal();
   };
 
   const clienteSeleccionado = clientes.find(c => c.id_cliente === seleccionado);
@@ -164,29 +147,11 @@ function RegistroUsuarios() {
         )}
       </div>
 
-      {/* Modal de confirmación */}
-      {modal.visible && (
-        <div className="ru-modal-overlay" onClick={cerrarModal}>
-          <div className="ru-modal" onClick={e => e.stopPropagation()}>
-            <div className="ru-modal-icono">
-              {modal.esBloqueado ? '🔓' : '🔒'}
-            </div>
-            <h3 className="ru-modal-titulo">{modal.titulo}</h3>
-            <p className="ru-modal-desc">{modal.descripcion}</p>
-            <div className="ru-modal-acciones">
-              <button className="ru-modal-btn-cancelar" onClick={cerrarModal}>
-                Cancelar
-              </button>
-              <button
-                className={`ru-modal-btn-confirmar ${modal.esBloqueado ? 'ru-modal-btn-desbloquear' : 'ru-modal-btn-bloquear'}`}
-                onClick={confirmarModal}
-              >
-                {modal.textoConfirmar}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalConfirm
+        config={modalConfirm}
+        onConfirm={modalConfirm?.onConfirm}
+        onCancel={cerrarConfirm}
+      />
     </AdminLayout>
   );
 }

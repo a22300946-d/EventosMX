@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../services/api';
+import { ModalConfirm, useModal } from '../../components/modales';
 import './RegistroProveedores.css';
 
 function RegistroProveedores() {
@@ -10,15 +11,7 @@ function RegistroProveedores() {
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
 
-  // Modal de confirmación
-  const [modal, setModal] = useState({
-    visible: false,
-    titulo: '',
-    descripcion: '',
-    textoConfirmar: '',
-    esBloqueado: false,
-    onConfirmar: null,
-  });
+  const { modalConfirm, mostrarConfirmacion, cerrarConfirm } = useModal();
 
   useEffect(() => {
     cargarProveedores();
@@ -37,43 +30,33 @@ function RegistroProveedores() {
     }
   };
 
+  const mostrarExito = (msg) => { setMensaje(msg); setTimeout(() => setMensaje(''), 3000); };
+  const mostrarError  = (msg) => { setError(msg);   setTimeout(() => setError(''),   3000); };
+
   const pedirToggleEstado = () => {
     if (!seleccionado) return;
     const proveedor = proveedores.find(p => p.id_proveedor === seleccionado);
     const bloqueado = proveedor.estado_cuenta === 'bloqueado';
 
-    setModal({
-      visible: true,
-      titulo: bloqueado ? '¿Desbloquear proveedor?' : '¿Bloquear proveedor?',
-      descripcion: bloqueado
+    mostrarConfirmacion({
+      title: bloqueado ? '¿Desbloquear proveedor?' : '¿Bloquear proveedor?',
+      message: bloqueado
         ? `Vas a desbloquear la cuenta de "${proveedor.nombre_negocio}". El proveedor podrá iniciar sesión nuevamente.`
         : `Vas a bloquear la cuenta de "${proveedor.nombre_negocio}". No podrá iniciar sesión hasta que sea desbloqueado.`,
-      textoConfirmar: bloqueado ? 'Sí, desbloquear' : 'Sí, bloquear',
-      esBloqueado: bloqueado,
-      onConfirmar: () => ejecutarToggle(proveedor, bloqueado),
+      confirmLabel: bloqueado ? 'Sí, desbloquear' : 'Sí, bloquear',
+      onConfirm: async () => {
+        cerrarConfirm();
+        const nuevoEstado = bloqueado ? 'activo' : 'bloqueado';
+        try {
+          await api.patch(`/admin/proveedores/${proveedor.id_proveedor}/estado`, { estado: nuevoEstado });
+          mostrarExito(`Proveedor ${nuevoEstado === 'bloqueado' ? 'bloqueado' : 'desbloqueado'} correctamente.`);
+          setSeleccionado(null);
+          await cargarProveedores();
+        } catch (err) {
+          mostrarError('Error al cambiar el estado del proveedor.');
+        }
+      },
     });
-  };
-
-  const ejecutarToggle = async (proveedor, esBloqueado) => {
-    const nuevoEstado = esBloqueado ? 'activo' : 'bloqueado';
-    try {
-      await api.patch(`/admin/proveedores/${proveedor.id_proveedor}/estado`, { estado: nuevoEstado });
-      setMensaje(`Proveedor ${nuevoEstado === 'bloqueado' ? 'bloqueado' : 'desbloqueado'} correctamente.`);
-      setSeleccionado(null);
-      await cargarProveedores();
-      setTimeout(() => setMensaje(''), 3000);
-    } catch (err) {
-      setError('Error al cambiar el estado del proveedor.');
-    }
-  };
-
-  const cerrarModal = () => {
-    setModal({ visible: false, titulo: '', descripcion: '', textoConfirmar: '', esBloqueado: false, onConfirmar: null });
-  };
-
-  const confirmarModal = async () => {
-    if (modal.onConfirmar) await modal.onConfirmar();
-    cerrarModal();
   };
 
   const proveedorSeleccionado = proveedores.find(p => p.id_proveedor === seleccionado);
@@ -170,29 +153,11 @@ function RegistroProveedores() {
         )}
       </div>
 
-      {/* Modal de confirmación */}
-      {modal.visible && (
-        <div className="rp-modal-overlay" onClick={cerrarModal}>
-          <div className="rp-modal" onClick={e => e.stopPropagation()}>
-            <div className="rp-modal-icono">
-              {modal.esBloqueado ? '🔓' : '🔒'}
-            </div>
-            <h3 className="rp-modal-titulo">{modal.titulo}</h3>
-            <p className="rp-modal-desc">{modal.descripcion}</p>
-            <div className="rp-modal-acciones">
-              <button className="rp-modal-btn-cancelar" onClick={cerrarModal}>
-                Cancelar
-              </button>
-              <button
-                className={`rp-modal-btn-confirmar ${modal.esBloqueado ? 'rp-modal-btn-desbloquear' : 'rp-modal-btn-bloquear'}`}
-                onClick={confirmarModal}
-              >
-                {modal.textoConfirmar}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalConfirm
+        config={modalConfirm}
+        onConfirm={modalConfirm?.onConfirm}
+        onCancel={cerrarConfirm}
+      />
     </AdminLayout>
   );
 }

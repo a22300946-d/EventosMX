@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../services/api';
+import { ModalConfirm, useModal } from '../../components/modales';
 import './SolicitudesProveedores.css';
 
 function SolicitudesProveedores() {
@@ -9,15 +10,7 @@ function SolicitudesProveedores() {
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
 
-  // Modal de confirmación
-  const [modal, setModal] = useState({
-    visible: false,
-    titulo: '',
-    descripcion: '',
-    textoConfirmar: '',
-    tipo: '',   // 'aceptar' | 'rechazar'
-    onConfirmar: null,
-  });
+  const { modalConfirm, mostrarConfirmacion, cerrarConfirm } = useModal();
 
   useEffect(() => {
     cargarSolicitudes();
@@ -36,40 +29,29 @@ function SolicitudesProveedores() {
     }
   };
 
+  const mostrarExito = (msg) => { setMensaje(msg); setTimeout(() => setMensaje(''), 3000); };
+  const mostrarError  = (msg) => { setError(msg);   setTimeout(() => setError(''),   3000); };
+
   const pedirResolver = (proveedor, decision) => {
     const esAceptar = decision === 'aprobado';
-    setModal({
-      visible: true,
-      titulo: esAceptar ? '¿Aprobar proveedor?' : '¿Rechazar proveedor?',
-      descripcion: esAceptar
+    mostrarConfirmacion({
+      title: esAceptar ? '¿Aprobar proveedor?' : '¿Rechazar proveedor?',
+      message: esAceptar
         ? `Vas a aprobar la solicitud de "${proveedor.nombre_negocio}". El proveedor podrá acceder a la plataforma.`
         : `Vas a rechazar la solicitud de "${proveedor.nombre_negocio}". Esta acción no se puede deshacer.`,
-      textoConfirmar: esAceptar ? 'Sí, aprobar' : 'Sí, rechazar',
-      tipo: esAceptar ? 'aceptar' : 'rechazar',
-      onConfirmar: () => resolver(proveedor.id_proveedor, decision),
+      confirmLabel: esAceptar ? 'Sí, aprobar' : 'Sí, rechazar',
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          await api.patch(`/admin/solicitudes-proveedores/${proveedor.id_proveedor}/decision`, { decision });
+          const accion = decision === 'aprobado' ? 'aprobado' : 'rechazado';
+          mostrarExito(`Proveedor ${accion} correctamente.`);
+          await cargarSolicitudes();
+        } catch (err) {
+          mostrarError('Error al procesar la solicitud.');
+        }
+      },
     });
-  };
-
-  const resolver = async (id, decision) => {
-    try {
-      await api.patch(`/admin/solicitudes-proveedores/${id}/decision`, { decision });
-      const accion = decision === 'aprobado' ? 'aprobado' : 'rechazado';
-      setMensaje(`Proveedor ${accion} correctamente.`);
-      await cargarSolicitudes();
-      setTimeout(() => setMensaje(''), 3000);
-    } catch (err) {
-      setError('Error al procesar la solicitud.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-
-  const cerrarModal = () => {
-    setModal({ visible: false, titulo: '', descripcion: '', textoConfirmar: '', tipo: '', onConfirmar: null });
-  };
-
-  const confirmarModal = async () => {
-    if (modal.onConfirmar) await modal.onConfirmar();
-    cerrarModal();
   };
 
   const formatearFecha = (fecha) => {
@@ -152,29 +134,11 @@ function SolicitudesProveedores() {
         )}
       </div>
 
-      {/* Modal de confirmación */}
-      {modal.visible && (
-        <div className="sp-modal-overlay" onClick={cerrarModal}>
-          <div className="sp-modal" onClick={e => e.stopPropagation()}>
-            <div className="sp-modal-icono">
-              {modal.tipo === 'aceptar' ? '✅' : '❌'}
-            </div>
-            <h3 className="sp-modal-titulo">{modal.titulo}</h3>
-            <p className="sp-modal-desc">{modal.descripcion}</p>
-            <div className="sp-modal-acciones">
-              <button className="sp-modal-btn-cancelar" onClick={cerrarModal}>
-                Cancelar
-              </button>
-              <button
-                className={`sp-modal-btn-confirmar sp-modal-btn-${modal.tipo}`}
-                onClick={confirmarModal}
-              >
-                {modal.textoConfirmar}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalConfirm
+        config={modalConfirm}
+        onConfirm={modalConfirm?.onConfirm}
+        onCancel={cerrarConfirm}
+      />
     </AdminLayout>
   );
 }

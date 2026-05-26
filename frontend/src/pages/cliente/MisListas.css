@@ -80,6 +80,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  position: relative;
 }
 
 .lista-card:hover {
@@ -151,6 +152,8 @@
 
 /* Badges */
 .badge {
+  display: flex;
+  align-items: center;
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-size: 0.85rem;
@@ -295,26 +298,7 @@
   box-shadow: 0 6px 20px rgba(26, 77, 92, 0.3);
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
+/* ─── Modales de formulario (crear / renombrar) ──────────────────── */
 .modal-content {
   background: white;
   border-radius: 20px;
@@ -322,47 +306,38 @@
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  animation: slideUp 0.25s ease;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 2rem 2rem 1rem 2rem;
+  gap: 0.75rem;
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
   border-bottom: 1px solid #e0e0e0;
 }
 
 .modal-header h2 {
   color: #1a4d5c;
-  font-size: 1.8rem;
+  font-size: 1.4rem;
   margin: 0;
+  flex: 1;
 }
 
 .btn-cerrar-modal {
   background: transparent;
   border: none;
-  font-size: 2rem;
   color: #666;
   cursor: pointer;
-  transition: all 0.3s ease;
-  width: 40px;
-  height: 40px;
+  transition: all 0.25s ease;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .btn-cerrar-modal:hover {
@@ -372,7 +347,7 @@
 }
 
 .modal-body {
-  padding: 2rem;
+  padding: 1.5rem;
 }
 
 .form-group {
@@ -387,9 +362,7 @@
   font-size: 0.95rem;
 }
 
-.required {
-  color: #dc3545;
-}
+.required { color: #dc3545; }
 
 .form-input {
   width: 100%;
@@ -418,7 +391,8 @@ textarea.form-input {
 }
 
 .error-message {
-  display: block;
+  display: flex;
+  align-items: center;
   color: #dc3545;
   font-size: 0.85rem;
   margin-top: 0.25rem;
@@ -436,7 +410,7 @@ textarea.form-input {
 .modal-footer {
   display: flex;
   gap: 1rem;
-  padding: 1.5rem 2rem;
+  padding: 1.25rem 1.5rem;
   border-top: 1px solid #e0e0e0;
   background: #f9fafb;
   border-radius: 0 0 20px 20px;
@@ -454,12 +428,13 @@ textarea.form-input {
   transition: all 0.3s ease;
 }
 
-.btn-cancelar:hover:not(:disabled) {
-  background: #5a6268;
-}
+.btn-cancelar:hover:not(:disabled) { background: #5a6268; }
 
 .btn-crear {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.75rem 1.5rem;
   background: #1a4d5c;
   color: white;
@@ -482,72 +457,11 @@ textarea.form-input {
   cursor: not-allowed;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .listas-container {
-    padding: 1rem;
-  }
-
-  .listas-header h1 {
-    font-size: 2rem;
-  }
-
-  .listas-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .modal-content {
-    width: 95%;
-  }
-
-  .modal-header,
-  .modal-body,
-  .modal-footer {
-    padding: 1.5rem;
-  }
-
-  .modal-footer {
-    flex-direction: column;
-  }
-
-  .lista-stats {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-  }
-
-  .stat-value {
-    font-size: 1.2rem;
-  }
-
-  .stat-label {
-    font-size: 0.7rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .listas-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .btn-crear-evento {
-    width: 100%;
-  }
-
-  .lista-header-card {
-    flex-direction: column;
-  }
-
-  .badge {
-    align-self: flex-start;
-  }
-}
-
-/* Botón de menú en las listas - POSICIÓN CORREGIDA */
+/* ─── Menú contextual ────────────────────────────────────────────── */
 .lista-menu-container {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 0.75rem;
+  right: 0.75rem;
   z-index: 10;
 }
 
@@ -557,7 +471,7 @@ textarea.form-input {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -580,7 +494,6 @@ textarea.form-input {
   cursor: not-allowed;
 }
 
-/* Menú desplegable */
 .menu-desplegable {
   position: absolute;
   top: 100%;
@@ -637,4 +550,63 @@ textarea.form-input {
   font-size: 1rem;
 }
 
-/* Resto de estilos... */
+/* ─── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .listas-container {
+    padding: 1rem;
+  }
+
+  .listas-header h1 {
+    font-size: 2rem;
+  }
+
+  .listas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    width: 95%;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 1.25rem;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .lista-stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.2rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .listas-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-crear-evento {
+    width: 100%;
+  }
+
+  .lista-header-card {
+    flex-direction: column;
+  }
+
+  .badge {
+    align-self: flex-start;
+  }
+}

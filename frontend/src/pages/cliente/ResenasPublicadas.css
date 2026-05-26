@@ -465,119 +465,6 @@
   font-size: 0.85rem;
 }
 
-/* ========== MODAL DE CONFIRMACIÓN ========== */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-  animation: fadeIn 0.15s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-.modal-contenido {
-  background: #fff;
-  border-radius: 20px;
-  padding: 2.5rem 2rem;
-  max-width: 420px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  animation: slideUp 0.2s ease;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-
-.modal-icono-wrapper {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #f8d7da;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1.25rem;
-}
-
-.modal-icono-trash {
-  font-size: 1.75rem;
-  color: #721c24;
-}
-
-.modal-titulo {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 0.75rem;
-}
-
-.modal-desc {
-  font-size: 1rem;
-  color: #444;
-  margin: 0 0 0.5rem;
-  line-height: 1.6;
-}
-
-.modal-aviso {
-  font-size: 0.875rem;
-  color: #6c757d;
-  margin: 0 0 2rem;
-}
-
-.modal-acciones {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-}
-
-.modal-btn-cancelar {
-  padding: 0.7rem 1.75rem;
-  border-radius: 25px;
-  border: 2px solid #d1d5db;
-  background: #fff;
-  color: #374151;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.modal-btn-cancelar:hover {
-  border-color: #9ca3af;
-  background: #f9fafb;
-}
-
-.modal-btn-confirmar {
-  padding: 0.7rem 1.75rem;
-  border-radius: 25px;
-  border: none;
-  background: #dc3545;
-  color: #fff;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.modal-btn-confirmar:hover {
-  background: #b02a37;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.35);
-}
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
@@ -657,11 +544,7 @@
     flex-direction: column;
   }
 
-  .modal-btn-cancelar,
-  .modal-btn-confirmar {
-    width: 100%;
-    justify-content: center;
-  }
+  
 }
 
 @media (max-width: 480px) {

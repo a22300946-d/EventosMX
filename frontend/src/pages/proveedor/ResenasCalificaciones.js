@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
+import { ModalAlert, useModal } from "../../components/modales";
 import "./ResenasCalificaciones.css";
 import {
   FaStar, FaStarHalfAlt, FaRegStar,
@@ -28,6 +29,8 @@ function ResenasCalificaciones() {
   const [motivoReporte, setMotivoReporte] = useState("");
   const [motivoPersonalizado, setMotivoPersonalizado] = useState("");
   const [enviandoReporte, setEnviandoReporte] = useState(false);
+
+  const { modalAlert, mostrarAlerta, cerrarAlert } = useModal();
 
   useEffect(() => {
     if (user && user.id_proveedor) cargarResenas();
@@ -104,10 +107,10 @@ function ResenasCalificaciones() {
     return filtradas;
   };
 
-  const todasFiltradas  = obtenerResenasFiltradas();
-  const totalPaginas    = Math.ceil(todasFiltradas.length / POR_PAGINA);
-  const inicio          = (paginaActual - 1) * POR_PAGINA;
-  const resenasPagina   = todasFiltradas.slice(inicio, inicio + POR_PAGINA);
+  const todasFiltradas = obtenerResenasFiltradas();
+  const totalPaginas   = Math.ceil(todasFiltradas.length / POR_PAGINA);
+  const inicio         = (paginaActual - 1) * POR_PAGINA;
+  const resenasPagina  = todasFiltradas.slice(inicio, inicio + POR_PAGINA);
 
   const irAPagina = (n) => {
     if (n < 1 || n > totalPaginas) return;
@@ -153,18 +156,18 @@ function ResenasCalificaciones() {
   const handleReportarResena = async () => {
     const motivoFinal = motivoReporte === "otro" ? motivoPersonalizado : motivoReporte;
     if (!motivoFinal || motivoFinal.trim() === "") {
-      alert("Por favor, selecciona o escribe un motivo para el reporte.");
+      mostrarAlerta("Motivo requerido", "Por favor, selecciona o escribe un motivo para el reporte.", "error");
       return;
     }
     try {
       setEnviandoReporte(true);
       await api.put(`/resenas/${resenaSeleccionada.id_resena}/reportar`, { motivo: motivoFinal.trim() });
-      alert("Reseña reportada exitosamente. Nuestro equipo la revisará pronto.");
+      mostrarAlerta("Reporte enviado", "Reseña reportada exitosamente. Nuestro equipo la revisará pronto.", "success");
       handleCerrarModal();
       cargarResenas();
     } catch (error) {
       console.error("Error al reportar reseña:", error);
-      alert("Error al reportar la reseña. Por favor, intenta nuevamente.");
+      mostrarAlerta("Error", "Error al reportar la reseña. Por favor, intenta nuevamente.", "error");
     } finally {
       setEnviandoReporte(false);
     }
@@ -177,7 +180,6 @@ function ResenasCalificaciones() {
       <div className="resenas-calificaciones-container">
         <h1>Mis reseñas</h1>
 
-        {/* Estadísticas */}
         {estadisticas && (
           <div className="estadisticas-resenas">
             <div className="stat-card">
@@ -209,7 +211,6 @@ function ResenasCalificaciones() {
           <p>Aún no tienes reseñas.</p>
         ) : (
           <>
-            {/* Controles de filtrado — misma estructura que SolicitudesRecibidas */}
             <div className="sr-controles">
               <div className="sr-filtros">
                 <FaFilter className="sr-ctrl-icon" />
@@ -257,7 +258,6 @@ function ResenasCalificaciones() {
               <p>No hay reseñas que coincidan con los filtros seleccionados.</p>
             ) : (
               <>
-                {/* Indicador de página */}
                 <p className="sr-pag-info">
                   Mostrando <strong>{inicio + 1}–{Math.min(inicio + POR_PAGINA, todasFiltradas.length)}</strong> de{" "}
                   <strong>{todasFiltradas.length}</strong> reseñas
@@ -329,7 +329,6 @@ function ResenasCalificaciones() {
                   })}
                 </div>
 
-                {/* Paginación */}
                 {totalPaginas > 1 && (
                   <nav className="sr-paginacion">
                     <button
@@ -451,6 +450,11 @@ function ResenasCalificaciones() {
           </div>
         </div>
       )}
+
+      <ModalAlert
+        config={modalAlert}
+        onClose={cerrarAlert}
+      />
     </ProveedorLayout>
   );
 }

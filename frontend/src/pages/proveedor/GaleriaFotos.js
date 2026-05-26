@@ -1,36 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ProveedorLayout from '../../components/proveedor/ProveedorLayout';
 import { proveedorService } from '../../services/proveedorService';
+import { ModalConfirm, useModal } from '../../components/modales';
 import {
   FiCamera, FiFolder, FiFileText, FiCalendar, FiEye,
   FiTrash2, FiX, FiUploadCloud, FiCheckCircle, FiAlertTriangle,
   FiImage
 } from 'react-icons/fi';
 import './GaleriaFotos.css';
-
-// ─── Modal de confirmación ────────────────────────────────────────────────────
-function ConfirmModal({ mensaje, onConfirmar, onCancelar }) {
-  return (
-    <div className="confirm-overlay-pro" onClick={onCancelar}>
-      <div className="confirm-box-pro" onClick={(e) => e.stopPropagation()}>
-        <div className="confirm-icon-pro">
-          <FiAlertTriangle size={32} />
-        </div>
-        <h3 className="confirm-titulo-pro">¿Eliminar foto?</h3>
-        <p className="confirm-mensaje-pro">{mensaje}</p>
-        <div className="confirm-acciones-pro">
-          <button className="confirm-btn-cancelar-pro" onClick={onCancelar}>
-            Cancelar
-          </button>
-          <button className="confirm-btn-eliminar-pro" onClick={onConfirmar}>
-            <FiTrash2 size={16} />
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Toast de notificación ────────────────────────────────────────────────────
 function Toast({ mensaje, tipo, onClose }) {
@@ -58,9 +35,10 @@ function GaleriaFotos() {
   const [descripcion, setDescripcion] = useState('');
   const [mostrarModal, setMostrarModal] = useState(false);
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
-  const [confirm, setConfirm] = useState(null); // { foto }
-  const [toast, setToast] = useState(null);     // { mensaje, tipo }
+  const [toast, setToast] = useState(null);
   const fileInputRef = useRef(null);
+
+  const { modalConfirm, mostrarConfirmacion, cerrarConfirm } = useModal();
 
   const mostrarToast = (mensaje, tipo = 'exito') => setToast({ mensaje, tipo });
 
@@ -137,21 +115,23 @@ function GaleriaFotos() {
   };
 
   const pedirConfirmacion = (foto) => {
-    setConfirm({ foto });
-  };
-
-  const confirmarEliminacion = async () => {
-    const foto = confirm.foto;
-    setConfirm(null);
-    try {
-      await proveedorService.eliminarFoto(foto.id_foto);
-      await cargarGaleria();
-      await cargarLimite();
-      setMostrarModal(false);
-      mostrarToast('Foto eliminada exitosamente');
-    } catch {
-      mostrarToast('Error al eliminar la foto', 'error');
-    }
+    mostrarConfirmacion({
+      title: '¿Eliminar foto?',
+      message: `"${foto.descripcion}"`,
+      confirmLabel: 'Eliminar',
+      onConfirm: async () => {
+        cerrarConfirm();
+        try {
+          await proveedorService.eliminarFoto(foto.id_foto);
+          await cargarGaleria();
+          await cargarLimite();
+          setMostrarModal(false);
+          mostrarToast('Foto eliminada exitosamente');
+        } catch {
+          mostrarToast('Error al eliminar la foto', 'error');
+        }
+      },
+    });
   };
 
   const cancelarSeleccion = () => {
@@ -174,15 +154,6 @@ function GaleriaFotos() {
             mensaje={toast.mensaje}
             tipo={toast.tipo}
             onClose={() => setToast(null)}
-          />
-        )}
-
-        {/* Modal de confirmación */}
-        {confirm && (
-          <ConfirmModal
-            mensaje={`"${confirm.foto.descripcion}"`}
-            onConfirmar={confirmarEliminacion}
-            onCancelar={() => setConfirm(null)}
           />
         )}
 
@@ -392,7 +363,6 @@ function GaleriaFotos() {
               </button>
 
               <div className="modal-body-pro">
-                {/* Imagen a pantalla completa del modal */}
                 <div className="modal-image-section-pro">
                   <img
                     src={fotoSeleccionada.url_foto}
@@ -436,6 +406,12 @@ function GaleriaFotos() {
             </div>
           </div>
         )}
+
+        <ModalConfirm
+          config={modalConfirm}
+          onConfirm={modalConfirm?.onConfirm}
+          onCancel={cerrarConfirm}
+        />
       </div>
     </ProveedorLayout>
   );
