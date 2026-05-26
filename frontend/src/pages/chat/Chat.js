@@ -95,7 +95,10 @@ const Chat = () => {
         }
 
         setUsuario(userData);
-
+        
+        // FIX: solo conectar si aún no hay socket activo.
+        // NO llamar disconnect() al desmontar — el socket es compartido con Layout
+        // y destruirlo aquí borra todos los listeners de notificaciones del proveedor.
         if (userData.token) {
           socketService.connect(userData.token);
         } else {
@@ -108,7 +111,8 @@ const Chat = () => {
       console.error('No se encontró usuario en localStorage');
     }
 
-    return () => { socketService.disconnect(); };
+    // FIX: se eliminó "return () => { socketService.disconnect(); }"
+    // El socket es un singleton global gestionado por Layout; Chat no debe destruirlo.
   }, []);
 
   useEffect(() => { cargarConversaciones(); }, []);

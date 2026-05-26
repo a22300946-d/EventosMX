@@ -167,7 +167,7 @@ const obtenerResenasNoPositivas = async (req, res) => {
   try {
     const query = `
       SELECT r.id_resena, r.comentario, r.calificacion, r.sentimiento,
-             r.fecha_publicacion, r.reportada,
+             r.fecha_publicacion, r.reportada, r.fecha_reporte,
              c.id_cliente, c.nombre_completo AS nombre_cliente,
              p.nombre_negocio
       FROM resena r
@@ -175,7 +175,7 @@ const obtenerResenasNoPositivas = async (req, res) => {
       JOIN proveedor p ON p.id_proveedor = r.id_proveedor
       WHERE r.reportada = true
         AND r.visible = true
-      ORDER BY r.fecha_publicacion DESC
+      ORDER BY r.fecha_reporte DESC NULLS LAST
     `;
     const resultado = await pool.query(query);
     res.json({ success: true, data: resultado.rows });
@@ -397,6 +397,9 @@ const enviarNotificacion = async (req, res) => {
   }
 };
 
+// FIX: incluye notificaciones personales del proveedor (guardadas como 'proveedor_<id>')
+// además de las broadcast de siempre. Esto garantiza que las notificaciones de nueva
+// solicitud persistan en BD y aparezcan aunque el proveedor no estuviera conectado.
 const obtenerNotificaciones = async (req, res) => {
   try {
     const { rol } = req.query; // 'cliente', 'proveedor', o vacío para todas
@@ -406,7 +409,14 @@ const obtenerNotificaciones = async (req, res) => {
     if (rol === 'cliente') {
       whereClause = `WHERE destinatario IN ('todos', 'clientes', 'clientes_sin_contratacion')`;
     } else if (rol === 'proveedor') {
-      whereClause = `WHERE destinatario IN ('todos', 'proveedores', 'proveedores_pendientes', 'proveedores_sin_servicio')`;
+      // FIX: también incluir notificaciones personales de este proveedor específico
+      // guardadas con destinatario = 'proveedor_<id>' por solicitudController
+      const idProveedor = req.usuario?.id;
+      if (idProveedor) {
+        whereClause = `WHERE destinatario IN ('todos', 'proveedores', 'proveedores_pendientes', 'proveedores_sin_servicio', 'proveedor_${idProveedor}')`;
+      } else {
+        whereClause = `WHERE destinatario IN ('todos', 'proveedores', 'proveedores_pendientes', 'proveedores_sin_servicio')`;
+      }
     }
 
     const query = `
@@ -416,7 +426,7 @@ const obtenerNotificaciones = async (req, res) => {
       ORDER BY fecha_envio DESC
       LIMIT 50
     `;
-    const resultado = await pool.query(query);
+    const resultado = await pool.query(query, params);
     res.json({ success: true, data: resultado.rows });
   } catch (error) {
     console.error('Error en obtenerNotificaciones:', error);

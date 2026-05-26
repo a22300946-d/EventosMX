@@ -121,7 +121,8 @@ class Resena {
     const query = `
       UPDATE Resena 
       SET reportada = true,
-          motivo_reporte = $1
+          motivo_reporte = $1,
+          fecha_reporte = NOW()
       WHERE id_resena = $2
       RETURNING *
     `;

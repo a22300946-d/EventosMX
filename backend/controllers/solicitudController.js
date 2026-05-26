@@ -1,16 +1,7 @@
-/**
- * solicitudController.js  (ACTUALIZADO)
- * ─────────────────────────────────────────────────────────────────────────────
- * Cambios respecto a la versión anterior:
- *
- *  ★ crearSolicitud    → resetea los flags de notificación (para el timer)
- *  ★ aceptarSolicitud  → envía correos de confirmación a AMBAS partes en paralelo
- */
-
 const Solicitud = require('../models/Solicitud');
 const Mensaje = require('../models/Mensaje');
 const Calendario = require('../models/Calendario');
-const emailService = require('../services/emailService');
+const pool = require('../config/database'); // FIX: necesario para guardar notificación en BD
 
 // Importar socket de forma segura
 let emitNotification;
@@ -19,43 +10,49 @@ try {
   emitNotification = socketConfig.emitNotification;
 } catch (error) {
   console.warn('⚠️ Socket.IO no disponible, notificaciones deshabilitadas');
-  emitNotification = () => {};
+  emitNotification = () => {}; // Función vacía como fallback
 }
 
 // ✅ Función helper para formatear fechas sin desfase de zona horaria
 const formatearFechaSinDesfase = (fechaString) => {
   if (!fechaString) return 'Fecha no especificada';
+  
+  // Extraer componentes de la fecha
   const fecha = new Date(fechaString);
   const year = fecha.getUTCFullYear();
   const month = fecha.getUTCMonth();
   const day = fecha.getUTCDate();
+  
+  // Crear fecha en hora local
   const fechaLocal = new Date(year, month, day);
+  
   return fechaLocal.toLocaleDateString('es-MX', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   });
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 // Crear nueva solicitud (cliente)
 const crearSolicitud = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
-    const {
-      id_proveedor,
-      fecha_evento,
+    const { 
+      id_proveedor, 
+      fecha_evento, 
       numero_invitados,
-      tipo_evento,
-      presupuesto_estimado,
+      tipo_evento, 
+      presupuesto_estimado, 
       descripcion_solicitud,
-      servicios_solicitados,
+      servicios_solicitados 
     } = req.body;
 
     // Validar campos requeridos
     if (!id_proveedor || !fecha_evento || !tipo_evento) {
       return res.status(400).json({
         success: false,
-        message: 'Proveedor, fecha del evento y tipo de evento son obligatorios',
+        message: 'Proveedor, fecha del evento y tipo de evento son obligatorios'
       });
     }
 
@@ -63,30 +60,54 @@ const crearSolicitud = async (req, res) => {
     const fechaEvento = new Date(fecha_evento);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
+
     if (fechaEvento < hoy) {
-      return res.status(400).json({ success: false, message: 'La fecha del evento debe ser futura' });
+      return res.status(400).json({
+        success: false,
+        message: 'La fecha del evento debe ser futura'
+      });
     }
 
-    // Validar presupuesto
+    // ✅ NUEVO: Validar presupuesto máximo
     if (presupuesto_estimado) {
       const presupuesto = parseFloat(presupuesto_estimado);
       if (presupuesto > 99999999.99) {
-        return res.status(400).json({ success: false, message: 'El presupuesto máximo permitido es $99,999,999.99' });
+        return res.status(400).json({
+          success: false,
+          message: 'El presupuesto máximo permitido es $99,999,999.99'
+        });
       }
       if (presupuesto < 0) {
-        return res.status(400).json({ success: false, message: 'El presupuesto no puede ser negativo' });
+        return res.status(400).json({
+          success: false,
+          message: 'El presupuesto no puede ser negativo'
+        });
       }
     }
 
-    // Validar número de invitados
+    // ✅ NUEVO: Validar número de invitados
     if (numero_invitados) {
       const invitados = parseInt(numero_invitados);
-      if (invitados < 1)      return res.status(400).json({ success: false, message: 'El número de invitados debe ser al menos 1' });
-      if (invitados > 999999) return res.status(400).json({ success: false, message: 'El número de invitados es demasiado grande' });
+      if (invitados < 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'El número de invitados debe ser al menos 1'
+        });
+      }
+      if (invitados > 999999) {
+        return res.status(400).json({
+          success: false,
+          message: 'El número de invitados es demasiado grande'
+        });
+      }
     }
 
+    // Validar servicios si se proporcionan
     if (servicios_solicitados && !Array.isArray(servicios_solicitados)) {
-      return res.status(400).json({ success: false, message: 'Los servicios solicitados deben ser un array' });
+      return res.status(400).json({
+        success: false,
+        message: 'Los servicios solicitados deben ser un array'
+      });
     }
 
     // Crear la solicitud
@@ -98,52 +119,82 @@ const crearSolicitud = async (req, res) => {
       tipo_evento,
       presupuesto_estimado,
       descripcion_solicitud,
-      servicios_solicitados,
+      servicios_solicitados 
     });
 
-    // ★ Asegurar que los flags de notificación estén en false al crear
-    // (por si hay un INSERT que no los inicializa explícitamente)
+    // ✅ CREAR MENSAJE AUTOMÁTICO CON INFORMACIÓN DE LA SOLICITUD
     try {
-      await Solicitud.resetearFlagsNotificacion(nuevaSolicitud.id_solicitud);
-    } catch (errReset) {
-      console.warn('⚠️ No se pudo resetear flags de notificación:', errReset.message);
-    }
+      const mensajeInicial = `📋 Nueva solicitud de cotización\n\n🎉 Tipo de evento: ${tipo_evento}\n📅 Fecha: ${formatearFechaSinDesfase(fecha_evento)}\n${numero_invitados ? `👥 Número de invitados: ${numero_invitados}` : ''}\n${presupuesto_estimado ? `💰 Presupuesto estimado: $${parseFloat(presupuesto_estimado).toLocaleString('es-MX')}` : ''}\n${descripcion_solicitud ? `\n📝 Detalles adicionales:\n${descripcion_solicitud}` : ''}\n\n¡Hola! Estoy interesado en tus servicios para mi evento. ¿Podrías enviarme una cotización?`;
 
-    // Crear mensaje automático con información de la solicitud
-    try {
-      const mensajeInicial = `📋 Nueva solicitud de cotización\n\n🎉 Tipo de evento: ${tipo_evento}\n📅 Fecha: ${formatearFechaSinDesfase(fecha_evento)}\n${numero_invitados ? `👥 Número de invitados: ${numero_invitados}\n` : ''}${presupuesto_estimado ? `💰 Presupuesto estimado: $${parseFloat(presupuesto_estimado).toLocaleString('es-MX')}\n` : ''}${descripcion_solicitud ? `\n📝 Detalles adicionales:\n${descripcion_solicitud}` : ''}\n\n¡Hola! Estoy interesado en tus servicios para mi evento. ¿Podrías enviarme una cotización?`;
-
+      console.log('📝 Intentando crear mensaje inicial para solicitud:', nuevaSolicitud.id_solicitud);
+      
       await Mensaje.crear({
         id_solicitud: nuevaSolicitud.id_solicitud,
         id_remitente: id_cliente,
         tipo_remitente: 'cliente',
-        contenido: mensajeInicial,
+        contenido: mensajeInicial
       });
+
+      console.log('✅ Mensaje inicial creado exitosamente');
     } catch (errorMensaje) {
-      console.error('❌ Error al crear mensaje inicial:', errorMensaje.message);
+      console.error('❌ Error al crear mensaje inicial:', errorMensaje);
+      console.error('Stack:', errorMensaje.stack);
+      // No fallar la solicitud si el mensaje falla
     }
 
-    // Emitir notificación Socket.IO al proveedor
+    // Obtener datos completos de la solicitud (incluye nombre del cliente)
+    const solicitudCompleta = await Solicitud.obtenerPorId(nuevaSolicitud.id_solicitud);
+
+    // FIX: Guardar la notificación personal en la BD ANTES de emitir por socket.
+    // Así el proveedor la recibe aunque no esté conectado en este momento exacto:
+    // cuando abra la app y el Layout cargue las notificaciones, ya estará ahí.
+    try {
+      const tituloNotif = `Nueva solicitud de cotización`;
+      const mensajeNotif = `${solicitudCompleta?.cliente_nombre || 'Un cliente'} solicita cotización para ${tipo_evento} el ${formatearFechaSinDesfase(fecha_evento)}`;
+      const destinatarioPersonal = `proveedor_${id_proveedor}`;
+
+      await pool.query(
+        `INSERT INTO notificacion (destinatario, titulo, mensaje, fecha_envio)
+         VALUES ($1, $2, $3, NOW())`,
+        [destinatarioPersonal, tituloNotif, mensajeNotif]
+      );
+      console.log('✅ Notificación guardada en BD para proveedor:', id_proveedor);
+    } catch (errorNotifBD) {
+      console.error('❌ Error al guardar notificación en BD:', errorNotifBD);
+      // No fallar la solicitud si la notificación en BD falla
+    }
+
+    // Emitir notificación Socket.IO al proveedor con todos los detalles
+    // (funciona si el proveedor está conectado; si no, ya quedó guardado en BD)
     try {
       emitNotification(id_proveedor, 'proveedor', 'nueva_solicitud', {
-        id_solicitud: nuevaSolicitud.id_solicitud,
-        mensaje: 'Nueva solicitud de cotización recibida',
+        id_solicitud:          nuevaSolicitud.id_solicitud,
         tipo_evento,
         fecha_evento,
+        numero_invitados:      numero_invitados || null,
+        presupuesto_estimado:  presupuesto_estimado || null,
+        descripcion_solicitud: descripcion_solicitud || null,
+        cliente_nombre:        solicitudCompleta?.cliente_nombre || null,
+        fecha_recepcion:       new Date().toISOString(),
       });
     } catch (errorSocket) {
-      console.error('❌ Error al emitir notificación Socket.IO:', errorSocket.message);
+      console.error('❌ Error al emitir notificación Socket.IO:', errorSocket);
     }
+    
 
     res.status(201).json({
       success: true,
       message: 'Solicitud creada exitosamente',
-      data: nuevaSolicitud,
+      data: nuevaSolicitud
     });
 
   } catch (error) {
     console.error('Error al crear solicitud:', error);
-    res.status(500).json({ success: false, message: 'Error al crear la solicitud', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear la solicitud',
+      error: error.message
+    });
   }
 };
 
@@ -152,14 +203,25 @@ const obtenerMisSolicitudes = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
     const { estado, limite } = req.query;
+
     const solicitudes = await Solicitud.obtenerPorCliente(id_cliente, {
       estado,
-      limite: limite ? parseInt(limite) : null,
+      limite: limite ? parseInt(limite) : null
     });
-    res.json({ success: true, data: solicitudes, total: solicitudes.length });
+
+    res.json({
+      success: true,
+      data: solicitudes,
+      total: solicitudes.length
+    });
+
   } catch (error) {
     console.error('Error en obtenerMisSolicitudes:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener solicitudes', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener solicitudes',
+      error: error.message
+    });
   }
 };
 
@@ -168,14 +230,25 @@ const obtenerSolicitudesRecibidas = async (req, res) => {
   try {
     const id_proveedor = req.usuario.id;
     const { estado, limite } = req.query;
+
     const solicitudes = await Solicitud.obtenerPorProveedor(id_proveedor, {
       estado,
-      limite: limite ? parseInt(limite) : null,
+      limite: limite ? parseInt(limite) : null
     });
-    res.json({ success: true, data: solicitudes, total: solicitudes.length });
+
+    res.json({
+      success: true,
+      data: solicitudes,
+      total: solicitudes.length
+    });
+
   } catch (error) {
     console.error('Error en obtenerSolicitudesRecibidas:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener solicitudes', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener solicitudes',
+      error: error.message
+    });
   }
 };
 
@@ -184,24 +257,40 @@ const obtenerSolicitudPorId = async (req, res) => {
   try {
     const { id } = req.params;
     const usuario = req.usuario;
+
     const solicitud = await Solicitud.obtenerPorId(id);
 
     if (!solicitud) {
-      return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
+      return res.status(404).json({
+        success: false,
+        message: 'Solicitud no encontrada'
+      });
     }
 
-    const tienePermiso =
-      (usuario.tipo === 'cliente'   && solicitud.id_cliente   === usuario.id) ||
+    // Verificar que el usuario tenga permiso para ver esta solicitud
+    const tienePermiso = 
+      (usuario.tipo === 'cliente' && solicitud.id_cliente === usuario.id) ||
       (usuario.tipo === 'proveedor' && solicitud.id_proveedor === usuario.id);
 
     if (!tienePermiso) {
-      return res.status(403).json({ success: false, message: 'No tienes permiso para ver esta solicitud' });
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permiso para ver esta solicitud'
+      });
     }
 
-    res.json({ success: true, data: solicitud });
+    res.json({
+      success: true,
+      data: solicitud
+    });
+
   } catch (error) {
     console.error('Error en obtenerSolicitudPorId:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener solicitud', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener solicitud',
+      error: error.message
+    });
   }
 };
 
@@ -210,111 +299,176 @@ const responderSolicitud = async (req, res) => {
   try {
     const id_proveedor = req.usuario.id;
     const { id } = req.params;
-    const { mensaje_respuesta, precio_propuesto, detalles_servicio, fecha_disponible } = req.body;
-
-    if (!mensaje_respuesta || !precio_propuesto) {
-      return res.status(400).json({ success: false, message: 'Mensaje de respuesta y precio propuesto son obligatorios' });
-    }
-
-    const solicitudExistente = await Solicitud.obtenerPorId(id);
-    if (!solicitudExistente) {
-      return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
-    }
-    if (solicitudExistente.id_proveedor !== id_proveedor) {
-      return res.status(403).json({ success: false, message: 'No tienes permiso para responder esta solicitud' });
-    }
-    if (solicitudExistente.estado === 'Aceptada') {
-      return res.status(400).json({ success: false, message: 'No se puede modificar una solicitud ya aceptada' });
-    }
-
-    const solicitudActualizada = await Solicitud.responderConPropuesta(id, id_proveedor, {
-      mensaje_respuesta,
-      precio_propuesto,
+    const { 
+      mensaje_respuesta, 
+      precio_propuesto, 
       detalles_servicio,
-      fecha_disponible,
+      fecha_disponible 
+    } = req.body;
+
+    console.log('📋 responderSolicitud - Datos recibidos:', {
+      id_solicitud: id,
+      id_proveedor,
+      body: req.body
     });
 
-    res.json({ success: true, message: 'Propuesta enviada exitosamente al cliente', data: solicitudActualizada });
+    // Validar campos requeridos
+    if (!mensaje_respuesta || !precio_propuesto) {
+      console.log('❌ Validación falló - Campos faltantes');
+      return res.status(400).json({
+        success: false,
+        message: 'Mensaje de respuesta y precio propuesto son obligatorios'
+      });
+    }
+
+    // Primero verificar que la solicitud existe y pertenece a este proveedor
+    const solicitudExistente = await Solicitud.obtenerPorId(id);
+    
+    console.log('📋 Solicitud existente:', {
+      encontrada: !!solicitudExistente,
+      estado: solicitudExistente?.estado,
+      id_proveedor: solicitudExistente?.id_proveedor,
+      match: solicitudExistente?.id_proveedor === id_proveedor
+    });
+    
+    if (!solicitudExistente) {
+      return res.status(404).json({
+        success: false,
+        message: 'Solicitud no encontrada'
+      });
+    }
+
+    if (solicitudExistente.id_proveedor !== id_proveedor) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permiso para responder esta solicitud'
+      });
+    }
+
+    // ✅ PERMITIR RESPONDER SI NO ESTÁ ACEPTADA
+    if (solicitudExistente.estado === 'Aceptada') {
+      console.log('❌ Solicitud ya aceptada, no se puede modificar');
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede modificar una solicitud ya aceptada'
+      });
+    }
+
+    const solicitudActualizada = await Solicitud.responderConPropuesta(
+      id,
+      id_proveedor,
+      {
+        mensaje_respuesta,
+        precio_propuesto,
+        detalles_servicio,
+        fecha_disponible
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'Propuesta enviada exitosamente al cliente',
+      data: solicitudActualizada
+    });
+
   } catch (error) {
     console.error('Error en responderSolicitud:', error);
-    res.status(500).json({ success: false, message: 'Error al responder solicitud', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al responder solicitud',
+      error: error.message
+    });
   }
 };
 
-// ★ Aceptar propuesta del proveedor (cliente) — con correos simultáneos
+// Aceptar propuesta del proveedor (cliente)
 const aceptarSolicitud = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
     const { id } = req.params;
 
+    // Verificar que la solicitud existe
     const solicitudExistente = await Solicitud.obtenerPorId(id);
-
+    
+    console.log('🔍 DEBUG - solicitudExistente COMPLETO:', JSON.stringify(solicitudExistente, null, 2));
+    
     if (!solicitudExistente) {
-      return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
-    }
-    if (solicitudExistente.id_cliente !== id_cliente) {
-      return res.status(403).json({ success: false, message: 'No tienes permiso para aceptar esta solicitud' });
-    }
-    if (solicitudExistente.estado?.trim() !== 'Respondida') {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: `Solo se pueden aceptar solicitudes respondidas. Estado actual: "${solicitudExistente.estado}"`,
+        message: 'Solicitud no encontrada'
       });
     }
 
-    // Actualizar estado a Aceptada
-    const solicitudActualizada = await Solicitud.actualizarEstado(id, 'Aceptada', id_cliente, 'cliente');
+    if (solicitudExistente.id_cliente !== id_cliente) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permiso para aceptar esta solicitud'
+      });
+    }
 
-    // ★ Bloquear fecha en calendario del proveedor
+    console.log('🔍 Validando estado:', {
+      estado_actual: solicitudExistente.estado,
+      tipo: typeof solicitudExistente.estado,
+      longitud: solicitudExistente.estado?.length,
+      comparacion: solicitudExistente.estado === 'Respondida',
+      trim: solicitudExistente.estado?.trim(),
+      trim_comparacion: solicitudExistente.estado?.trim() === 'Respondida'
+    });
+
+    if (solicitudExistente.estado?.trim() !== 'Respondida') {
+      console.log('❌ Estado no válido para aceptar');
+      return res.status(400).json({
+        success: false,
+        message: `Solo se pueden aceptar solicitudes que han sido respondidas por el proveedor. Estado actual: "${solicitudExistente.estado}"`
+      });
+    }
+
+    // Actualizar estado de la solicitud a Aceptada
+    const solicitudActualizada = await Solicitud.actualizarEstado(
+      id, 
+      'Aceptada', 
+      id_cliente, 
+      'cliente'
+    );
+
+    // ✅ BLOQUEAR AUTOMÁTICAMENTE LA FECHA EN EL CALENDARIO DEL PROVEEDOR
     try {
       if (solicitudExistente.fecha_evento) {
+        console.log('📅 Bloqueando fecha en calendario:', {
+          fecha: solicitudExistente.fecha_evento,
+          proveedor: solicitudExistente.id_proveedor,
+          solicitud: id
+        });
+        
         await Calendario.marcarNoDisponible(
           solicitudExistente.id_proveedor,
           solicitudExistente.fecha_evento,
           `Evento: ${solicitudExistente.tipo_evento} - ${solicitudExistente.cliente_nombre || 'Cliente'}`,
-          id,
+          id
         );
+        
+        console.log('✅ Fecha bloqueada en calendario');
       }
     } catch (errorCalendario) {
-      console.error('❌ Error al bloquear fecha en calendario:', errorCalendario.message);
-    }
-
-    // ★ Enviar correos de confirmación a AMBAS partes en paralelo
-    try {
-      const detalles = {
-        servicio:     solicitudExistente.tipo_evento,
-        fecha:        formatearFechaSinDesfase(solicitudExistente.fecha_evento),
-        precio:       solicitudExistente.precio_propuesto || 0,
-        descripcion:  solicitudExistente.detalles_servicio || null,
-      };
-
-      await emailService.enviarConfirmacionAcuerdo({
-        cliente: {
-          nombre_completo: solicitudExistente.cliente_nombre,
-          correo:          solicitudExistente.cliente_correo,
-        },
-        proveedor: {
-          nombre_negocio: solicitudExistente.nombre_negocio,
-          correo:         solicitudExistente.proveedor_correo,
-        },
-        detalles,
-      });
-
-      console.log(`✅ Correos de confirmación enviados para solicitud #${id}`);
-    } catch (errorEmail) {
-      // El correo falla silenciosamente — la aceptación ya fue registrada
-      console.error('❌ Error al enviar correos de confirmación:', errorEmail.message);
+      console.error('❌ Error al bloquear fecha en calendario:', errorCalendario);
+      // No fallar la aceptación si el calendario falla
     }
 
     res.json({
       success: true,
-      message: 'Propuesta aceptada. Se enviaron correos de confirmación a ambas partes.',
-      data: solicitudActualizada,
+      message: 'Propuesta aceptada. Se enviará confirmación por correo a ambas partes.',
+      data: solicitudActualizada
     });
 
   } catch (error) {
     console.error('❌ Error en aceptarSolicitud:', error);
-    res.status(500).json({ success: false, message: 'Error al aceptar solicitud', error: error.message });
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Error al aceptar solicitud',
+      error: error.message,
+      details: error.stack
+    });
   }
 };
 
@@ -323,65 +477,108 @@ const rechazarSolicitud = async (req, res) => {
   try {
     const usuario = req.usuario;
     const { id } = req.params;
-    const solicitudActualizada = await Solicitud.actualizarEstado(id, 'Rechazada', usuario.id, usuario.tipo);
+
+    const solicitudActualizada = await Solicitud.actualizarEstado(
+      id, 
+      'Rechazada', 
+      usuario.id, 
+      usuario.tipo
+    );
 
     if (!solicitudActualizada) {
-      return res.status(404).json({ success: false, message: 'Solicitud no encontrada o no tienes permiso' });
+      return res.status(404).json({
+        success: false,
+        message: 'Solicitud no encontrada o no tienes permiso'
+      });
     }
-    res.json({ success: true, message: 'Solicitud rechazada', data: solicitudActualizada });
+
+    res.json({
+      success: true,
+      message: 'Solicitud rechazada',
+      data: solicitudActualizada
+    });
+
   } catch (error) {
     console.error('Error en rechazarSolicitud:', error);
-    res.status(500).json({ success: false, message: 'Error al rechazar solicitud', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al rechazar solicitud',
+      error: error.message
+    });
   }
 };
 
-// Cancelar solicitud (solo cliente, solo si está Pendiente)
+// Cancelar solicitud (solo cliente y solo si está Pendiente)
 const cancelarSolicitud = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
     const { id } = req.params;
+
     const solicitudEliminada = await Solicitud.eliminar(id, id_cliente);
 
     if (!solicitudEliminada) {
-      return res.status(404).json({ success: false, message: 'Solicitud no encontrada o no se puede cancelar' });
+      return res.status(404).json({
+        success: false,
+        message: 'Solicitud no encontrada o no se puede cancelar (solo solicitudes pendientes)'
+      });
     }
-    res.json({ success: true, message: 'Solicitud cancelada exitosamente' });
+
+    res.json({
+      success: true,
+      message: 'Solicitud cancelada exitosamente'
+    });
+
   } catch (error) {
     console.error('Error en cancelarSolicitud:', error);
-    res.status(500).json({ success: false, message: 'Error al cancelar solicitud', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al cancelar solicitud',
+      error: error.message
+    });
   }
 };
 
-// Estadísticas de solicitudes (dashboard)
+// Obtener estadísticas de solicitudes (para el dashboard)
 const obtenerEstadisticas = async (req, res) => {
   try {
     const usuario = req.usuario;
+    
     let estadisticas;
 
     if (usuario.tipo === 'cliente') {
-      const todas = await Solicitud.obtenerPorCliente(usuario.id);
+      const todasSolicitudes = await Solicitud.obtenerPorCliente(usuario.id);
+      
       estadisticas = {
-        total:      todas.length,
-        pendientes: todas.filter(s => s.estado === 'Pendiente').length,
-        respondidas: todas.filter(s => s.estado === 'Respondida').length,
-        aceptadas:  todas.filter(s => s.estado === 'Aceptada').length,
-        rechazadas: todas.filter(s => s.estado === 'Rechazada').length,
+        total: todasSolicitudes.length,
+        pendientes: todasSolicitudes.filter(s => s.estado === 'Pendiente').length,
+        respondidas: todasSolicitudes.filter(s => s.estado === 'Respondida').length,
+        aceptadas: todasSolicitudes.filter(s => s.estado === 'Aceptada').length,
+        rechazadas: todasSolicitudes.filter(s => s.estado === 'Rechazada').length
       };
     } else if (usuario.tipo === 'proveedor') {
-      const todas = await Solicitud.obtenerPorProveedor(usuario.id);
+      const todasSolicitudes = await Solicitud.obtenerPorProveedor(usuario.id);
+      
       estadisticas = {
-        total:      todas.length,
-        pendientes: todas.filter(s => s.estado === 'Pendiente').length,
-        respondidas: todas.filter(s => s.estado === 'Respondida').length,
-        aceptadas:  todas.filter(s => s.estado === 'Aceptada').length,
-        rechazadas: todas.filter(s => s.estado === 'Rechazada').length,
+        total: todasSolicitudes.length,
+        pendientes: todasSolicitudes.filter(s => s.estado === 'Pendiente').length,
+        respondidas: todasSolicitudes.filter(s => s.estado === 'Respondida').length,
+        aceptadas: todasSolicitudes.filter(s => s.estado === 'Aceptada').length,
+        rechazadas: todasSolicitudes.filter(s => s.estado === 'Rechazada').length
       };
     }
 
-    res.json({ success: true, data: estadisticas });
+    res.json({
+      success: true,
+      data: estadisticas
+    });
+
   } catch (error) {
     console.error('Error en obtenerEstadisticas:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener estadísticas', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estadísticas',
+      error: error.message
+    });
   }
 };
 
@@ -394,5 +591,5 @@ module.exports = {
   aceptarSolicitud,
   rechazarSolicitud,
   cancelarSolicitud,
-  obtenerEstadisticas,
+  obtenerEstadisticas
 };
