@@ -1,15 +1,19 @@
 /**
- * emailService.js  (ACTUALIZADO)
+ * emailService.js
  * ─────────────────────────────────────────────────────────────────────────────
  * Centraliza todo el envío de correos con Nodemailer + Gmail.
- * Firebase Admin se sigue usando SÓLO para los links de verificación/reset.
+ *
+ * Firebase Admin genera los links de acción. El destino (continueUrl) ya NO
+ * se pasa aquí — se configura una sola vez en Firebase Console como
+ * "Customize action URL", así el link del correo lleva directo al frontend
+ * sin pasar por las pantallas genéricas de firebaseapp.com.
  *
  * Métodos:
  *  - enviarVerificacion              → registro de cuenta
  *  - enviarRecuperacion              → reset de contraseña
- *  - enviarConfirmacionAcuerdo       → ★ NUEVO: ambas partes al aceptar propuesta
- *  - enviarRecordatorioProveedor     → ★ NUEVO: primer umbral de tiempo
- *  - enviarNotificacionSinRespuesta  → ★ NUEVO: segundo umbral (aviso al cliente)
+ *  - enviarConfirmacionAcuerdo       → ambas partes al aceptar propuesta
+ *  - enviarRecordatorioProveedor     → primer umbral de tiempo
+ *  - enviarNotificacionSinRespuesta  → segundo umbral (aviso al cliente)
  */
 
 const admin = require('../config/firebase.config');
@@ -70,11 +74,11 @@ function layout(contenido) {
 class EmailService {
 
   // ── Verificación de correo ──────────────────────────────────────────────
+  // El Action URL configurado en Firebase Console determina el destino.
+  // Firebase añade ?mode=verifyEmail&oobCode=...&apiKey=... automáticamente.
   async enviarVerificacion({ email, nombre }) {
-    const link = await admin.auth().generateEmailVerificationLink(email, {
-      url: `${process.env.FRONTEND_URL}/login`,
-      handleCodeInApp: false,
-    });
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const link = await admin.auth().generateEmailVerificationLink(email, { url: `${backendUrl}/api/auth/accion` });
 
     await transporter.sendMail({
       from: `"EventosMX" <${process.env.EMAIL_USER}>`,
@@ -99,10 +103,11 @@ class EmailService {
   }
 
   // ── Recuperación de contraseña ──────────────────────────────────────────
+  // El Action URL configurado en Firebase Console determina el destino.
+  // Firebase añade ?mode=resetPassword&oobCode=...&apiKey=... automáticamente.
   async enviarRecuperacion({ email }) {
-    const link = await admin.auth().generatePasswordResetLink(email, {
-      url: `${process.env.FRONTEND_URL}/login`,
-    });
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const link = await admin.auth().generatePasswordResetLink(email, { url: `${backendUrl}/api/auth/accion` });
 
     await transporter.sendMail({
       from: `"EventosMX" <${process.env.EMAIL_USER}>`,
@@ -126,16 +131,7 @@ class EmailService {
     return { success: true };
   }
 
-  // ★ ── Confirmación simultánea al aceptar propuesta ─────────────────────
-  /**
-   * Envía correo de confirmación a cliente Y proveedor en paralelo.
-   * Llámalo en solicitudController.aceptarSolicitud con Promise.all.
-   *
-   * @param {object} params
-   * @param {object} params.cliente   - { nombre_completo, correo }
-   * @param {object} params.proveedor - { nombre_negocio, correo }
-   * @param {object} params.detalles  - { servicio, fecha, precio, descripcion? }
-   */
+  // ── Confirmación simultánea al aceptar propuesta ────────────────────────
   async enviarConfirmacionAcuerdo({ cliente, proveedor, detalles }) {
     const tabla = tablaDetalles([
       ['Tipo de servicio / evento', detalles.servicio],
@@ -146,7 +142,6 @@ class EmailService {
         : []),
     ]);
 
-    // Correo para el CLIENTE
     const mailCliente = transporter.sendMail({
       from: `"EventosMX" <${process.env.EMAIL_USER}>`,
       to: cliente.correo,
@@ -165,7 +160,6 @@ class EmailService {
       `),
     });
 
-    // Correo para el PROVEEDOR
     const mailProveedor = transporter.sendMail({
       from: `"EventosMX" <${process.env.EMAIL_USER}>`,
       to: proveedor.correo,
@@ -184,20 +178,12 @@ class EmailService {
       `),
     });
 
-    // Envío simultáneo
     await Promise.all([mailCliente, mailProveedor]);
-
     console.log(`✅ Correos de confirmación enviados → cliente: ${cliente.correo} | proveedor: ${proveedor.correo}`);
     return { success: true };
   }
 
-  // ★ ── Recordatorio automático al PROVEEDOR (1er umbral) ────────────────
-  /**
-   * @param {object} params
-   * @param {object} params.proveedor - { correo, nombre_negocio }
-   * @param {object} params.cliente   - { nombre_completo }
-   * @param {object} params.solicitud - { id, tipo_evento, fecha_evento, horas_espera }
-   */
+  // ── Recordatorio automático al PROVEEDOR (1er umbral) ──────────────────
   async enviarRecordatorioProveedor({ proveedor, cliente, solicitud }) {
     await transporter.sendMail({
       from: `"EventosMX" <${process.env.EMAIL_USER}>`,
@@ -211,9 +197,9 @@ class EmailService {
           tu respuesta.
         </p>
         ${tablaDetalles([
-          ['Solicitud #',    solicitud.id],
-          ['Tipo de evento', solicitud.tipo_evento],
-          ['Fecha del evento', solicitud.fecha_evento],
+          ['Solicitud #',     solicitud.id],
+          ['Tipo de evento',  solicitud.tipo_evento],
+          ['Fecha del evento',solicitud.fecha_evento],
         ])}
         <p style="margin-top:20px;">
           Responde cuanto antes para no perder este cliente. Ingresa a tu panel
@@ -233,13 +219,7 @@ class EmailService {
     return { success: true };
   }
 
-  // ★ ── Notificación al CLIENTE de falta de respuesta (2do umbral) ───────
-  /**
-   * @param {object} params
-   * @param {object} params.cliente   - { correo, nombre_completo }
-   * @param {object} params.proveedor - { nombre_negocio }
-   * @param {object} params.solicitud - { id, tipo_evento, fecha_evento, horas_espera }
-   */
+  // ── Notificación al CLIENTE de falta de respuesta (2do umbral) ─────────
   async enviarNotificacionSinRespuesta({ cliente, proveedor, solicitud }) {
     await transporter.sendMail({
       from: `"EventosMX" <${process.env.EMAIL_USER}>`,
@@ -252,9 +232,9 @@ class EmailService {
           lleva <strong>${solicitud.horas_espera} horas</strong> sin respuesta.
         </p>
         ${tablaDetalles([
-          ['Solicitud #',    solicitud.id],
-          ['Tipo de evento', solicitud.tipo_evento],
-          ['Fecha del evento', solicitud.fecha_evento],
+          ['Solicitud #',     solicitud.id],
+          ['Tipo de evento',  solicitud.tipo_evento],
+          ['Fecha del evento',solicitud.fecha_evento],
         ])}
         <p style="margin-top:20px;">
           Puedes cancelar esta solicitud y buscar otro proveedor disponible

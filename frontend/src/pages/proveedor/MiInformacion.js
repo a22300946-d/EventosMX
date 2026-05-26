@@ -10,7 +10,6 @@ import { FiCamera, FiTrash2, FiCheck, FiAlertTriangle, FiLoader, FiPlus, FiX } f
 import { AiOutlineHourglass } from "react-icons/ai";
 
 function MiInformacion() {
-  const { user } = useAuth();
   const [formData, setFormData] = useState({
     nombre_negocio: "",
     correo: "",

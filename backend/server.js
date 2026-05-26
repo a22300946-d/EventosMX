@@ -64,8 +64,10 @@ const proveedorEventoRoutes = require('./routes/proveedorEventoRoutes');
 const mensajeRoutes         = require('./routes/mensajeRoutes');
 const tipoEventoRoutes      = require('./routes/tipoEventoRoutes');
 const recomendacionRoutes   = require('./routes/recomendacionRoutes');
+const authRoutes            = require('./routes/authRoutes');
 
 // ── Registrar rutas ───────────────────────────────────────────────────────────
+app.use('/api/auth',             authRoutes);
 app.use('/api/clientes',         clienteRoutes);
 app.use('/api/proveedores',      proveedorRoutes);
 app.use('/api/categorias',       categoriaRoutes);
@@ -109,6 +111,14 @@ server.listen(PORT, () => {
     iniciarTimerService();
   } catch (err) {
     console.error('❌ Error al iniciar TimerService:', err.message);
+  }
+
+  // ★ Iniciar servicio de limpieza automática de promociones expiradas
+  try {
+    const { iniciarPromocionCleanupService } = require('./services/promocionCleanupService');
+    iniciarPromocionCleanupService();
+  } catch (err) {
+    console.error('❌ Error al iniciar PromocionCleanupService:', err.message);
   }
 });
 

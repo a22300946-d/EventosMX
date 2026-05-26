@@ -42,6 +42,7 @@ function GaleriaFotos() {
 
   const mostrarToast = (mensaje, tipo = 'exito') => setToast({ mensaje, tipo });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     cargarGaleria();
     cargarLimite();

@@ -1,0 +1,222 @@
+/* ── Página completa ────────────────────────────────────────────────────── */
+
+.restablecer-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f4f4;
+  font-family: Arial, sans-serif;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* ── Tarjeta central ────────────────────────────────────────────────────── */
+
+.restablecer-card {
+  background: white;
+  border-radius: 12px;
+  padding: 50px 40px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+/* ── Spinner de carga ───────────────────────────────────────────────────── */
+
+.restablecer-spinner {
+  font-size: 56px;
+  margin-bottom: 16px;
+  animation: pulsar 1.2s ease-in-out infinite;
+}
+
+@keyframes pulsar {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.9); }
+}
+
+.restablecer-cargando-texto {
+  color: #6c757d;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* ── Ícono ──────────────────────────────────────────────────────────────── */
+
+.restablecer-icono {
+  font-size: 72px;
+  margin-bottom: 20px;
+  line-height: 1;
+}
+
+.restablecer-icono-error {
+  font-size: 60px;
+}
+
+/* ── Título ─────────────────────────────────────────────────────────────── */
+
+.restablecer-titulo {
+  color: #1a4d5c;
+  font-size: 1.75rem;
+  font-weight: bold;
+  margin: 0 0 12px 0;
+}
+
+/* ── Correo del usuario ─────────────────────────────────────────────────── */
+
+.restablecer-correo {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin: 0 0 20px 0;
+}
+
+/* ── Texto descriptivo ──────────────────────────────────────────────────── */
+
+.restablecer-texto {
+  color: #555;
+  line-height: 1.7;
+  font-size: 0.95rem;
+  margin: 0 0 24px 0;
+}
+
+/* ── Formulario ─────────────────────────────────────────────────────────── */
+
+.restablecer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: left;
+  margin-top: 8px;
+}
+
+.restablecer-field {
+  width: 100%;
+}
+
+/* ── Mensaje de error ───────────────────────────────────────────────────── */
+
+.restablecer-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #f5c6cb;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* ── Botón enviar ───────────────────────────────────────────────────────── */
+
+.restablecer-submit {
+  width: 100%;
+  padding: 0.85rem;
+  background-color: #1a4d5c;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 0.5rem;
+  font-family: inherit;
+}
+
+.restablecer-submit:hover {
+  background-color: #143d4a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+}
+
+.restablecer-submit:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Caja informativa (pantalla éxito) ──────────────────────────────────── */
+
+.restablecer-info {
+  background: #f0f7f9;
+  border: 1px solid #c8e0e8;
+  border-radius: 8px;
+  padding: 15px 18px;
+  font-size: 0.875rem;
+  color: #1a4d5c;
+  margin-bottom: 28px;
+  text-align: left;
+}
+
+.restablecer-info ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  color: #555;
+}
+
+.restablecer-info ul li {
+  margin-bottom: 4px;
+}
+
+/* ── Botones de login (pantalla éxito / error) ──────────────────────────── */
+
+.restablecer-botones {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.restablecer-btn {
+  display: inline-block;
+  padding: 12px 26px;
+  border-radius: 25px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  min-width: 160px;
+  box-sizing: border-box;
+}
+
+.restablecer-btn-cliente {
+  background-color: #1a4d5c;
+  color: white;
+}
+
+.restablecer-btn-cliente:hover {
+  background-color: #143d4a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 77, 92, 0.3);
+}
+
+.restablecer-btn-proveedor {
+  background-color: #2d7a8a;
+  color: white;
+}
+
+.restablecer-btn-proveedor:hover {
+  background-color: #256070;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(45, 122, 138, 0.3);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .restablecer-card {
+    padding: 36px 24px;
+  }
+
+  .restablecer-titulo {
+    font-size: 1.4rem;
+  }
+
+  .restablecer-btn {
+    width: 100%;
+  }
+}

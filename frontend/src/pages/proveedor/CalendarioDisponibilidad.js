@@ -23,6 +23,7 @@ function CalendarioDisponibilidad() {
 
   useEffect(() => {
     cargarFechasBloqueadas();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesCalendario]);
 
   const cargarFechasBloqueadas = async () => {

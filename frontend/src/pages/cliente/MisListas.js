@@ -144,9 +144,10 @@ function MisListas() {
     setMostrarMenuLista(null);
     try {
       setProcesando((prev) => ({ ...prev, [lista.id_lista]: true }));
+      const nombresExistentes = new Set(listas.map((l) => l.nombre_lista));
       let nuevoNombre = `${lista.nombre_lista} (Copia)`;
       let contador = 1;
-      while (listas.some((l) => l.nombre_lista === nuevoNombre)) {
+      while (nombresExistentes.has(nuevoNombre)) {
         contador++;
         nuevoNombre = `${lista.nombre_lista} (Copia ${contador})`;
       }

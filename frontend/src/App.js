@@ -5,7 +5,12 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleBasedGuestRoute from "./components/RoleBasedGuestRoute";
 
 import VerificarCorreo from "./pages/VerificarCorreo";
-
+import ForgotPassword from "./pages/ForgotPassword";
+import RestablecerContrasena from "./pages/RestablecerContrasena";
+import AuthAction from "./pages/AuthAction";
+import QuienesSomos from "./pages/QuienesSomos";
+import TerminosCondiciones from "./pages/TerminosCondiciones";
+import AvisoPrivacidad from "./pages/AvisoPrivacidad";
 // Páginas públicas
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -107,6 +112,12 @@ function App() {
 
           {/* Verificación */}
           <Route path="/verificar-correo" element={<VerificarCorreo />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/restablecer-contrasena" element={<RestablecerContrasena />} />
+          <Route path="/auth-action" element={<AuthAction />} />
+          <Route path="/about" element={<QuienesSomos />} />
+          <Route path="/terms" element={<TerminosCondiciones />} />
+          <Route path="/privacidad" element={<AvisoPrivacidad />} />
 
           {/* Cliente */}
           <Route

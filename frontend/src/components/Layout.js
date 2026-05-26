@@ -637,6 +637,7 @@ function Layout({ children, showNav = true }) {
             <Link to="/about">¿Quiénes somos?</Link>
             <Link to="/register-proveedor">Registro de Profesionales</Link>
             <Link to="/terms">Condiciones del servicio</Link>
+            <Link to="/privacidad">Aviso de Privacidad</Link>
             <button className="footer-link-btn" onClick={() => setModalContacto(true)}>Contáctanos</button>
           </div>
           <div className="footer-bottom">
