@@ -1,13 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import './ModalSolicitud.css';
-import { FiX, FiCalendar, FiUsers, FiDollarSign, FiFileText, FiClock, FiSend, FiCheckCircle, FiXCircle, FiInfo, FiAlertCircle } from 'react-icons/fi';
+import {
+  FiX, FiCalendar, FiUsers, FiDollarSign, FiFileText,
+  FiClock, FiSend, FiCheckCircle, FiXCircle, FiInfo, FiTag, FiAlertTriangle
+} from 'react-icons/fi';
 import { MdOutlineEventNote } from 'react-icons/md';
 import { BsClipboardData } from 'react-icons/bs';
+import { ModalConfirm, ModalAlert, useModal } from '../../components/modales';
 
-const ModalSolicitud = ({ 
-  isOpen, 
-  onClose, 
-  solicitud, 
+/* ─── Helper: estado de la promoción ────────────────────────────────────── */
+const PromocionBadge = ({ solicitud }) => {
+  if (!solicitud?.id_promocion || !solicitud?.promocion_titulo) return null;
+
+  const vigente = solicitud.promocion_activa === true || solicitud.promocion_activa === 'true';
+
+  return (
+    <div className={`promo-info-block ${vigente ? 'promo-vigente' : 'promo-vencida'}`}>
+      <div className="promo-info-header">
+        <FiTag size={15} />
+        <span className="promo-info-label">Promoción aplicada</span>
+        <span className={`promo-estado-pill ${vigente ? 'pill-vigente' : 'pill-vencida'}`}>
+          {vigente
+            ? <><FiCheckCircle size={12} style={{marginRight:3}}/> Vigente</>
+            : <><FiAlertTriangle size={12} style={{marginRight:3}}/> Vencida</>
+          }
+        </span>
+      </div>
+      <div className="promo-info-body">
+        <span className="promo-info-titulo">{solicitud.promocion_titulo}</span>
+        <div className="promo-info-precios">
+          <s className="promo-precio-original">
+            ${parseFloat(solicitud.precio_original).toLocaleString('es-MX')}
+          </s>
+          <strong className="promo-precio-promo">
+            ${parseFloat(solicitud.precio_promocional).toLocaleString('es-MX')}
+          </strong>
+          <span className="promo-pct-badge">{solicitud.porcentaje_descuento}% OFF</span>
+        </div>
+        {!vigente && (
+          <p className="promo-aviso-vencida">
+            Esta promoción ya no está activa. La solicitud fue enviada mientras era válida,
+            pero coordina el precio final directamente con el cliente.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── Componente principal ───────────────────────────────────────────────── */
+const ModalSolicitud = ({
+  isOpen,
+  onClose,
+  solicitud,
   usuarioTipo,
   onAprobar,
   onRechazar,
@@ -25,6 +70,15 @@ const ModalSolicitud = ({
   const [loading, setLoading] = useState(false);
   const [propuestaProveedor, setPropuestaProveedor] = useState(null);
 
+  const {
+    modalConfirm,
+    modalAlert,
+    mostrarAlerta,
+    mostrarConfirmacion,
+    cerrarConfirm,
+    cerrarAlert,
+  } = useModal();
+
   const detectarPropuesta = () => {
     if (!mensajes || mensajes.length === 0) return null;
 
@@ -35,22 +89,22 @@ const ModalSolicitud = ({
     if (!mensajeConPropuesta) return null;
 
     const contenido = mensajeConPropuesta.contenido;
-    
+
     try {
-      const precioMatch = contenido.match(/\*\*Precio Total:\*\*\s*\$?([\d,]+)/);
+      const precioMatch      = contenido.match(/\*\*Precio Total:\*\*\s*\$?([\d,]+)/);
       const descripcionMatch = contenido.match(/\*\*Descripción:\*\*\s*\n([\s\S]*?)(?=\n\n|\*\*|$)/);
-      const fechaMatch = contenido.match(/\*\*Fecha:\*\*\s*([^\n]+)/);
-      const horaMatch = contenido.match(/\*\*Hora:\*\*\s*([\d:]+)/);
-      const notasMatch = contenido.match(/\*\*Notas:\*\*\s*\n([\s\S]*?)(?=¿Te parece|$)/);
+      const fechaMatch       = contenido.match(/\*\*Fecha:\*\*\s*([^\n]+)/);
+      const horaMatch        = contenido.match(/\*\*Hora:\*\*\s*([\d:]+)/);
+      const notasMatch       = contenido.match(/\*\*Notas:\*\*\s*\n([\s\S]*?)(?=¿Te parece|🏷️|$)/);
 
       return {
-        precio: precioMatch ? precioMatch[1].replace(/,/g, '') : null,
-        descripcion: descripcionMatch ? descripcionMatch[1].trim() : null,
-        fecha_servicio: fechaMatch ? fechaMatch[1].trim() : null,
-        hora_servicio: horaMatch ? horaMatch[1] : null,
-        notas_adicionales: notasMatch ? notasMatch[1].trim() : null,
-        mensaje_id: mensajeConPropuesta.id_mensaje,
-        fecha_envio: mensajeConPropuesta.fecha_envio
+        precio:             precioMatch       ? precioMatch[1].replace(/,/g, '')  : null,
+        descripcion:        descripcionMatch  ? descripcionMatch[1].trim()         : null,
+        fecha_servicio:     fechaMatch        ? fechaMatch[1].trim()               : null,
+        hora_servicio:      horaMatch         ? horaMatch[1]                       : null,
+        notas_adicionales:  notasMatch        ? notasMatch[1].trim()               : null,
+        mensaje_id:         mensajeConPropuesta.id_mensaje,
+        fecha_envio:        mensajeConPropuesta.fecha_envio
       };
     } catch (error) {
       console.error('Error al parsear propuesta:', error);
@@ -70,10 +124,12 @@ const ModalSolicitud = ({
         setPropuestaProveedor(propuestaDetectada);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, solicitud, solicitud?.estado, mensajes, usuarioTipo]);
 
   if (!isOpen || !solicitud) return null;
 
+  /* ── Handlers ── */
   const handleAprobar = async () => {
     setLoading(true);
     try {
@@ -86,25 +142,31 @@ const ModalSolicitud = ({
     }
   };
 
-  const handleRechazar = async () => {
-    if (window.confirm('¿Estás seguro de rechazar esta solicitud?')) {
-      setLoading(true);
-      try {
-        await onRechazar(solicitud.id_solicitud);
-        onClose();
-      } catch (error) {
-        console.error('Error al rechazar:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
+  const handleRechazar = () => {
+    mostrarConfirmacion({
+      title: 'Rechazar propuesta',
+      message: '¿Estás seguro de rechazar esta solicitud?',
+      confirmLabel: 'Sí, rechazar',
+      onConfirm: async () => {
+        cerrarConfirm();
+        setLoading(true);
+        try {
+          await onRechazar(solicitud.id_solicitud);
+          onClose();
+        } catch (error) {
+          console.error('Error al rechazar:', error);
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   const handleEnviarPropuesta = async (e) => {
     e.preventDefault();
-    
+
     if (!propuesta.precio || !propuesta.descripcion) {
-      alert('Por favor completa todos los campos obligatorios');
+      mostrarAlerta('Campos requeridos', 'Por favor completa todos los campos obligatorios', 'error');
       return;
     }
 
@@ -136,276 +198,294 @@ const ModalSolicitud = ({
     });
   };
 
+  /* ── Render ── */
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {usuarioTipo === 'cliente'
-              ? <><BsClipboardData size={20} /> Detalles de la Solicitud</>
-              : <><FiFileText size={20} /> Enviar Propuesta</>
-            }
-          </h2>
-          <button className="modal-close" onClick={onClose}>
-            <FiX size={20} />
-          </button>
-        </div>
+    <>
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
 
-        <div className="modal-body">
-          {/* INFORMACIÓN PARA PROVEEDOR */}
-          {usuarioTipo === 'proveedor' && (
-            <div className="solicitud-info">
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <MdOutlineEventNote size={18} /> Información del Evento
-              </h3>
-              <div className="info-grid">
-                <div className="info-item">
-                  <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <MdOutlineEventNote size={15} /> Tipo de evento:
-                  </span>
-                  <span className="info-value">{solicitud.tipo_evento || 'No especificado'}</span>
+          {/* HEADER */}
+          <div className="modal-header">
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {usuarioTipo === 'cliente'
+                ? <><BsClipboardData size={20} /> Detalles de la Solicitud</>
+                : <><FiFileText size={20} /> Enviar Propuesta</>
+              }
+            </h2>
+            <button className="modal-close" onClick={onClose}>
+              <FiX size={20} />
+            </button>
+          </div>
+
+          {/* BODY */}
+          <div className="modal-body">
+
+            {/* ══════════ VISTA PROVEEDOR ══════════ */}
+            {usuarioTipo === 'proveedor' && (
+              <>
+                {/* Info del evento */}
+                <div className="solicitud-info">
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <MdOutlineEventNote size={18} /> Información del Evento
+                  </h3>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <MdOutlineEventNote size={15} /> Tipo de evento:
+                      </span>
+                      <span className="info-value">{solicitud.tipo_evento || 'No especificado'}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <FiCalendar size={15} /> Fecha del evento:
+                      </span>
+                      <span className="info-value">{formatearFecha(solicitud.fecha_evento)}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <FiUsers size={15} /> Número de invitados:
+                      </span>
+                      <span className="info-value">{solicitud.numero_invitados || 'No especificado'}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <FiDollarSign size={15} /> Presupuesto estimado:
+                      </span>
+                      <span className="info-value">
+                        {solicitud.presupuesto_estimado
+                          ? `$${parseFloat(solicitud.presupuesto_estimado).toLocaleString('es-MX')}`
+                          : 'No especificado'}
+                      </span>
+                    </div>
+                    {solicitud.descripcion_solicitud && (
+                      <div className="info-item info-item-full">
+                        <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <FiFileText size={15} /> Descripción:
+                        </span>
+                        <p className="info-description">{solicitud.descripcion_solicitud}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="info-item">
-                  <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <FiCalendar size={15} /> Fecha del evento:
-                  </span>
-                  <span className="info-value">{formatearFecha(solicitud.fecha_evento)}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <FiUsers size={15} /> Número de invitados:
-                  </span>
-                  <span className="info-value">{solicitud.numero_invitados || 'No especificado'}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <FiDollarSign size={15} /> Presupuesto estimado:
-                  </span>
-                  <span className="info-value">
-                    {solicitud.presupuesto_estimado 
-                      ? `$${parseFloat(solicitud.presupuesto_estimado).toLocaleString('es-MX')}` 
-                      : 'No especificado'}
-                  </span>
-                </div>
-                {solicitud.descripcion_solicitud && (
-                  <div className="info-item info-item-full">
-                    <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <FiFileText size={15} /> Descripción:
-                    </span>
-                    <p className="info-description">{solicitud.descripcion_solicitud}</p>
+
+                {/* Promoción referenciada (vista proveedor) */}
+                <PromocionBadge solicitud={solicitud} />
+
+                {/* Alertas de estado */}
+                {solicitud.estado === 'Rechazada' && (
+                  <div className="alert alert-info" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FiInfo size={16} /> Esta solicitud fue rechazada. Puedes enviar una nueva propuesta con mejores condiciones.
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* VISTA PARA CLIENTE */}
-          {usuarioTipo === 'cliente' && (
-            <>
-              <div className="estado-solicitud-header">
-                <span className={`badge badge-${solicitud.estado?.toLowerCase()}`}>
-                  {solicitud.estado || 'Pendiente'}
-                </span>
-              </div>
-
-              {propuestaProveedor && (
-                <div className="propuesta-recibida">
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <FiFileText size={18} /> Propuesta del Proveedor
-                  </h3>
-                  <div className="propuesta-content">
-                    <div className="propuesta-item">
-                      <span className="propuesta-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <FiDollarSign size={15} /> Precio Total:
-                      </span>
-                      <span className="propuesta-value">
-                        ${parseFloat(propuestaProveedor.precio).toLocaleString('es-MX')}
-                      </span>
-                    </div>
-
-                    {propuestaProveedor.descripcion && (
-                      <div className="propuesta-item propuesta-item-full">
-                        <span className="propuesta-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <FiFileText size={15} /> Descripción del Servicio:
-                        </span>
-                        <p className="propuesta-descripcion">{propuestaProveedor.descripcion}</p>
-                      </div>
-                    )}
-
-                    {propuestaProveedor.fecha_servicio && (
-                      <div className="propuesta-item">
-                        <span className="propuesta-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <FiCalendar size={15} /> Fecha Confirmada:
-                        </span>
-                        <span className="propuesta-value">{propuestaProveedor.fecha_servicio}</span>
-                      </div>
-                    )}
-
-                    {propuestaProveedor.hora_servicio && (
-                      <div className="propuesta-item">
-                        <span className="propuesta-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <FiClock size={15} /> Hora:
-                        </span>
-                        <span className="propuesta-value">{propuestaProveedor.hora_servicio}</span>
-                      </div>
-                    )}
-
-                    {propuestaProveedor.notas_adicionales && (
-                      <div className="propuesta-item propuesta-item-full">
-                        <span className="propuesta-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <FiFileText size={15} /> Notas Adicionales:
-                        </span>
-                        <p className="propuesta-notas">{propuestaProveedor.notas_adicionales}</p>
-                      </div>
-                    )}
-
-                    <div className="propuesta-fecha-envio">
-                      Enviada el {new Date(propuestaProveedor.fecha_envio).toLocaleString('es-MX')}
-                    </div>
+                {solicitud.estado === 'Aceptada' && (
+                  <div className="alert alert-success" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FiCheckCircle size={16} /> Esta solicitud ya fue aceptada por el cliente.
                   </div>
-                </div>
-              )}
+                )}
 
-              {propuestaProveedor && solicitud.estado !== 'Aceptada' && solicitud.estado !== 'Rechazada' && (
-                <div className="action-buttons">
-                  <button 
-                    className="btn-aprobar"
-                    onClick={handleAprobar}
-                    disabled={loading}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <FiCheckCircle size={17} /> Aprobar Propuesta
-                  </button>
-                  <button 
-                    className="btn-rechazar"
-                    onClick={handleRechazar}
-                    disabled={loading}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <FiXCircle size={17} /> Rechazar Propuesta
-                  </button>
-                </div>
-              )}
+                {/* Formulario propuesta */}
+                {solicitud.estado !== 'Aceptada' && (
+                  <form className="propuesta-form" onSubmit={handleEnviarPropuesta}>
+                    <h3>{solicitud.estado === 'Rechazada' ? 'Nueva Propuesta' : 'Tu Propuesta'}</h3>
 
-              {!propuestaProveedor && solicitud.estado === 'Pendiente' && (
-                <div className="alert alert-info" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <FiClock size={16} /> Esperando propuesta del proveedor...
-                </div>
-              )}
-
-              {solicitud.estado === 'Aceptada' && (
-                <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <FiCheckCircle size={16} /> Ya aprobaste esta propuesta
-                </div>
-              )}
-
-              {solicitud.estado === 'Rechazada' && (
-                <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <FiXCircle size={16} /> Esta propuesta fue rechazada
-                </div>
-              )}
-            </>
-          )}
-
-          {/* VISTA PARA PROVEEDOR */}
-          {usuarioTipo === 'proveedor' && (
-            <>
-              {solicitud.estado === 'Rechazada' && (
-                <div className="alert alert-info" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <FiInfo size={16} /> Esta solicitud fue rechazada. Puedes enviar una nueva propuesta con mejores condiciones.
-                </div>
-              )}
-              
-              {solicitud.estado === 'Aceptada' && (
-                <div className="alert alert-success" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <FiCheckCircle size={16} /> Esta solicitud ya fue aceptada por el cliente.
-                </div>
-              )}
-
-              {solicitud.estado !== 'Aceptada' && (
-                <form className="propuesta-form" onSubmit={handleEnviarPropuesta}>
-                  <h3>{solicitud.estado === 'Rechazada' ? 'Nueva Propuesta' : 'Tu Propuesta'}</h3>
-
-                  <div className="form-group">
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <FiDollarSign size={15} /> Precio Total *
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="Ejemplo: 5000"
-                      value={propuesta.precio}
-                      onChange={(e) => setPropuesta({...propuesta, precio: e.target.value})}
-                      required
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <FiFileText size={15} /> Descripción del Servicio *
-                    </label>
-                    <textarea
-                      placeholder="Describe lo que incluye tu servicio..."
-                      value={propuesta.descripcion}
-                      onChange={(e) => setPropuesta({...propuesta, descripcion: e.target.value})}
-                      required
-                      rows="4"
-                    />
-                  </div>
-
-                  <div className="form-row">
                     <div className="form-group">
                       <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <FiCalendar size={15} /> Fecha Confirmada
+                        <FiDollarSign size={15} /> Precio Total *
                       </label>
                       <input
-                        type="date"
-                        value={propuesta.fecha_servicio}
-                        onChange={(e) => setPropuesta({...propuesta, fecha_servicio: e.target.value})}
+                        type="number"
+                        placeholder="Ejemplo: 5000"
+                        value={propuesta.precio}
+                        onChange={(e) => setPropuesta({ ...propuesta, precio: e.target.value })}
+                        required
+                        min="0"
+                        step="0.01"
                       />
                     </div>
 
                     <div className="form-group">
                       <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <FiClock size={15} /> Hora
+                        <FiFileText size={15} /> Descripción del Servicio *
                       </label>
-                      <input
-                        type="time"
-                        value={propuesta.hora_servicio}
-                        onChange={(e) => setPropuesta({...propuesta, hora_servicio: e.target.value})}
+                      <textarea
+                        placeholder="Describe lo que incluye tu servicio..."
+                        value={propuesta.descripcion}
+                        onChange={(e) => setPropuesta({ ...propuesta, descripcion: e.target.value })}
+                        required
+                        rows="4"
                       />
                     </div>
-                  </div>
 
-                  <div className="form-group">
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <FiFileText size={15} /> Notas Adicionales
-                    </label>
-                    <textarea
-                      placeholder="Condiciones, políticas de cancelación, etc..."
-                      value={propuesta.notas_adicionales}
-                      onChange={(e) => setPropuesta({...propuesta, notas_adicionales: e.target.value})}
-                      rows="3"
-                    />
-                  </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <FiCalendar size={15} /> Fecha Confirmada
+                        </label>
+                        <input
+                          type="date"
+                          value={propuesta.fecha_servicio}
+                          onChange={(e) => setPropuesta({ ...propuesta, fecha_servicio: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <FiClock size={15} /> Hora
+                        </label>
+                        <input
+                          type="time"
+                          value={propuesta.hora_servicio}
+                          onChange={(e) => setPropuesta({ ...propuesta, hora_servicio: e.target.value })}
+                        />
+                      </div>
+                    </div>
 
-                  <button 
-                    type="submit" 
-                    className="btn-enviar-propuesta"
-                    disabled={loading}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <FiSend size={16} />
-                    {loading ? 'Enviando...' : solicitud.estado === 'Rechazada' ? 'Enviar Nueva Propuesta' : 'Enviar Propuesta al Cliente'}
-                  </button>
-                </form>
-              )}
-            </>
-          )}
+                    <div className="form-group">
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <FiFileText size={15} /> Notas Adicionales
+                      </label>
+                      <textarea
+                        placeholder="Condiciones, políticas de cancelación, etc..."
+                        value={propuesta.notas_adicionales}
+                        onChange={(e) => setPropuesta({ ...propuesta, notas_adicionales: e.target.value })}
+                        rows="3"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="btn-enviar-propuesta"
+                      disabled={loading}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <FiSend size={16} />
+                      {loading ? 'Enviando...' : solicitud.estado === 'Rechazada' ? 'Enviar Nueva Propuesta' : 'Enviar Propuesta al Cliente'}
+                    </button>
+                  </form>
+                )}
+              </>
+            )}
+
+            {/* ══════════ VISTA CLIENTE ══════════ */}
+            {usuarioTipo === 'cliente' && (
+              <>
+                {/* Badge de estado */}
+                <div className="estado-solicitud-header">
+                  <span className={`badge badge-${solicitud.estado?.toLowerCase()}`}>
+                    {solicitud.estado || 'Pendiente'}
+                  </span>
+                </div>
+
+                {/* Promoción referenciada (vista cliente) */}
+                <PromocionBadge solicitud={solicitud} />
+
+                {/* Propuesta del proveedor */}
+                {propuestaProveedor && (
+                  <div className="propuesta-recibida">
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <FiFileText size={18} /> Propuesta del Proveedor
+                    </h3>
+                    <div className="propuesta-content">
+                      <div className="propuesta-item">
+                        <span className="propuesta-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <FiDollarSign size={15} /> Precio Total:
+                        </span>
+                        <span className="propuesta-value">
+                          ${parseFloat(propuestaProveedor.precio).toLocaleString('es-MX')}
+                        </span>
+                      </div>
+                      {propuestaProveedor.descripcion && (
+                        <div className="propuesta-item propuesta-item-full">
+                          <span className="propuesta-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <FiFileText size={15} /> Descripción del Servicio:
+                          </span>
+                          <p className="propuesta-descripcion">{propuestaProveedor.descripcion}</p>
+                        </div>
+                      )}
+                      {propuestaProveedor.fecha_servicio && (
+                        <div className="propuesta-item">
+                          <span className="propuesta-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <FiCalendar size={15} /> Fecha Confirmada:
+                          </span>
+                          <span className="propuesta-value">{propuestaProveedor.fecha_servicio}</span>
+                        </div>
+                      )}
+                      {propuestaProveedor.hora_servicio && (
+                        <div className="propuesta-item">
+                          <span className="propuesta-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <FiClock size={15} /> Hora:
+                          </span>
+                          <span className="propuesta-value">{propuestaProveedor.hora_servicio}</span>
+                        </div>
+                      )}
+                      {propuestaProveedor.notas_adicionales && (
+                        <div className="propuesta-item propuesta-item-full">
+                          <span className="propuesta-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <FiFileText size={15} /> Notas Adicionales:
+                          </span>
+                          <p className="propuesta-notas">{propuestaProveedor.notas_adicionales}</p>
+                        </div>
+                      )}
+                      <div className="propuesta-fecha-envio">
+                        Enviada el {new Date(propuestaProveedor.fecha_envio).toLocaleString('es-MX')}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botones aprobar / rechazar */}
+                {propuestaProveedor && solicitud.estado !== 'Aceptada' && solicitud.estado !== 'Rechazada' && (
+                  <div className="action-buttons">
+                    <button
+                      className="btn-aprobar"
+                      onClick={handleAprobar}
+                      disabled={loading}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <FiCheckCircle size={17} /> Aprobar Propuesta
+                    </button>
+                    <button
+                      className="btn-rechazar"
+                      onClick={handleRechazar}
+                      disabled={loading}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <FiXCircle size={17} /> Rechazar Propuesta
+                    </button>
+                  </div>
+                )}
+
+                {/* Estados informativos */}
+                {!propuestaProveedor && solicitud.estado === 'Pendiente' && (
+                  <div className="alert alert-info" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FiClock size={16} /> Esperando propuesta del proveedor...
+                  </div>
+                )}
+                {solicitud.estado === 'Aceptada' && (
+                  <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FiCheckCircle size={16} /> Ya aprobaste esta propuesta
+                  </div>
+                )}
+                {solicitud.estado === 'Rechazada' && (
+                  <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FiXCircle size={16} /> Esta propuesta fue rechazada
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      <ModalConfirm
+        config={modalConfirm}
+        onConfirm={modalConfirm?.onConfirm}
+        onCancel={cerrarConfirm}
+      />
+      <ModalAlert
+        config={modalAlert}
+        onClose={cerrarAlert}
+      />
+    </>
   );
 };
 

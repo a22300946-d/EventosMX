@@ -40,7 +40,7 @@ const ExplorarServicios = () => {
 
   const [ordenamiento, setOrdenamiento] = useState("relevancia");
   const [paginaActual, setPaginaActual] = useState(1);
-  const proveedoresPorPagina = 12;
+  const proveedoresPorPagina = 6;
 
   useEffect(() => {
     const obtenerSugerencias = async () => {
@@ -232,6 +232,7 @@ const ExplorarServicios = () => {
       }
 
       setProveedores(proveedoresFiltrados);
+      setPaginaActual(1);
     } catch (error) {
       console.error("Error en búsqueda:", error);
       setProveedores([]);
@@ -349,15 +350,29 @@ const ExplorarServicios = () => {
     }
   };
 
+  // ── Paginación ────────────────────────────────────────────────
   const proveedoresOrdenados = ordenarProveedores(proveedores);
-  const indiceUltimo = paginaActual * proveedoresPorPagina;
-  const indicePrimero = indiceUltimo - proveedoresPorPagina;
-  const proveedoresActuales = proveedoresOrdenados.slice(indicePrimero, indiceUltimo);
-  const totalPaginas = Math.ceil(proveedoresOrdenados.length / proveedoresPorPagina);
+  const totalPaginas = Math.max(1, Math.ceil(proveedoresOrdenados.length / proveedoresPorPagina));
+  const inicio = (paginaActual - 1) * proveedoresPorPagina;
+  const proveedoresActuales = proveedoresOrdenados.slice(inicio, inicio + proveedoresPorPagina);
 
-  const cambiarPagina = (numeroPagina) => {
-    setPaginaActual(numeroPagina);
+  const irAPagina = (n) => {
+    if (n < 1 || n > totalPaginas) return;
+    setPaginaActual(n);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const getPaginas = () => {
+    if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, i) => i + 1);
+    const p = [];
+    if (paginaActual <= 4) {
+      p.push(1, 2, 3, 4, 5, "...", totalPaginas);
+    } else if (paginaActual >= totalPaginas - 3) {
+      p.push(1, "...", totalPaginas - 4, totalPaginas - 3, totalPaginas - 2, totalPaginas - 1, totalPaginas);
+    } else {
+      p.push(1, "...", paginaActual - 1, paginaActual, paginaActual + 1, "...", totalPaginas);
+    }
+    return p;
   };
 
   const renderEstrellas = (calificacion) => {
@@ -620,27 +635,41 @@ const ExplorarServicios = () => {
                   })}
                 </div>
 
-                {totalPaginas > 1 && (
-                  <div className="paginacion">
-                    <button onClick={() => cambiarPagina(paginaActual - 1)} disabled={paginaActual === 1}>
-                      <FiChevronLeft /> Anterior
-                    </button>
-                    <div className="paginacion-numeros">
-                      {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
-                        <button
-                          key={num}
-                          className={num === paginaActual ? "activo" : ""}
-                          onClick={() => cambiarPagina(num)}
-                        >
-                          {num}
-                        </button>
-                      ))}
-                    </div>
-                    <button onClick={() => cambiarPagina(paginaActual + 1)} disabled={paginaActual === totalPaginas}>
-                      Siguiente <FiChevronRight />
-                    </button>
-                  </div>
-                )}
+                {/* Paginación estilo Home */}
+                <nav className="hs-paginacion">
+                  <button
+                    className="hs-pag-btn hs-pag-nav"
+                    onClick={() => irAPagina(paginaActual - 1)}
+                    disabled={paginaActual === 1}
+                    aria-label="Página anterior"
+                  >
+                    <FiChevronLeft />
+                  </button>
+
+                  {getPaginas().map((n, i) =>
+                    n === "..." ? (
+                      <span key={`ellipsis-${i}`} className="hs-pag-ellipsis">…</span>
+                    ) : (
+                      <button
+                        key={n}
+                        className={`hs-pag-btn ${paginaActual === n ? "hs-pag-activa" : ""}`}
+                        onClick={() => irAPagina(n)}
+                        disabled={totalPaginas === 1}
+                      >
+                        {n}
+                      </button>
+                    )
+                  )}
+
+                  <button
+                    className="hs-pag-btn hs-pag-nav"
+                    onClick={() => irAPagina(paginaActual + 1)}
+                    disabled={paginaActual === totalPaginas}
+                    aria-label="Página siguiente"
+                  >
+                    <FiChevronRight />
+                  </button>
+                </nav>
               </>
             )}
           </main>

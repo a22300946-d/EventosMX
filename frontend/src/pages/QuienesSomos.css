@@ -385,3 +385,31 @@
     grid-template-columns: 1fr;
   }
 }
+
+.qs-imagen-decorativa {
+  font-size: 120px;
+  line-height: 1;
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.15));
+  color: #1a4d5c; /* era negro implícito */
+}
+
+.qs-paso-icono {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #c5dde8; /* celeste claro, igual que qs-paso-titulo */
+}
+.qs-audiencia-icono {
+  font-size: 48px;
+  line-height: 1;
+  color: #1a4d5c; /* teal principal */
+}
+
+.qs-audiencia-card--destacado .qs-audiencia-icono {
+  color: #c5dde8; /* celeste claro sobre fondo teal oscuro */
+}
+.qs-valor-icono {
+  font-size: 36px;
+  margin-bottom: 0.75rem;
+  line-height: 1;
+  color: #c5dde8; /* celeste claro, combina con qs-valor-titulo */
+}

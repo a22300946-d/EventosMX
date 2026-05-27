@@ -258,7 +258,13 @@ const Chat = () => {
         });
       };
 
-      const mensajePropuesta = `**Mi Propuesta**\n\n**Precio Total:** $${parseFloat(propuesta.precio).toLocaleString('es-MX')}\n\n**Descripción:**\n${propuesta.descripcion}\n\n${propuesta.fecha_servicio ? `**Fecha:** ${formatearFechaSinDesfase(propuesta.fecha_servicio)}` : ''}\n${propuesta.hora_servicio ? `**Hora:** ${propuesta.hora_servicio}` : ''}\n\n${propuesta.notas_adicionales ? `**Notas:**\n${propuesta.notas_adicionales}` : ''}\n\n¿Te parece bien esta propuesta? ¡Espero tu respuesta!`;
+      // Info de promocion si la solicitud tiene una asociada
+      const tienePromo = solicitudActual?.id_promocion && solicitudActual?.promocion_titulo;
+      const promoVigente = tienePromo && solicitudActual?.promocion_activa;
+      const lineaPromo = tienePromo
+        ? `\n\n🏷️ **Promoción referenciada:** ${solicitudActual.promocion_titulo} (${solicitudActual.porcentaje_descuento}% OFF — $${parseFloat(solicitudActual.precio_promocional).toLocaleString('es-MX')}) ${promoVigente ? '✅ Vigente' : '⚠️ Vencida'}`
+        : '';
+      const mensajePropuesta = `**Mi Propuesta**\n\n**Precio Total:** $${parseFloat(propuesta.precio).toLocaleString('es-MX')}\n\n**Descripción:**\n${propuesta.descripcion}\n\n${propuesta.fecha_servicio ? `**Fecha:** ${formatearFechaSinDesfase(propuesta.fecha_servicio)}` : ''}\n${propuesta.hora_servicio ? `**Hora:** ${propuesta.hora_servicio}` : ''}\n\n${propuesta.notas_adicionales ? `**Notas:**\n${propuesta.notas_adicionales}` : ''}${lineaPromo}\n\n¿Te parece bien esta propuesta? ¡Espero tu respuesta!`;
 
       socketService.sendMessage(parseInt(id_solicitud), mensajePropuesta);
       mostrarNotif('¡Propuesta enviada!', 'El cliente recibirá tu propuesta en breve.');

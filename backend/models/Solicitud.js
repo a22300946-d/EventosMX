@@ -28,14 +28,16 @@ class Solicitud {
         presupuesto_estimado,
         descripcion_solicitud,
         servicios_solicitados = [],
+        id_promocion = null,
       } = datos;
 
       const querySolicitud = `
         INSERT INTO Solicitud (
           id_cliente, id_proveedor, fecha_evento, numero_invitados,
-          tipo_evento, presupuesto_estimado, descripcion_solicitud
+          tipo_evento, presupuesto_estimado, descripcion_solicitud,
+          id_promocion
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *
       `;
 
@@ -47,6 +49,7 @@ class Solicitud {
         tipo_evento,
         presupuesto_estimado || null,
         descripcion_solicitud || null,
+        id_promocion || null,
       ];
 
       const result = await client.query(querySolicitud, values);
@@ -98,10 +101,16 @@ class Solicitud {
              c.nombre_completo AS cliente_nombre, c.correo AS cliente_correo,
              c.telefono AS cliente_telefono, c.ciudad AS cliente_ciudad,
              p.nombre_negocio, p.correo AS proveedor_correo,
-             p.telefono AS proveedor_telefono, p.ciudad AS proveedor_ciudad
+             p.telefono AS proveedor_telefono, p.ciudad AS proveedor_ciudad,
+             pr.titulo        AS promocion_titulo,
+             pr.descripcion   AS promocion_descripcion,
+             pr.precio_original,
+             pr.precio_promocional,
+             pr.porcentaje_descuento
       FROM Solicitud s
-      INNER JOIN Cliente   c ON s.id_cliente   = c.id_cliente
-      INNER JOIN Proveedor p ON s.id_proveedor = p.id_proveedor
+      INNER JOIN Cliente   c  ON s.id_cliente   = c.id_cliente
+      INNER JOIN Proveedor p  ON s.id_proveedor = p.id_proveedor
+      LEFT  JOIN Promocion pr ON s.id_promocion = pr.id_promocion
       WHERE s.id_solicitud = $1
     `;
     const resultado = await pool.query(query, [id_solicitud]);
@@ -113,9 +122,19 @@ class Solicitud {
     let query = `
       SELECT s.*,
              p.nombre_negocio, p.logo, p.ciudad AS proveedor_ciudad,
-             p.tipo_servicio, p.calificacion_promedio
+             p.tipo_servicio, p.calificacion_promedio,
+             pr.titulo            AS promocion_titulo,
+             pr.precio_original,
+             pr.precio_promocional,
+             pr.porcentaje_descuento,
+             CASE
+               WHEN pr.id_promocion IS NULL THEN NULL
+               WHEN pr.activo = true AND pr.fecha_fin >= CURRENT_DATE THEN true
+               ELSE false
+             END AS promocion_activa
       FROM Solicitud s
-      INNER JOIN Proveedor p ON s.id_proveedor = p.id_proveedor
+      INNER JOIN Proveedor p  ON s.id_proveedor = p.id_proveedor
+      LEFT  JOIN Promocion pr ON s.id_promocion  = pr.id_promocion
       WHERE s.id_cliente = $1
     `;
 
@@ -143,10 +162,23 @@ class Solicitud {
   static async obtenerPorProveedor(id_proveedor, filtros = {}) {
     let query = `
       SELECT s.*,
-             c.nombre_completo AS cliente_nombre, c.telefono AS cliente_telefono,
-             c.ciudad AS cliente_ciudad
+             c.nombre_completo AS cliente_nombre,
+             c.telefono        AS cliente_telefono,
+             c.ciudad          AS cliente_ciudad,
+             c.correo          AS cliente_correo,
+             c.foto_perfil     AS foto_cliente,
+             pr.titulo            AS promocion_titulo,
+             pr.precio_original,
+             pr.precio_promocional,
+             pr.porcentaje_descuento,
+             CASE
+               WHEN pr.id_promocion IS NULL THEN NULL
+               WHEN pr.activo = true AND pr.fecha_fin >= CURRENT_DATE THEN true
+               ELSE false
+             END AS promocion_activa
       FROM Solicitud s
-      INNER JOIN Cliente c ON s.id_cliente = c.id_cliente
+      INNER JOIN Cliente  c  ON s.id_cliente  = c.id_cliente
+      LEFT  JOIN Promocion pr ON s.id_promocion = pr.id_promocion
       WHERE s.id_proveedor = $1
     `;
 

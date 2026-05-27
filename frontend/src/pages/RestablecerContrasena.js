@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import PasswordInput from "../components/PasswordInput";
+import {
+  AiOutlineLoading3Quarters,
+  AiOutlineCloseCircle,
+  AiOutlineCheckCircle,
+  AiOutlineLock,
+  AiOutlineWarning,
+} from "react-icons/ai";
 import "./RestablecerContrasena.css";
 
 /**
@@ -19,12 +26,30 @@ function RestablecerContrasena() {
 
   const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
-  const [estado, setEstado]           = useState("cargando");
+  const [estado, setEstado]               = useState("cargando");
   const [correoUsuario, setCorreoUsuario] = useState("");
   const [nuevaContrasena, setNuevaContrasena] = useState("");
-  const [confirmar, setConfirmar]     = useState("");
-  const [errorMsg, setErrorMsg]       = useState("");
-  const [loading, setLoading]         = useState(false);
+  const [confirmar, setConfirmar]         = useState("");
+  const [errorMsg, setErrorMsg]           = useState("");
+  const [errores, setErrores]             = useState({});
+  const [loading, setLoading]             = useState(false);
+
+  // ── Validaciones ────────────────────────────────────────────────────────
+  const validarContrasena = (valor) => {
+    if (!valor) return "La contraseña es obligatoria";
+    if (valor.length < 8) return "La contraseña debe tener al menos 8 caracteres";
+    if (valor.length > 50) return "La contraseña no puede exceder 50 caracteres";
+    if (!/[A-Z]/.test(valor)) return "La contraseña debe contener al menos una mayúscula";
+    if (!/[a-z]/.test(valor)) return "La contraseña debe contener al menos una minúscula";
+    if (!/\d/.test(valor)) return "La contraseña debe contener al menos un número";
+    return "";
+  };
+
+  const validarConfirmar = (valor, base) => {
+    if (!valor) return "Debes confirmar tu contraseña";
+    if (valor !== base) return "Las contraseñas no coinciden";
+    return "";
+  };
 
   // ── Verificar oobCode al montar ─────────────────────────────────────────
   useEffect(() => {
@@ -68,17 +93,40 @@ function RestablecerContrasena() {
     verificarCodigo();
   }, [oobCode, apiKey]);
 
+  // ── Handlers ────────────────────────────────────────────────────────────
+  const handleNuevaContrasena = (e) => {
+    const valor = e.target.value;
+    if (valor.length > 50) return;
+    setNuevaContrasena(valor);
+    setErrores((prev) => ({
+      ...prev,
+      nuevaContrasena: validarContrasena(valor),
+      confirmar: confirmar ? validarConfirmar(confirmar, valor) : prev.confirmar,
+    }));
+  };
+
+  const handleConfirmar = (e) => {
+    const valor = e.target.value;
+    if (valor.length > 50) return;
+    setConfirmar(valor);
+    setErrores((prev) => ({
+      ...prev,
+      confirmar: validarConfirmar(valor, nuevaContrasena),
+    }));
+  };
+
   // ── Guardar nueva contraseña ────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
 
-    if (nuevaContrasena.length < 6) {
-      setErrorMsg("La contraseña debe tener al menos 6 caracteres.");
-      return;
-    }
-    if (nuevaContrasena !== confirmar) {
-      setErrorMsg("Las contraseñas no coinciden.");
+    // Validar todos los campos antes de enviar
+    const errNueva    = validarContrasena(nuevaContrasena);
+    const errConfirmar = validarConfirmar(confirmar, nuevaContrasena);
+
+    if (errNueva || errConfirmar) {
+      setErrores({ nuevaContrasena: errNueva, confirmar: errConfirmar });
+      setErrorMsg("Por favor corrige los errores antes de continuar.");
       return;
     }
 
@@ -127,7 +175,9 @@ function RestablecerContrasena() {
     return (
       <div className="restablecer-page">
         <div className="restablecer-card">
-          <div className="restablecer-spinner">⏳</div>
+          <div className="restablecer-spinner">
+            <AiOutlineLoading3Quarters className="spin-icon" />
+          </div>
           <p className="restablecer-cargando-texto">Verificando enlace...</p>
         </div>
       </div>
@@ -139,7 +189,9 @@ function RestablecerContrasena() {
     return (
       <div className="restablecer-page">
         <div className="restablecer-card">
-          <div className="restablecer-icono restablecer-icono-error">❌</div>
+          <div className="restablecer-icono restablecer-icono-error">
+            <AiOutlineCloseCircle />
+          </div>
           <h1 className="restablecer-titulo">Enlace inválido</h1>
           <p className="restablecer-texto">{errorMsg}</p>
           <Link to="/forgot-password" className="restablecer-btn restablecer-btn-cliente">
@@ -155,7 +207,9 @@ function RestablecerContrasena() {
     return (
       <div className="restablecer-page">
         <div className="restablecer-card">
-          <div className="restablecer-icono">🔑</div>
+          <div className="restablecer-icono">
+            <AiOutlineCheckCircle />
+          </div>
           <h1 className="restablecer-titulo">¡Contraseña restablecida!</h1>
           <p className="restablecer-texto">
             Tu contraseña ha sido cambiada exitosamente. Ya puedes iniciar
@@ -185,7 +239,9 @@ function RestablecerContrasena() {
   return (
     <div className="restablecer-page">
       <div className="restablecer-card">
-        <div className="restablecer-icono">🔒</div>
+        <div className="restablecer-icono">
+          <AiOutlineLock />
+        </div>
         <h1 className="restablecer-titulo">Nueva contraseña</h1>
 
         {correoUsuario && (
@@ -196,22 +252,40 @@ function RestablecerContrasena() {
           <div className="restablecer-field">
             <PasswordInput
               value={nuevaContrasena}
-              onChange={(e) => setNuevaContrasena(e.target.value)}
+              onChange={handleNuevaContrasena}
               placeholder="Nueva contraseña"
+              className={errores.nuevaContrasena ? "input-error" : ""}
               required
             />
+            {errores.nuevaContrasena && (
+              <span className="error-message">
+                <AiOutlineWarning /> {errores.nuevaContrasena}
+              </span>
+            )}
+            <small className="field-hint">
+              Mínimo 8 caracteres, mayúsculas, minúsculas y números
+            </small>
           </div>
+
           <div className="restablecer-field">
             <PasswordInput
               value={confirmar}
-              onChange={(e) => setConfirmar(e.target.value)}
+              onChange={handleConfirmar}
               placeholder="Confirmar contraseña"
+              className={errores.confirmar ? "input-error" : ""}
               required
             />
+            {errores.confirmar && (
+              <span className="error-message">
+                <AiOutlineWarning /> {errores.confirmar}
+              </span>
+            )}
           </div>
 
           {errorMsg && (
-            <div className="restablecer-error">{errorMsg}</div>
+            <div className="restablecer-error">
+              <AiOutlineWarning /> {errorMsg}
+            </div>
           )}
 
           <button

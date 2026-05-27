@@ -125,6 +125,8 @@ const SECCIONES = [
     campoNombre: 'nombre_ciudad',
     campoId: 'id_lugar',
     placeholder: 'Ej: Guadalajara',
+    // FIX: se envía estado fijo 'Jalisco' para cumplir el NOT NULL de la BD
+    campoDefecto: { estado: 'Jalisco' },
     descripcion: 'Ciudades disponibles para que clientes y proveedores seleccionen su ubicación.',
   },
   {
@@ -163,11 +165,7 @@ function PanelSeccion({ seccion }) {
   const [nuevoExtra, setNuevoExtra] = useState('');
   const [agregando, setAgregando] = useState(false);
 
-  const {
-    modalConfirm,
-    mostrarConfirmacion,
-    cerrarConfirm,
-  } = useModal();
+  const { modalConfirm, mostrarConfirmacion, cerrarConfirm } = useModal();
 
   const mostrarExito = (msg) => { setExito(msg); setTimeout(() => setExito(''), 3000); };
   const mostrarError  = (msg) => { setError(msg);  setTimeout(() => setError(''),  4000); };
@@ -191,8 +189,14 @@ function PanelSeccion({ seccion }) {
     if (!nuevoNombre.trim()) return;
     setAgregando(true);
     try {
-      const body = { [seccion.campoNombre]: nuevoNombre.trim() };
-      if (seccion.campoExtra) body[seccion.campoExtra.key] = nuevoExtra;
+      const body = {
+        [seccion.campoNombre]: nuevoNombre.trim(),
+        // FIX: inyecta campos fijos definidos en la sección (ej: estado: 'Jalisco')
+        ...(seccion.campoDefecto || {}),
+      };
+      // FIX: incluye el ícono emoji si la sección lo tiene (categorías y tipos de evento)
+      if (seccion.campoExtra) body[seccion.campoExtra.key] = nuevoExtra || null;
+
       await api.post(seccion.endpoint, body);
       setNuevoNombre('');
       setNuevoExtra('');

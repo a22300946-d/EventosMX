@@ -207,7 +207,7 @@ const eliminarResena = async (req, res) => {
 
 // ── MÓDULO CATÁLOGOS ──────────────────────────────────────────
 
-// Ciudades (tabla: lugar)
+// ── Ciudades (tabla: lugares) ─────────────────────────────────
 const obtenerCiudades = async (req, res) => {
   try {
     const resultado = await pool.query(
@@ -222,13 +222,16 @@ const obtenerCiudades = async (req, res) => {
 
 const crearCiudad = async (req, res) => {
   try {
-    const { nombre_ciudad } = req.body;
+    // FIX: se recibe estado desde el frontend; si no viene, se usa 'Jalisco' por defecto
+    const { nombre_ciudad, estado = 'Jalisco' } = req.body;
     if (!nombre_ciudad || !nombre_ciudad.trim()) {
       return res.status(400).json({ success: false, message: 'El nombre de la ciudad es obligatorio' });
     }
     const resultado = await pool.query(
-      'INSERT INTO lugares (ciudad) VALUES ($1) RETURNING id_lugar, ciudad AS nombre_ciudad',
-      [nombre_ciudad.trim()]
+      `INSERT INTO lugares (ciudad, estado)
+       VALUES ($1, $2)
+       RETURNING id_lugar, ciudad AS nombre_ciudad, estado`,
+      [nombre_ciudad.trim(), estado.trim()]
     );
     res.status(201).json({ success: true, message: 'Ciudad creada correctamente', data: resultado.rows[0] });
   } catch (error) {
@@ -254,7 +257,7 @@ const eliminarCiudad = async (req, res) => {
   }
 };
 
-// Categorías / Tipos de servicio (tabla: categoria)
+// ── Categorías / Tipos de servicio (tabla: categoria) ─────────
 const obtenerCategoriasAdmin = async (req, res) => {
   try {
     const resultado = await pool.query(
@@ -273,8 +276,20 @@ const crearCategoriaAdmin = async (req, res) => {
     if (!nombre_categoria || !nombre_categoria.trim()) {
       return res.status(400).json({ success: false, message: 'El nombre de la categoría es obligatorio' });
     }
+
+    // FIX: reparar la secuencia antes de insertar para evitar "duplicate key"
+    // Esto es seguro de correr siempre; solo actualiza si la secuencia está atrasada
+    await pool.query(`
+      SELECT setval(
+        pg_get_serial_sequence('categoria', 'id_categoria'),
+        COALESCE((SELECT MAX(id_categoria) FROM categoria), 0)
+      )
+    `);
+
     const resultado = await pool.query(
-      'INSERT INTO categoria (nombre_categoria, icono) VALUES ($1, $2) RETURNING id_categoria, nombre_categoria, icono',
+      `INSERT INTO categoria (nombre_categoria, icono)
+       VALUES ($1, $2)
+       RETURNING id_categoria, nombre_categoria, icono`,
       [nombre_categoria.trim(), icono ? icono.trim() : null]
     );
     res.status(201).json({ success: true, message: 'Categoría creada correctamente', data: resultado.rows[0] });
@@ -301,11 +316,13 @@ const eliminarCategoriaAdmin = async (req, res) => {
   }
 };
 
-// Tipos de evento (tabla: tipoevento)
+// ── Tipos de evento (tabla: tipoevento) ───────────────────────
 const obtenerTiposEventoAdmin = async (req, res) => {
   try {
     const resultado = await pool.query(
-      'SELECT id_tipo_evento, nombre_evento AS nombre_tipo, descripcion, icono, activo FROM tipoevento ORDER BY nombre_evento ASC'
+      `SELECT id_tipo_evento, nombre_evento AS nombre_tipo, icono
+       FROM tipoevento
+       ORDER BY nombre_evento ASC`
     );
     res.json({ success: true, data: resultado.rows });
   } catch (error) {
@@ -316,13 +333,25 @@ const obtenerTiposEventoAdmin = async (req, res) => {
 
 const crearTipoEventoAdmin = async (req, res) => {
   try {
-    const { nombre_tipo } = req.body;
+    const { nombre_tipo, icono } = req.body;
     if (!nombre_tipo || !nombre_tipo.trim()) {
       return res.status(400).json({ success: false, message: 'El nombre del tipo de evento es obligatorio' });
     }
+
+    // FIX: reparar secuencia antes de insertar (mismo patrón que categorías)
+    await pool.query(`
+      SELECT setval(
+        pg_get_serial_sequence('tipoevento', 'id_tipo_evento'),
+        COALESCE((SELECT MAX(id_tipo_evento) FROM tipoevento), 0)
+      )
+    `);
+
+    // FIX: ahora también guarda el icono
     const resultado = await pool.query(
-      'INSERT INTO tipoevento (nombre_evento) VALUES ($1) RETURNING id_tipo_evento, nombre_evento AS nombre_tipo',
-      [nombre_tipo.trim()]
+      `INSERT INTO tipoevento (nombre_evento, icono)
+       VALUES ($1, $2)
+       RETURNING id_tipo_evento, nombre_evento AS nombre_tipo, icono`,
+      [nombre_tipo.trim(), icono ? icono.trim() : null]
     );
     res.status(201).json({ success: true, message: 'Tipo de evento creado correctamente', data: resultado.rows[0] });
   } catch (error) {
@@ -357,7 +386,6 @@ const enviarNotificacion = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
     }
 
-    // Insertar en DB
     const insertQuery = `
       INSERT INTO notificacion (destinatario, titulo, mensaje, fecha_envio)
       VALUES ($1, $2, $3, NOW())
@@ -366,7 +394,6 @@ const enviarNotificacion = async (req, res) => {
     const resultado = await pool.query(insertQuery, [destinatario, titulo.trim(), mensaje.trim()]);
     const notif = resultado.rows[0];
 
-    // Emitir por socket a todos los usuarios conectados según destinatario
     const { getIO } = require('../config/socket');
     const io = getIO();
     if (io) {
@@ -397,20 +424,15 @@ const enviarNotificacion = async (req, res) => {
   }
 };
 
-// FIX: incluye notificaciones personales del proveedor (guardadas como 'proveedor_<id>')
-// además de las broadcast de siempre. Esto garantiza que las notificaciones de nueva
-// solicitud persistan en BD y aparezcan aunque el proveedor no estuviera conectado.
 const obtenerNotificaciones = async (req, res) => {
   try {
-    const { rol } = req.query; // 'cliente', 'proveedor', o vacío para todas
+    const { rol } = req.query;
     let whereClause = '';
     const params = [];
 
     if (rol === 'cliente') {
       whereClause = `WHERE destinatario IN ('todos', 'clientes', 'clientes_sin_contratacion')`;
     } else if (rol === 'proveedor') {
-      // FIX: también incluir notificaciones personales de este proveedor específico
-      // guardadas con destinatario = 'proveedor_<id>' por solicitudController
       const idProveedor = req.usuario?.id;
       if (idProveedor) {
         whereClause = `WHERE destinatario IN ('todos', 'proveedores', 'proveedores_pendientes', 'proveedores_sin_servicio', 'proveedor_${idProveedor}')`;

@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaTwitter, FaFacebook, FaInstagram, FaChevronDown, FaBell } from 'react-icons/fa';
+import {
+  FaTwitter, FaFacebook, FaInstagram, FaChevronDown, FaBell,
+  FaClipboardList, FaCalendarAlt, FaUser, FaUsers, FaDollarSign,
+  FaStickyNote, FaClock, FaStore, FaExclamationTriangle,
+  FaCommentDots, FaStar, FaEnvelope
+} from 'react-icons/fa';
+import { MdCelebration } from 'react-icons/md';
 import { useAuth } from '../hooks/useAuth';
 import socketService from '../services/socketService';
 import api from '../services/api';
@@ -59,47 +65,47 @@ function NotifProveedorDetalle({ notif, onCerrar, onIrChat }) {
   return (
     <div className="modal-overlay" onClick={onCerrar}>
       <div className="modal-card modal-card--ancho" onClick={e => e.stopPropagation()}>
-        <div className="modal-icono">&#x1F4CB;</div>
+        <div className="modal-icono"><FaClipboardList /></div>
         <h2 className="modal-titulo">Nueva solicitud de cotización</h2>
         <div className="notif-prov-info">
           {notif.tipo_evento && (
             <div className="notif-admin-row">
-              <span className="notif-admin-label">&#x1F389; Tipo de evento</span>
+              <span className="notif-admin-label"><MdCelebration /> Tipo de evento</span>
               <span>{notif.tipo_evento}</span>
             </div>
           )}
           {notif.fecha_evento && (
             <div className="notif-admin-row">
-              <span className="notif-admin-label">&#x1F4C5; Fecha del evento</span>
+              <span className="notif-admin-label"><FaCalendarAlt /> Fecha del evento</span>
               <span>{formatFechaEvento(notif.fecha_evento)}</span>
             </div>
           )}
           {notif.cliente_nombre && (
             <div className="notif-admin-row">
-              <span className="notif-admin-label">&#x1F464; Cliente</span>
+              <span className="notif-admin-label"><FaUser /> Cliente</span>
               <span>{notif.cliente_nombre}</span>
             </div>
           )}
           {notif.numero_invitados && (
             <div className="notif-admin-row">
-              <span className="notif-admin-label">&#x1F465; Invitados</span>
+              <span className="notif-admin-label"><FaUsers /> Invitados</span>
               <span>{notif.numero_invitados}</span>
             </div>
           )}
           {notif.presupuesto_estimado && (
             <div className="notif-admin-row">
-              <span className="notif-admin-label">&#x1F4B0; Presupuesto estimado</span>
+              <span className="notif-admin-label"><FaDollarSign /> Presupuesto estimado</span>
               <span>${Number(notif.presupuesto_estimado).toLocaleString('es-MX')}</span>
             </div>
           )}
           {notif.descripcion_solicitud && (
             <div className="notif-admin-row notif-admin-row--bloque">
-              <span className="notif-admin-label">&#x1F4DD; Detalles adicionales</span>
+              <span className="notif-admin-label"><FaStickyNote /> Detalles adicionales</span>
               <span>{notif.descripcion_solicitud}</span>
             </div>
           )}
           <div className="notif-admin-row">
-            <span className="notif-admin-label">&#x23F0; Recibida</span>
+            <span className="notif-admin-label"><FaClock /> Recibida</span>
             <span>{formatFecha(notif.fecha_recepcion)}</span>
           </div>
         </div>
@@ -108,7 +114,7 @@ function NotifProveedorDetalle({ notif, onCerrar, onIrChat }) {
             className="modal-btn modal-btn--accion"
             onClick={() => { onCerrar(); onIrChat(notif.id_solicitud); }}
           >
-            &#x1F4AC; Ir al Chat
+            <FaCommentDots /> Ir al Chat
           </button>
           <button className="modal-btn modal-btn--secundario" onClick={onCerrar}>
             Cerrar
@@ -302,7 +308,6 @@ function Layout({ children, showNav = true }) {
               ciudad: p.ciudad,
               tipo_servicio: p.tipo_servicio,
               fecha_registro: p.fecha_registro,
-              // ✅ fecha_recepcion = fecha_registro (cuándo se registró el proveedor)
               fecha_recepcion: p.fecha_registro,
             }))
           : [];
@@ -319,7 +324,6 @@ function Layout({ children, showNav = true }) {
               nombre_negocio: r.nombre_negocio,
               nombre_cliente: r.nombre_cliente,
               fecha_publicacion: r.fecha_publicacion,
-              // ✅ fecha_recepcion = fecha_publicacion (cuándo fue reportada)
               fecha_recepcion: r.fecha_publicacion,
             }))
           : [];
@@ -351,7 +355,6 @@ function Layout({ children, showNav = true }) {
           ...data,
           id: 'prov_' + data.id_proveedor + '_rt_' + Date.now(),
           tipo: 'nuevo_proveedor',
-          // ✅ Hora real en que llega el evento (= momento del registro)
           fecha_recepcion: data.fecha_registro || new Date().toISOString(),
         };
         setNotifAdmin(prev => {
@@ -368,7 +371,6 @@ function Layout({ children, showNav = true }) {
           ...data,
           id: 'res_' + data.id_resena + '_rt_' + Date.now(),
           tipo: 'resena_reportada',
-          // ✅ Hora real en que llega el evento (= momento del reporte)
           fecha_recepcion: new Date().toISOString(),
         };
         setNotifAdmin(prev => {
@@ -413,7 +415,7 @@ function Layout({ children, showNav = true }) {
     return (
       <div className="nav-notif-panel">
         <div className="nav-notif-header">
-          <span>🔔 Notificaciones</span>
+          <span className="nav-notif-header-titulo"><FaBell /> Notificaciones</span>
           {totalPaginas > 1 && <span className="nav-notif-pagina-label">{pagina + 1} / {totalPaginas}</span>}
         </div>
         {items.length === 0 ? (
@@ -476,7 +478,9 @@ function Layout({ children, showNav = true }) {
     setPagina: setPaginaProveedor,
     leidasKey: userIdGral,
     keyId: n => n.id_notificacion || n.id,
-    getTitulo: n => n.esCotizacion ? '📋 Nueva cotización' : (n.titulo || '🔔 Aviso de Admin'),
+    getTitulo: n => n.esCotizacion
+      ? <span className="notif-titulo-icono"><FaClipboardList /> Nueva cotización</span>
+      : <span className="notif-titulo-icono"><FaBell /> {n.titulo || 'Aviso de Admin'}</span>,
     getPreview: n => n.esCotizacion
       ? [
           n.tipo_evento,
@@ -503,7 +507,9 @@ function Layout({ children, showNav = true }) {
     setPagina: setPaginaAdmin,
     leidasKey: 'admin_' + (user?.id_administrador ?? user?.id),
     keyId: n => n.id,
-    getTitulo: n => n.tipo === 'nuevo_proveedor' ? '🏪 Nuevo proveedor' : '⚠️ Reseña reportada',
+    getTitulo: n => n.tipo === 'nuevo_proveedor'
+      ? <span className="notif-titulo-icono"><FaStore /> Nuevo proveedor</span>
+      : <span className="notif-titulo-icono"><FaExclamationTriangle /> Reseña reportada</span>,
     getPreview: n => n.tipo === 'nuevo_proveedor' ? n.nombre_negocio : (n.comentario?.length > 60 ? n.comentario.slice(0, 60) + '…' : n.comentario),
     getFechaRecepcion: n => n.fecha_recepcion,
     onAbrir: (n) => {
@@ -657,7 +663,7 @@ function Layout({ children, showNav = true }) {
       {/* Contáctanos */}
       <ModalUnificado
         visible={modalContacto}
-        icono="✉️"
+        icono={<FaEnvelope />}
         titulo="Contáctanos"
         descripcion={null}
         onClose={() => setModalContacto(false)}
@@ -679,7 +685,7 @@ function Layout({ children, showNav = true }) {
       {notifClienteDetalle && (
         <ModalUnificado
           visible={true}
-          icono="🔔"
+          icono={<FaBell />}
           titulo={notifClienteDetalle.titulo}
           descripcion={null}
           onClose={() => setNotifClienteDetalle(null)}
@@ -699,7 +705,7 @@ function Layout({ children, showNav = true }) {
       {notifAdminGralDetalle && (
         <ModalUnificado
           visible={true}
-          icono="🔔"
+          icono={<FaBell />}
           titulo={notifAdminGralDetalle.titulo}
           descripcion={null}
           onClose={() => setNotifAdminGralDetalle(null)}
@@ -722,7 +728,9 @@ function Layout({ children, showNav = true }) {
         return (
           <div className="modal-overlay" onClick={() => setNotifAdminDetalle(null)}>
             <div className="modal-card modal-card--ancho" onClick={e => e.stopPropagation()}>
-              <div className="modal-icono">{esProveedor ? '🏪' : '⚠️'}</div>
+              <div className="modal-icono">
+                {esProveedor ? <FaStore /> : <FaExclamationTriangle />}
+              </div>
               <h2 className="modal-titulo">{esProveedor ? 'Nuevo proveedor registrado' : 'Reseña reportada'}</h2>
               <div className="notif-admin-info">
                 {esProveedor ? (
@@ -739,7 +747,14 @@ function Layout({ children, showNav = true }) {
                   <>
                     <div className="notif-admin-row"><span className="notif-admin-label">Motivo del reporte</span><span>{n.motivo}</span></div>
                     <div className="notif-admin-row"><span className="notif-admin-label">Comentario</span><span>{n.comentario}</span></div>
-                    <div className="notif-admin-row"><span className="notif-admin-label">Calificación</span><span>{'⭐'.repeat(Math.round(n.calificacion || 0))} ({n.calificacion})</span></div>
+                    <div className="notif-admin-row">
+                      <span className="notif-admin-label">Calificación</span>
+                      <span>
+                        {Array.from({ length: Math.round(n.calificacion || 0) }).map((_, i) => (
+                          <FaStar key={i} className="notif-estrella" />
+                        ))} ({n.calificacion})
+                      </span>
+                    </div>
                     <div className="notif-admin-row"><span className="notif-admin-label">Sentimiento</span><span>{n.sentimiento}</span></div>
                     <div className="notif-admin-row"><span className="notif-admin-label">Publicada</span><span>{formatFecha(n.fecha_publicacion)}</span></div>
                     <div className="notif-admin-row"><span className="notif-admin-label">Aviso recibido</span><span>{formatFecha(n.fecha_recepcion)}</span></div>

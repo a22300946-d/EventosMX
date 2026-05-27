@@ -106,7 +106,7 @@ function Home() {
 
   const cargarRecomendaciones = async () => {
     try {
-      const response = await api.get("/recomendaciones?limite=6");
+      const response = await api.get("/recomendaciones");
       const recomendaciones = response.data.data || [];
 
       const recomendacionesConPrecio = await Promise.all(
@@ -182,7 +182,7 @@ function Home() {
   const cargarProveedoresDestacados = async () => {
     try {
       setCargandoProveedores(true);
-      const response = await clienteService.buscarProveedores({ limite: 6 });
+      const response = await clienteService.buscarProveedores({});
       const proveedoresData = response.data.data || [];
 
       const proveedoresConPrecio = await Promise.all(
@@ -551,41 +551,40 @@ function Home() {
               </div>
 
               {/* Paginación */}
-              {totalPaginas > 1 && (
-                <nav className="hs-paginacion">
-                  <button
-                    className="hs-pag-btn hs-pag-nav"
-                    onClick={() => irAPagina(paginaActual - 1)}
-                    disabled={paginaActual === 1}
-                    aria-label="Página anterior"
-                  >
-                    <FaChevronLeft />
-                  </button>
+              <nav className="hs-paginacion">
+                <button
+                  className="hs-pag-btn hs-pag-nav"
+                  onClick={() => irAPagina(paginaActual - 1)}
+                  disabled={paginaActual === 1}
+                  aria-label="Página anterior"
+                >
+                  <FaChevronLeft />
+                </button>
 
-                  {getPaginas().map((n, i) =>
-                    n === "..." ? (
-                      <span key={`ellipsis-${i}`} className="hs-pag-ellipsis">…</span>
-                    ) : (
-                      <button
-                        key={n}
-                        className={`hs-pag-btn ${paginaActual === n ? "hs-pag-activa" : ""}`}
-                        onClick={() => irAPagina(n)}
-                      >
-                        {n}
-                      </button>
-                    )
-                  )}
+                {getPaginas().map((n, i) =>
+                  n === "..." ? (
+                    <span key={`ellipsis-${i}`} className="hs-pag-ellipsis">…</span>
+                  ) : (
+                    <button
+                      key={n}
+                      className={`hs-pag-btn ${paginaActual === n ? "hs-pag-activa" : ""}`}
+                      onClick={() => irAPagina(n)}
+                      disabled={totalPaginas === 1}
+                    >
+                      {n}
+                    </button>
+                  )
+                )}
 
-                  <button
-                    className="hs-pag-btn hs-pag-nav"
-                    onClick={() => irAPagina(paginaActual + 1)}
-                    disabled={paginaActual === totalPaginas}
-                    aria-label="Página siguiente"
-                  >
-                    <FaChevronRight />
-                  </button>
-                </nav>
-              )}
+                <button
+                  className="hs-pag-btn hs-pag-nav"
+                  onClick={() => irAPagina(paginaActual + 1)}
+                  disabled={paginaActual === totalPaginas}
+                  aria-label="Página siguiente"
+                >
+                  <FaChevronRight />
+                </button>
+              </nav>
             </>
           )}
         </section>

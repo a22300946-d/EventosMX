@@ -24,14 +24,43 @@ import {
   FaUserCircle,
   FaInfoCircle,
   FaChartBar,
-  FaPhoneAlt,
-  FaEnvelope,
 } from "react-icons/fa";
 import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { proveedorService } from "../../services/proveedorService";
 import "./SolicitudesRecibidas.css";
 
 const POR_PAGINA = 10;
+
+/* ── Bloque visual de promoción ── */
+const PromocionInfo = ({ sol }) => {
+  if (!sol.id_promocion || !sol.promocion_titulo) return null;
+  const vigente = sol.promocion_activa === true || sol.promocion_activa === "true";
+  return (
+    <div className={`sr-promo-bloque ${vigente ? "sr-promo-vigente" : "sr-promo-vencida"}`}>
+      <div className="sr-promo-header">
+        <FaTag className="sr-promo-ico" />
+        <span className="sr-promo-label">Promoción del cliente</span>
+        <span className={`sr-promo-pill ${vigente ? "sr-pill-v" : "sr-pill-x"}`}>
+          {vigente
+            ? <><FaCheckCircle style={{marginRight:3}}/> Vigente</>
+            : <><FaExclamationTriangle style={{marginRight:3}}/> Vencida</>
+          }
+        </span>
+      </div>
+      <p className="sr-promo-titulo">{sol.promocion_titulo}</p>
+      <div className="sr-promo-precios">
+        <s className="sr-promo-orig">${parseFloat(sol.precio_original).toLocaleString("es-MX")}</s>
+        <strong className="sr-promo-desc">${parseFloat(sol.precio_promocional).toLocaleString("es-MX")}</strong>
+        <span className="sr-promo-pct">{sol.porcentaje_descuento}% OFF</span>
+      </div>
+      {!vigente && (
+        <p className="sr-promo-aviso">
+          Esta promoción ya venció. Coordina el precio final directamente con el cliente.
+        </p>
+      )}
+    </div>
+  );
+};
 
 const ESTADOS = [
   { key: "todos",      label: "Todas",        icono: <FaClipboardList /> },
@@ -284,7 +313,7 @@ function SolicitudesRecibidas() {
                             {sol.foto_cliente ? (
                               <img
                                 src={sol.foto_cliente}
-                                alt={sol.nombre_cliente}
+                                alt={sol.cliente_nombre}
                                 className="sr-avatar"
                                 onError={(e) => { e.target.style.display = "none"; }}
                               />
@@ -293,24 +322,9 @@ function SolicitudesRecibidas() {
                             )}
                             <div>
                               <p className="sr-cliente-nombre">
-                                {sol.nombre_cliente || "Cliente"}
+                                {sol.cliente_nombre || "Cliente"}
                               </p>
-                              {sol.email_cliente && (
-                                <a
-                                  href={`mailto:${sol.email_cliente}`}
-                                  className="sr-cliente-contacto"
-                                >
-                                  <FaEnvelope /> {sol.email_cliente}
-                                </a>
-                              )}
-                              {sol.telefono_cliente && (
-                                <a
-                                  href={`tel:${sol.telefono_cliente}`}
-                                  className="sr-cliente-contacto"
-                                >
-                                  <FaPhoneAlt /> {sol.telefono_cliente}
-                                </a>
-                              )}
+
                             </div>
                           </div>
                           <span className={`sr-badge ${est.clase}`}>
@@ -331,6 +345,9 @@ function SolicitudesRecibidas() {
                             </span>
                           )}
                         </div>
+
+                        {/* Promoción aplicada por el cliente */}
+                        <PromocionInfo sol={sol} />
 
                         {/* Detalles principales */}
                         <div className="sr-detalles-grid">

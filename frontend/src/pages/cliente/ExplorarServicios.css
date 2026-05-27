@@ -478,3 +478,53 @@
   .barra-busqueda button { padding: 0.85rem; font-size: 0.95rem; }
   .tipo-evento-card { padding: 1.25rem; }
 }
+
+/* ========== PAGINACIÓN ========== */
+.hs-paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+
+.hs-pag-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1.5px solid #d0d5dd;
+  background: #ffffff;
+  color: #1a4d5c;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.hs-pag-btn:hover:not(:disabled) {
+  border-color: #1a4d5c;
+  color: #1a4d5c;
+  background: #f0f7f9;
+}
+
+.hs-pag-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hs-pag-activa {
+  background: #1a4d5c !important;
+  color: #ffffff !important;
+  border-color: #1a4d5c !important;
+}
+
+.hs-pag-nav {
+  font-size: 0.8rem;
+}
+
+.hs-pag-ellipsis {
+  padding: 0 4px;
+  color: #64748b;
+}

@@ -1,6 +1,9 @@
 import React from "react";
 import Layout from "../components/Layout";
 import "./LegalPage.css";
+import { MdPrivacyTip } from "react-icons/md";
+
+
 
 function AvisoPrivacidad() {
   return (
@@ -9,8 +12,9 @@ function AvisoPrivacidad() {
 
         <section className="legal-hero">
           <div className="legal-hero-content">
-            <div className="legal-hero-icono">🔒</div>
-            <h1 className="legal-hero-titulo">Aviso de Privacidad</h1>
+<div className="legal-hero-icono">
+  <MdPrivacyTip />
+</div>            <h1 className="legal-hero-titulo">Aviso de Privacidad</h1>
             <p className="legal-hero-sub">Última actualización: Mayo 2026</p>
           </div>
         </section>

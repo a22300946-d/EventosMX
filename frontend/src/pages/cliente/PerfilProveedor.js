@@ -9,6 +9,7 @@ import {
   FaFrown,
   FaThumbsUp,
   FaSortAmountDown,
+  FaTag,
   FaFilter,
 } from "react-icons/fa";
 import Layout from "../../components/Layout";
@@ -194,6 +195,7 @@ function PerfilProveedor() {
   const [modalCotizacionAbierto, setModalCotizacionAbierto] = useState(false);
   const [enviandoSolicitud, setEnviandoSolicitud] = useState(false);
   const [serviciosSeleccionados, setServiciosSeleccionados] = useState([]);
+  const [promocionSeleccionada, setPromocionSeleccionada] = useState(null);
   const [formularioSolicitud, setFormularioSolicitud] = useState({
     fecha_evento: "",
     numero_invitados: "",
@@ -231,7 +233,7 @@ function PerfilProveedor() {
   useEffect(() => {
     cargarDatosProveedor();
     verificarSiEsFavorito();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const obtenerSentimiento = (calificacion) => {
@@ -551,6 +553,7 @@ function PerfilProveedor() {
   const handleAbrirModalCotizacion = () => {
     setModalCotizacionAbierto(true);
     setServiciosSeleccionados([]);
+    setPromocionSeleccionada(null);
     setFormularioSolicitud({
       fecha_evento: "",
       numero_invitados: "",
@@ -564,6 +567,7 @@ function PerfilProveedor() {
   const handleCerrarModalCotizacion = () => {
     setModalCotizacionAbierto(false);
     setServiciosSeleccionados([]);
+    setPromocionSeleccionada(null);
     setFormularioSolicitud({
       fecha_evento: "",
       numero_invitados: "",
@@ -639,6 +643,7 @@ function PerfilProveedor() {
         descripcion_solicitud:
           formularioSolicitud.descripcion_solicitud || null,
         servicios_solicitados: serviciosSeleccionados,
+        id_promocion: promocionSeleccionada || null,
       };
       const response = await api.post("/solicitudes", datos);
       const nuevaSolicitud = response.data.data;
@@ -1411,6 +1416,85 @@ function PerfilProveedor() {
                   </p>
                 )}
               </div>
+              {/* Promociones activas */}
+              {promociones.filter(
+                (p) => p.activo && new Date(p.fecha_fin) >= new Date(),
+              ).length > 0 && (
+                <div className="form-group">
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <FaTag />
+                    Aplicar Promoción (opcional)
+                  </label>
+                  <div className="promociones-selector">
+                    <label className="promo-opcion promo-ninguna">
+                      <input
+                        type="radio"
+                        name="promocion"
+                        value=""
+                        checked={promocionSeleccionada === null}
+                        onChange={() => setPromocionSeleccionada(null)}
+                      />
+                      <span>Sin promoción</span>
+                    </label>
+                    {promociones
+                      .filter(
+                        (p) => p.activo && new Date(p.fecha_fin) >= new Date(),
+                      )
+                      .map((promo) => (
+                        <label
+                          key={promo.id_promocion}
+                          className={`promo-opcion ${promocionSeleccionada === promo.id_promocion ? "promo-opcion-activa" : ""}`}
+                        >
+                          <input
+                            type="radio"
+                            name="promocion"
+                            value={promo.id_promocion}
+                            checked={
+                              promocionSeleccionada === promo.id_promocion
+                            }
+                            onChange={() =>
+                              setPromocionSeleccionada(promo.id_promocion)
+                            }
+                          />
+                          <div className="promo-opcion-info">
+                            <span className="promo-opcion-titulo">
+                              {promo.titulo}
+                            </span>
+                            <span className="promo-opcion-precio">
+                              <s>
+                                $
+                                {parseFloat(
+                                  promo.precio_original,
+                                ).toLocaleString("es-MX")}
+                              </s>{" "}
+                              <strong>
+                                $
+                                {parseFloat(
+                                  promo.precio_promocional,
+                                ).toLocaleString("es-MX")}
+                              </strong>{" "}
+                              <span className="promo-badge">
+                                {promo.porcentaje_descuento}% OFF
+                              </span>
+                            </span>
+                            {promo.descripcion && (
+                              <span className="promo-opcion-desc">
+                                {promo.descripcion}
+                              </span>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              )}
               {/* Invitados y presupuesto */}
               <div className="form-row">
                 <div className="form-group">
@@ -1548,7 +1632,7 @@ function PerfilProveedor() {
                               {lista.descripcion}
                             </span>
                           )}
-                          
+
                           {lista.ya_incluido && (
                             <span className="lista-ya-incluida">
                               ✓ Ya está en esta lista

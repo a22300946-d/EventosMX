@@ -43,16 +43,19 @@
   margin: 0;
 }
 
+
 /* ── Ícono ──────────────────────────────────────────────────────────────── */
 
 .restablecer-icono {
   font-size: 72px;
   margin-bottom: 20px;
   line-height: 1;
+  color: #1a4d5c;        /* ← agrega esto */
 }
 
 .restablecer-icono-error {
   font-size: 60px;
+  color: #c0392b;        /* ← agrega esto */
 }
 
 /* ── Título ─────────────────────────────────────────────────────────────── */
@@ -219,4 +222,12 @@
   .restablecer-btn {
     width: 100%;
   }
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }

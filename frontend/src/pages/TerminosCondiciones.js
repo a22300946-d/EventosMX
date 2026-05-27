@@ -1,22 +1,24 @@
 import React from "react";
 import Layout from "../components/Layout";
 import "./LegalPage.css";
+import { HiDocumentText } from "react-icons/hi";
+
 
 function TerminosCondiciones() {
   return (
     <Layout>
       <div className="legal-page">
-
         <section className="legal-hero">
           <div className="legal-hero-content">
-            <div className="legal-hero-icono">📄</div>
+            <div className="legal-hero-icono">
+              <HiDocumentText />
+            </div>
             <h1 className="legal-hero-titulo">Términos y Condiciones</h1>
             <p className="legal-hero-sub">Última actualización: Mayo 2026</p>
           </div>
         </section>
 
         <div className="legal-documento">
-
           <p className="legal-intro-texto">
             El presente documento establece los términos y condiciones bajo los
             cuales se regula el uso de la plataforma EventosMX. Al acceder,
@@ -57,10 +59,18 @@ function TerminosCondiciones() {
               adecuada. Queda expresamente prohibido:
             </p>
             <ul className="legal-doc-lista">
-              <li>Utilizar la plataforma para fines fraudulentos o ilegales.</li>
+              <li>
+                Utilizar la plataforma para fines fraudulentos o ilegales.
+              </li>
               <li>Publicar contenido falso o engañoso.</li>
-              <li>Intentar acceder de manera no autorizada a cuentas ajenas o al sistema.</li>
-              <li>Reproducir o distribuir elementos de la plataforma sin autorización.</li>
+              <li>
+                Intentar acceder de manera no autorizada a cuentas ajenas o al
+                sistema.
+              </li>
+              <li>
+                Reproducir o distribuir elementos de la plataforma sin
+                autorización.
+              </li>
             </ul>
             <p>
               El usuario es responsable de todas las acciones realizadas desde
@@ -73,9 +83,10 @@ function TerminosCondiciones() {
             <h3 className="legal-doc-h3">3.1 Clientes</h3>
             <p>
               Para acceder a las funcionalidades de búsqueda y contratación, el
-              cliente deberá registrarse con información verídica: nombre, correo
-              electrónico, contraseña y teléfono. El cliente es responsable de
-              mantener la confidencialidad de sus datos de acceso.
+              cliente deberá registrarse con información verídica: nombre,
+              correo electrónico, contraseña y teléfono. El cliente es
+              responsable de mantener la confidencialidad de sus datos de
+              acceso.
             </p>
             <h3 className="legal-doc-h3">3.2 Proveedores</h3>
             <p>
@@ -93,10 +104,10 @@ function TerminosCondiciones() {
           <section className="legal-doc-seccion">
             <h2 className="legal-doc-h2">4. Solicitudes y Cotizaciones</h2>
             <p>
-              Los clientes podrán enviar solicitudes de cotización personalizadas
-              especificando fecha del evento, tipo de servicio, número de
-              invitados y presupuesto estimado. Los proveedores podrán responder,
-              aceptar o rechazar dichas solicitudes desde su panel.
+              Los clientes podrán enviar solicitudes de cotización
+              personalizadas especificando fecha del evento, tipo de servicio,
+              número de invitados y presupuesto estimado. Los proveedores podrán
+              responder, aceptar o rechazar dichas solicitudes desde su panel.
             </p>
             <p>
               EventosMX actúa únicamente como intermediario digital. La
@@ -139,15 +150,21 @@ function TerminosCondiciones() {
           <section className="legal-doc-seccion">
             <h2 className="legal-doc-h2">7. Cancelación y Reembolso</h2>
             <p>
-              Dado que EventosMX es una plataforma de intermediación y no procesa
-              pagos directamente, las condiciones de cancelación y reembolso
-              dependen del acuerdo entre cliente y proveedor. EventosMX podrá
-              intervenir como mediador en los siguientes casos:
+              Dado que EventosMX es una plataforma de intermediación y no
+              procesa pagos directamente, las condiciones de cancelación y
+              reembolso dependen del acuerdo entre cliente y proveedor.
+              EventosMX podrá intervenir como mediador en los siguientes casos:
             </p>
             <ul className="legal-doc-lista">
               <li>Servicio no prestado por causas atribuibles al proveedor.</li>
-              <li>Diferencia significativa entre el servicio acordado y el entregado.</li>
-              <li>Error demostrable en la comunicación registrada en la plataforma.</li>
+              <li>
+                Diferencia significativa entre el servicio acordado y el
+                entregado.
+              </li>
+              <li>
+                Error demostrable en la comunicación registrada en la
+                plataforma.
+              </li>
             </ul>
             <p>
               Para solicitar mediación, contáctanos el mismo día del incidente
@@ -158,10 +175,10 @@ function TerminosCondiciones() {
           <section className="legal-doc-seccion">
             <h2 className="legal-doc-h2">8. Límites de Responsabilidad</h2>
             <p>
-              EventosMX no garantiza la disponibilidad continua del servicio ante
-              interrupciones por mantenimiento, fallas técnicas o fuerza mayor.
-              La plataforma no es responsable por la calidad o resultado de los
-              servicios contratados entre clientes y proveedores.
+              EventosMX no garantiza la disponibilidad continua del servicio
+              ante interrupciones por mantenimiento, fallas técnicas o fuerza
+              mayor. La plataforma no es responsable por la calidad o resultado
+              de los servicios contratados entre clientes y proveedores.
             </p>
           </section>
 
@@ -193,7 +210,6 @@ function TerminosCondiciones() {
               autoridades competentes en Guadalajara, Jalisco.
             </p>
           </section>
-
         </div>
       </div>
     </Layout>

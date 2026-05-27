@@ -1853,3 +1853,89 @@ html, body {
   .app-modal-message { font-size: 0.9rem; }
   .app-modal-actions { flex-direction: column; }
 }
+/* ── Selector de Promociones en Modal de Cotización ───────────────────── */
+.promociones-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.promo-opcion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: #f8fafc;
+}
+
+.promo-opcion:hover {
+  border-color: #1a4d5c;
+  background: #f0f7f9;
+}
+
+.promo-opcion input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #1a4d5c;
+  flex-shrink: 0;
+}
+
+.promo-opcion-activa {
+  border-color: #1a4d5c !important;
+  background: #e8f4f7 !important;
+}
+
+.promo-ninguna span {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.promo-opcion-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.promo-opcion-titulo {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #1e293b;
+}
+
+.promo-opcion-precio {
+  font-size: 0.88rem;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.promo-opcion-precio s {
+  color: #94a3b8;
+}
+
+.promo-opcion-precio strong {
+  color: #1a4d5c;
+  font-size: 0.95rem;
+}
+
+.promo-badge {
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.promo-opcion-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.4;
+}

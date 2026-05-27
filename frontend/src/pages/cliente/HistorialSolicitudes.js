@@ -15,6 +15,37 @@ import "./HistorialSolicitudes.css";
 
 const POR_PAGINA = 10;
 
+/* ── Bloque visual de promoción ── */
+const PromocionInfo = ({ sol }) => {
+  if (!sol.id_promocion || !sol.promocion_titulo) return null;
+  const vigente = sol.promocion_activa === true || sol.promocion_activa === "true";
+  return (
+    <div className={`sr-promo-bloque ${vigente ? "sr-promo-vigente" : "sr-promo-vencida"}`}>
+      <div className="sr-promo-header">
+        <FaTag className="sr-promo-ico" />
+        <span className="sr-promo-label">Promoción aplicada</span>
+        <span className={`sr-promo-pill ${vigente ? "sr-pill-v" : "sr-pill-x"}`}>
+          {vigente
+            ? <><FaCheckCircle style={{marginRight:3}}/> Vigente</>
+            : <><FaExclamationTriangle style={{marginRight:3}}/> Vencida</>
+          }
+        </span>
+      </div>
+      <p className="sr-promo-titulo">{sol.promocion_titulo}</p>
+      <div className="sr-promo-precios">
+        <s className="sr-promo-orig">${parseFloat(sol.precio_original).toLocaleString("es-MX")}</s>
+        <strong className="sr-promo-desc">${parseFloat(sol.precio_promocional).toLocaleString("es-MX")}</strong>
+        <span className="sr-promo-pct">{sol.porcentaje_descuento}% OFF</span>
+      </div>
+      {!vigente && (
+        <p className="sr-promo-aviso">
+          Esta promoción ya no está activa. Coordina el precio final con el proveedor.
+        </p>
+      )}
+    </div>
+  );
+};
+
 const ESTADOS = [
   { key: "todos",      label: "Todas",         icono: <FaClipboardList /> },
   { key: "Pendiente",  label: "Pendientes",     icono: <FaHourglassHalf /> },
@@ -312,6 +343,9 @@ function HistorialSolicitudes() {
                             </span>
                           )}
                         </div>
+
+                        {/* Promoción aplicada */}
+                        <PromocionInfo sol={sol} />
 
                         {/* Detalles principales */}
                         <div className="sr-detalles-grid">

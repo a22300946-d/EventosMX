@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import SplitAuthLayout from "../components/SplitAuthLayout";
 import "./ForgotPassword.css";
+import { FaEnvelope, FaLightbulb } from 'react-icons/fa';
 
 /**
  * ForgotPassword
@@ -104,7 +105,7 @@ function ForgotPassword() {
       ) : (
         /* ── Pantalla de confirmación de envío ── */
         <div className="forgot-confirmacion">
-          <div className="forgot-icono">📧</div>
+<div className="forgot-icono"><FaEnvelope /></div>
 
           <h3 className="forgot-confirmacion-titulo">Revisa tu correo</h3>
 
@@ -115,7 +116,7 @@ function ForgotPassword() {
           </p>
 
           <div className="forgot-tips">
-            <strong>💡 Consejos:</strong>
+<strong><FaLightbulb /> Consejos:</strong>
             <ul>
               <li>Revisa también tu carpeta de spam.</li>
               <li>El enlace expira en 1 hora.</li>

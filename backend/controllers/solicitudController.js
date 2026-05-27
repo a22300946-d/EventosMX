@@ -45,7 +45,8 @@ const crearSolicitud = async (req, res) => {
       tipo_evento, 
       presupuesto_estimado, 
       descripcion_solicitud,
-      servicios_solicitados 
+      servicios_solicitados,
+      id_promocion
     } = req.body;
 
     // Validar campos requeridos
@@ -110,6 +111,26 @@ const crearSolicitud = async (req, res) => {
       });
     }
 
+    // Validar promoción si se proporciona
+    if (id_promocion) {
+      const Promocion = require('../models/Promocion');
+      const promocionVigente = await Promocion.estaVigente(id_promocion);
+      if (!promocionVigente) {
+        return res.status(400).json({
+          success: false,
+          message: 'La promoción seleccionada ya no está vigente'
+        });
+      }
+      // Verificar que la promoción pertenezca al proveedor de la solicitud
+      const promocionData = await Promocion.obtenerPorId(id_promocion);
+      if (!promocionData || parseInt(promocionData.id_proveedor) !== parseInt(id_proveedor)) {
+        return res.status(400).json({
+          success: false,
+          message: 'La promoción no pertenece al proveedor seleccionado'
+        });
+      }
+    }
+
     // Crear la solicitud
     const nuevaSolicitud = await Solicitud.crear({
       id_cliente,
@@ -119,15 +140,24 @@ const crearSolicitud = async (req, res) => {
       tipo_evento,
       presupuesto_estimado,
       descripcion_solicitud,
-      servicios_solicitados 
+      servicios_solicitados,
+      id_promocion: id_promocion || null
     });
+
+    // Obtener datos completos de la solicitud (incluye nombre del cliente y promo)
+    const solicitudCompleta = await Solicitud.obtenerPorId(nuevaSolicitud.id_solicitud);
 
     // ✅ CREAR MENSAJE AUTOMÁTICO CON INFORMACIÓN DE LA SOLICITUD
     try {
-      const mensajeInicial = `📋 Nueva solicitud de cotización\n\n🎉 Tipo de evento: ${tipo_evento}\n📅 Fecha: ${formatearFechaSinDesfase(fecha_evento)}\n${numero_invitados ? `👥 Número de invitados: ${numero_invitados}` : ''}\n${presupuesto_estimado ? `💰 Presupuesto estimado: $${parseFloat(presupuesto_estimado).toLocaleString('es-MX')}` : ''}\n${descripcion_solicitud ? `\n📝 Detalles adicionales:\n${descripcion_solicitud}` : ''}\n\n¡Hola! Estoy interesado en tus servicios para mi evento. ¿Podrías enviarme una cotización?`;
+      // Incluir info de la promoción si aplica
+      let infoPromocion = '';
+      if (id_promocion && solicitudCompleta && solicitudCompleta.promocion_titulo) {
+        infoPromocion = '\n🏷️ Promoción aplicada: ' + solicitudCompleta.promocion_titulo + ' (' + solicitudCompleta.porcentaje_descuento + '% de descuento — $' + parseFloat(solicitudCompleta.precio_promocional).toLocaleString('es-MX') + ')';
+      }
+      const mensajeInicial = `📋 Nueva solicitud de cotización\n\n🎉 Tipo de evento: ${tipo_evento}\n📅 Fecha: ${formatearFechaSinDesfase(fecha_evento)}\n${numero_invitados ? `👥 Número de invitados: ${numero_invitados}` : ''}\n${presupuesto_estimado ? `💰 Presupuesto estimado: $${parseFloat(presupuesto_estimado).toLocaleString('es-MX')}` : ''}${infoPromocion}\n${descripcion_solicitud ? `\n📝 Detalles adicionales:\n${descripcion_solicitud}` : ''}\n\n¡Hola! Estoy interesado en tus servicios para mi evento. ¿Podrías enviarme una cotización?`;
 
       console.log('📝 Intentando crear mensaje inicial para solicitud:', nuevaSolicitud.id_solicitud);
-      
+
       await Mensaje.crear({
         id_solicitud: nuevaSolicitud.id_solicitud,
         id_remitente: id_cliente,
@@ -142,8 +172,6 @@ const crearSolicitud = async (req, res) => {
       // No fallar la solicitud si el mensaje falla
     }
 
-    // Obtener datos completos de la solicitud (incluye nombre del cliente)
-    const solicitudCompleta = await Solicitud.obtenerPorId(nuevaSolicitud.id_solicitud);
 
     // FIX: Guardar la notificación personal en la BD ANTES de emitir por socket.
     // Así el proveedor la recibe aunque no esté conectado en este momento exacto:

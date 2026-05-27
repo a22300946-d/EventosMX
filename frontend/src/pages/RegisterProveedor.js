@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import SplitAuthLayout from "../components/SplitAuthLayout";
 import PasswordInput from "../components/PasswordInput";
 import api from "../services/api";
+import { MdEmail, MdWarning, MdError } from "react-icons/md";
 
 function RegisterProveedor() {
   const [ciudades, setCiudades] = useState([]);
@@ -49,148 +50,72 @@ function RegisterProveedor() {
     }
   };
 
-  // ========== VALIDACIONES ==========
-
   const validarNombreNegocio = (valor) => {
-    if (!valor.trim()) {
-      return "El nombre del negocio es obligatorio";
-    }
-    if (valor.length < 3) {
-      return "El nombre debe tener al menos 3 caracteres";
-    }
-    if (valor.length > 100) {
-      return "El nombre no puede exceder 100 caracteres";
-    }
+    if (!valor.trim()) return "El nombre del negocio es obligatorio";
+    if (valor.length < 3) return "El nombre debe tener al menos 3 caracteres";
+    if (valor.length > 100) return "El nombre no puede exceder 100 caracteres";
     const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\-&.,()]+$/;
-    if (!regex.test(valor)) {
-      return "El nombre contiene caracteres no permitidos";
-    }
+    if (!regex.test(valor)) return "El nombre contiene caracteres no permitidos";
     return "";
   };
 
   const validarCorreo = (valor) => {
-    if (!valor.trim()) {
-      return "El correo es obligatorio";
-    }
+    if (!valor.trim()) return "El correo es obligatorio";
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(valor)) {
-      return "Ingresa un correo válido";
-    }
+    if (!emailRegex.test(valor)) return "Ingresa un correo válido";
     return "";
   };
 
   const validarContrasena = (valor) => {
-    if (!valor) {
-      return "La contraseña es obligatoria";
-    }
-    if (valor.length < 8) {
-      return "La contraseña debe tener al menos 8 caracteres";
-    }
-    if (valor.length > 50) {
-      return "La contraseña no puede exceder 50 caracteres";
-    }
-    if (!/[A-Z]/.test(valor)) {
-      return "La contraseña debe contener al menos una mayúscula";
-    }
-    if (!/[a-z]/.test(valor)) {
-      return "La contraseña debe contener al menos una minúscula";
-    }
-    if (!/\d/.test(valor)) {
-      return "La contraseña debe contener al menos un número";
-    }
+    if (!valor) return "La contraseña es obligatoria";
+    if (valor.length < 8) return "La contraseña debe tener al menos 8 caracteres";
+    if (valor.length > 50) return "La contraseña no puede exceder 50 caracteres";
+    if (!/[A-Z]/.test(valor)) return "La contraseña debe contener al menos una mayúscula";
+    if (!/[a-z]/.test(valor)) return "La contraseña debe contener al menos una minúscula";
+    if (!/\d/.test(valor)) return "La contraseña debe contener al menos un número";
     return "";
   };
 
   const validarTelefono = (valor) => {
-    if (!valor.trim()) {
-      return ""; // El teléfono es opcional
-    }
+    if (!valor.trim()) return "";
     const telefonoLimpio = valor.replace(/[\s\-()]/g, "");
-    if (!/^\d+$/.test(telefonoLimpio)) {
-      return "El teléfono debe contener solo números";
-    }
-    if (telefonoLimpio.length !== 10) {
-      return "El teléfono debe tener 10 dígitos";
-    }
+    if (!/^\d+$/.test(telefonoLimpio)) return "El teléfono debe contener solo números";
+    if (telefonoLimpio.length !== 10) return "El teléfono debe tener 10 dígitos";
     return "";
   };
 
   const validarCampo = (nombre, valor) => {
-    let error = "";
-    
     switch (nombre) {
-      case "nombre_negocio":
-        error = validarNombreNegocio(valor);
-        break;
-      case "correo":
-        error = validarCorreo(valor);
-        break;
-      case "contrasena":
-        error = validarContrasena(valor);
-        break;
+      case "nombre_negocio": return validarNombreNegocio(valor);
+      case "correo": return validarCorreo(valor);
+      case "contrasena": return validarContrasena(valor);
       case "confirmar_contrasena":
-        if (!valor) {
-          error = "Debes confirmar tu contraseña";
-        } else if (valor !== formData.contrasena) {
-          error = "Las contraseñas no coinciden";
-        }
-        break;
-      case "telefono":
-        error = validarTelefono(valor);
-        break;
-      case "ciudad":
-        if (!valor) {
-          error = "Debes seleccionar una ciudad";
-        }
-        break;
-      case "tipo_servicio":
-        if (!valor) {
-          error = "Debes seleccionar un tipo de servicio";
-        }
-        break;
-      default:
-        break;
+        if (!valor) return "Debes confirmar tu contraseña";
+        if (valor !== formData.contrasena) return "Las contraseñas no coinciden";
+        return "";
+      case "telefono": return validarTelefono(valor);
+      case "ciudad": return !valor ? "Debes seleccionar una ciudad" : "";
+      case "tipo_servicio": return !valor ? "Debes seleccionar un tipo de servicio" : "";
+      default: return "";
     }
-    
-    return error;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // Validaciones en tiempo real
     let valorProcesado = value;
-    
-    // Limitar caracteres en nombre de negocio
-    if (name === "nombre_negocio" && value.length > 100) {
-      return;
-    }
-    
-    // Permitir solo números en teléfono
+
+    if (name === "nombre_negocio" && value.length > 100) return;
+
     if (name === "telefono") {
       valorProcesado = value.replace(/[^\d\s\-()]/g, "");
       const soloNumeros = valorProcesado.replace(/[\s\-()]/g, "");
-      if (soloNumeros.length > 10) {
-        return;
-      }
+      if (soloNumeros.length > 10) return;
     }
-    
-    // Limitar caracteres en contraseñas
-    if ((name === "contrasena" || name === "confirmar_contrasena") && value.length > 50) {
-      return;
-    }
-    
-    setFormData({
-      ...formData,
-      [name]: valorProcesado,
-    });
-    
-    // Validar el campo y actualizar errores
-    const error = validarCampo(name, valorProcesado);
-    setErrores({
-      ...errores,
-      [name]: error,
-    });
+
+    if ((name === "contrasena" || name === "confirmar_contrasena") && value.length > 50) return;
+
+    setFormData({ ...formData, [name]: valorProcesado });
+    setErrores({ ...errores, [name]: validarCampo(name, valorProcesado) });
   };
 
   const handleSubmit = async (e) => {
@@ -198,7 +123,6 @@ function RegisterProveedor() {
     setError("");
     setLoading(true);
 
-    // Validar todos los campos
     const nuevosErrores = {
       nombre_negocio: validarNombreNegocio(formData.nombre_negocio),
       correo: validarCorreo(formData.correo),
@@ -209,8 +133,7 @@ function RegisterProveedor() {
       tipo_servicio: formData.tipo_servicio ? "" : "Debes seleccionar un tipo de servicio",
     };
 
-    // Filtrar solo errores que tengan contenido
-    const erroresActivos = Object.entries(nuevosErrores).filter(([_, valor]) => valor !== "");
+    const erroresActivos = Object.entries(nuevosErrores).filter(([_, v]) => v !== "");
 
     if (erroresActivos.length > 0) {
       setErrores(nuevosErrores);
@@ -219,7 +142,6 @@ function RegisterProveedor() {
       return;
     }
 
-    // Limpiar errores
     setErrores({});
 
     const datos = {
@@ -244,7 +166,6 @@ function RegisterProveedor() {
     setLoading(false);
   };
 
-  // ── Pantalla de confirmación ─────────────────────────
   if (registrado) {
     return (
       <SplitAuthLayout
@@ -253,19 +174,16 @@ function RegisterProveedor() {
         heroTitle="TU NEGOCIO DE EVENTOS, A OTRO NIVEL"
       >
         <div style={{ textAlign: "center", padding: "20px 0" }}>
-          <div style={{ fontSize: "64px", marginBottom: "20px" }}>📧</div>
+          <div style={{ fontSize: "64px", marginBottom: "20px", color: "#1a4d5c" }}>
+            <MdEmail />
+          </div>
           <h2 style={{ color: "#1a4d5c", marginBottom: "15px" }}>
             Revisa tu correo
           </h2>
           <p style={{ color: "#555", marginBottom: "10px" }}>
             Enviamos un enlace de verificación a:
           </p>
-          <p style={{
-            fontWeight: "bold",
-            color: "#1a4d5c",
-            fontSize: "16px",
-            marginBottom: "25px"
-          }}>
+          <p style={{ fontWeight: "bold", color: "#1a4d5c", fontSize: "16px", marginBottom: "25px" }}>
             {correoEnviado}
           </p>
           <p style={{ color: "#777", fontSize: "14px", marginBottom: "30px" }}>
@@ -292,7 +210,6 @@ function RegisterProveedor() {
     );
   }
 
-  // ── Formulario normal ────────────────────────────────
   return (
     <SplitAuthLayout
       title="Registro Profesionales"
@@ -311,7 +228,10 @@ function RegisterProveedor() {
             required
           />
           {errores.nombre_negocio && (
-            <span className="error-message">⚠️ {errores.nombre_negocio}</span>
+            <span className="error-message">
+              <MdWarning style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              {errores.nombre_negocio}
+            </span>
           )}
           <small className="field-hint">
             {formData.nombre_negocio.length}/100 caracteres
@@ -329,7 +249,10 @@ function RegisterProveedor() {
             required
           />
           {errores.correo && (
-            <span className="error-message">⚠️ {errores.correo}</span>
+            <span className="error-message">
+              <MdWarning style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              {errores.correo}
+            </span>
           )}
         </div>
 
@@ -343,7 +266,10 @@ function RegisterProveedor() {
             required
           />
           {errores.contrasena && (
-            <span className="error-message">⚠️ {errores.contrasena}</span>
+            <span className="error-message">
+              <MdWarning style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              {errores.contrasena}
+            </span>
           )}
           <small className="field-hint">
             Mínimo 8 caracteres, mayúsculas, minúsculas y números
@@ -360,7 +286,10 @@ function RegisterProveedor() {
             required
           />
           {errores.confirmar_contrasena && (
-            <span className="error-message">⚠️ {errores.confirmar_contrasena}</span>
+            <span className="error-message">
+              <MdWarning style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              {errores.confirmar_contrasena}
+            </span>
           )}
         </div>
 
@@ -376,7 +305,10 @@ function RegisterProveedor() {
               maxLength="14"
             />
             {errores.telefono && (
-              <span className="error-message">⚠️ {errores.telefono}</span>
+              <span className="error-message">
+                <MdWarning style={{ verticalAlign: "middle", marginRight: "4px" }} />
+                {errores.telefono}
+              </span>
             )}
             <small className="field-hint">Ejemplo: 3312345678</small>
           </div>
@@ -388,13 +320,9 @@ function RegisterProveedor() {
               value={formData.ciudad}
               onChange={handleChange}
               required
-              style={{
-                color: formData.ciudad === "" ? "#adb5bd" : "#495057",
-              }}
+              style={{ color: formData.ciudad === "" ? "#adb5bd" : "#495057" }}
             >
-              <option value="" disabled hidden>
-                Selecciona tu ciudad
-              </option>
+              <option value="" disabled hidden>Selecciona tu ciudad</option>
               {ciudades.map((lugar) => (
                 <option key={lugar.id_lugar} value={lugar.ciudad}>
                   {lugar.ciudad}
@@ -402,7 +330,10 @@ function RegisterProveedor() {
               ))}
             </select>
             {errores.ciudad && (
-              <span className="error-message">⚠️ {errores.ciudad}</span>
+              <span className="error-message">
+                <MdWarning style={{ verticalAlign: "middle", marginRight: "4px" }} />
+                {errores.ciudad}
+              </span>
             )}
           </div>
         </div>
@@ -414,29 +345,28 @@ function RegisterProveedor() {
             value={formData.tipo_servicio}
             onChange={handleChange}
             required
-            style={{
-              color: formData.tipo_servicio === "" ? "#adb5bd" : "#495057",
-            }}
+            style={{ color: formData.tipo_servicio === "" ? "#adb5bd" : "#495057" }}
           >
-            <option value="" disabled hidden>
-              Selecciona el tipo de servicio
-            </option>
+            <option value="" disabled hidden>Selecciona el tipo de servicio</option>
             {categorias.map((categoria) => (
-              <option
-                key={categoria.id_categoria}
-                value={categoria.nombre_categoria}
-              >
+              <option key={categoria.id_categoria} value={categoria.nombre_categoria}>
                 {categoria.nombre_categoria}
               </option>
             ))}
           </select>
           {errores.tipo_servicio && (
-            <span className="error-message">⚠️ {errores.tipo_servicio}</span>
+            <span className="error-message">
+              <MdWarning style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              {errores.tipo_servicio}
+            </span>
           )}
         </div>
 
         {error && (
-          <div className="error-message-general">❌ {error}</div>
+          <div className="error-message-general">
+            <MdError style={{ verticalAlign: "middle", marginRight: "4px" }} />
+            {error}
+          </div>
         )}
 
         <button type="submit" className="btn-primary" disabled={loading}>

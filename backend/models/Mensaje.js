@@ -177,6 +177,17 @@ class Mensaje {
         s.numero_invitados,
         s.presupuesto_estimado,
         s.descripcion_solicitud,
+        s.id_promocion,
+        pr.titulo        AS promocion_titulo,
+        pr.precio_original,
+        pr.precio_promocional,
+        pr.porcentaje_descuento,
+        CASE
+          WHEN pr.id_promocion IS NULL THEN NULL
+          WHEN pr.activo = true AND pr.fecha_fin >= CURRENT_DATE THEN true
+          ELSE false
+        END AS promocion_activa,
+        pr.fecha_fin AS promocion_fecha_fin,
         c.nombre_completo as nombre_cliente,
         c.foto_perfil as foto_cliente,
         p.nombre_negocio as nombre_proveedor,
@@ -190,6 +201,7 @@ class Mensaje {
       INNER JOIN Proveedor p ON s.id_proveedor = p.id_proveedor
       LEFT JOIN ultimos_mensajes um ON s.id_solicitud = um.id_solicitud
       LEFT JOIN mensajes_no_leidos mnl ON s.id_solicitud = mnl.id_solicitud
+      LEFT JOIN Promocion pr ON s.id_promocion = pr.id_promocion
       WHERE 
         (s.id_cliente = $1 AND $2 = 'cliente') OR
         (s.id_proveedor = $1 AND $2 = 'proveedor')
