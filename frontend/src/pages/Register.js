@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import SplitAuthLayout from "../components/SplitAuthLayout";
 import api from "../services/api";
@@ -23,7 +23,6 @@ function Register() {
   const [errores, setErrores] = useState({});
 
   const { register } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
     cargarCiudades();

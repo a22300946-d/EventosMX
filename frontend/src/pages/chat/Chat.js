@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import socketService from '../../services/socketService';
@@ -12,6 +12,43 @@ import './Chat.css';
 import { FiPaperclip, FiSend, FiX, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Carga el usuario desde localStorage de forma síncrona.
+   Se llama UNA vez como initializer de useState para que `usuario` ya esté
+   disponible en el primer render y `esPropio` funcione desde el inicio.
+───────────────────────────────────────────────────────────────────────────── */
+const cargarUsuario = () => {
+  try {
+    const raw = localStorage.getItem('user');
+    const tokenSeparado = localStorage.getItem('token');
+    if (!raw) return null;
+
+    const u = JSON.parse(raw);
+
+    // El token puede estar dentro del objeto user o guardado por separado
+    if (!u.token && tokenSeparado) u.token = tokenSeparado;
+
+    // Normalizar campo "tipo" (AuthContext guarda "rol", no "tipo")
+    if (!u.tipo && u.rol) u.tipo = u.rol;
+
+    // Normalizar id numérico según el tipo
+    if (!u.id) {
+      if (u.tipo === 'cliente' && u.id_cliente)   u.id = parseInt(u.id_cliente);
+      if (u.tipo === 'proveedor' && u.id_proveedor) u.id = parseInt(u.id_proveedor);
+    } else {
+      u.id = parseInt(u.id);
+    }
+
+    // Nombre corto para el avatar
+    if (!u.nombre && u.nombre_completo) u.nombre = u.nombre_completo.split(' ')[0];
+    if (!u.nombre && u.nombre_negocio)  u.nombre = u.nombre_negocio.split(' ')[0];
+
+    return u;
+  } catch {
+    return null;
+  }
+};
+
 /* ── Modal de notificación ── */
 const Notificacion = ({ notif, onClose }) => {
   if (!notif) return null;
@@ -22,159 +59,146 @@ const Notificacion = ({ notif, onClose }) => {
         onClick={e => e.stopPropagation()}
       >
         <div className="notif-icon">
-          {notif.tipo === 'error'
-            ? <FiAlertCircle size={32} />
-            : <FiCheckCircle size={32} />}
+          {notif.tipo === 'error' ? <FiAlertCircle size={32} /> : <FiCheckCircle size={32} />}
         </div>
         <div className="notif-body">
           <p className="notif-titulo">{notif.titulo}</p>
           {notif.detalle && <p className="notif-detalle">{notif.detalle}</p>}
         </div>
-        <button className="notif-close" onClick={onClose}>
-          <FiX size={20} />
-        </button>
+        <button className="notif-close" onClick={onClose}><FiX size={20} /></button>
       </div>
     </div>
   );
 };
 
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
 const Chat = () => {
   const { id_solicitud } = useParams();
+
+  // FIX PRINCIPAL: cargar usuario síncronamente para que esPropio funcione
+  // desde el primer render, sin depender de ningún useEffect
+  const [usuario] = useState(cargarUsuario);
+
   const [mensajes, setMensajes] = useState([]);
   const [nuevoMensaje, setNuevoMensaje] = useState('');
   const [conversaciones, setConversaciones] = useState([]);
   const [conversacionActual, setConversacionActual] = useState(null);
-  const [usuario, setUsuario] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [solicitudActual, setSolicitudActual] = useState(null);
   const [modalResenaOpen, setModalResenaOpen] = useState(false);
   const [puedeDejarResena, setPuedeDejarResena] = useState(false);
-  const [notif, setNotif] = useState(null); // { titulo, detalle, tipo }
-  const messagesEndRef = useRef(null);
+  const [notif, setNotif] = useState(null);
+
+  const chatMessagesRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  const mostrarNotif = (titulo, detalle = '', tipo = 'success') => {
+  const mostrarNotif = (titulo, detalle = '', tipo = 'success') =>
     setNotif({ titulo, detalle, tipo });
-  };
-
   const cerrarNotif = () => setNotif(null);
 
+  // Scroll solo dentro del contenedor .chat-messages (no mueve el window)
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+    }
   };
 
+  // ── Conectar socket con el token del usuario actual ──────────────────────
+  // FIX: forzar reconexión si el socket existente pertenece a otro usuario.
+  // El socketService es un singleton; si quedó conectado con el token de
+  // otra sesión (p.ej. proveedor → cliente), los mensajes se guardan con el
+  // id/tipo equivocado. Aquí garantizamos que el socket use SIEMPRE el token
+  // del usuario que tiene la sesión activa en este momento.
   useEffect(() => {
-    scrollToBottom();
-  }, [mensajes]);
+    if (!usuario?.token) return;
 
-  useEffect(() => {
-    const userFromStorage = localStorage.getItem('user');
-    let token = localStorage.getItem('token');
-
-    if (userFromStorage) {
-      try {
-        const userData = JSON.parse(userFromStorage);
-        console.log('Usuario cargado:', userData);
-
-        if (!userData.token && token) userData.token = token;
-
-        if (!userData.tipo) {
-          if (userData.id_cliente) {
-            userData.tipo = 'cliente';
-            userData.id = userData.id_cliente;
-          } else if (userData.id_proveedor) {
-            userData.tipo = 'proveedor';
-            userData.id = userData.id_proveedor;
-          }
-        }
-
-        if (userData.nombre_completo && !userData.nombre) {
-          userData.nombre = userData.nombre_completo.split(' ')[0];
-        }
-
-        setUsuario(userData);
-        
-        // FIX: solo conectar si aún no hay socket activo.
-        // NO llamar disconnect() al desmontar — el socket es compartido con Layout
-        // y destruirlo aquí borra todos los listeners de notificaciones del proveedor.
-        if (userData.token) {
-          socketService.connect(userData.token);
-        } else {
-          console.error('Usuario sin token');
-        }
-      } catch (error) {
-        console.error('Error al parsear usuario:', error);
-      }
-    } else {
-      console.error('No se encontró usuario en localStorage');
+    // Si ya hay un socket conectado, desconectarlo para reconectar con el
+    // token correcto del usuario actual.
+    if (socketService.socket) {
+      socketService.disconnect();
     }
+    socketService.connect(usuario.token);
+    // No desconectar al desmontar — el socket es compartido con Layout
+  }, [usuario]);
 
-    // FIX: se eliminó "return () => { socketService.disconnect(); }"
-    // El socket es un singleton global gestionado por Layout; Chat no debe destruirlo.
-  }, []);
+  // ── Cargar conversaciones al montar ─────────────────────────────────────
+  useEffect(() => { cargarConversaciones(); }, []); // eslint-disable-line
 
-  useEffect(() => { cargarConversaciones(); }, []);
-
+  // ── Cargar mensajes al cambiar la URL ────────────────────────────────────
   useEffect(() => {
-    if (id_solicitud) {
-      cargarMensajes(id_solicitud);
-      socketService.joinConversation(parseInt(id_solicitud));
-      return () => { socketService.leaveConversation(parseInt(id_solicitud)); };
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id_solicitud]);
+    if (!id_solicitud) return;
+    cargarMensajesYConversacion(id_solicitud);
+    socketService.joinConversation(parseInt(id_solicitud));
+    return () => { socketService.leaveConversation(parseInt(id_solicitud)); };
+  }, [id_solicitud]); // eslint-disable-line
 
+  // ── Listeners de socket ──────────────────────────────────────────────────
   useEffect(() => {
-    socketService.onNewMessage((mensaje) => {
-      setMensajes((prev) => [...prev, mensaje]);
+    const onNewMessage = (mensaje) => {
+      setMensajes(prev => [...prev, mensaje]);
       cargarConversaciones();
-    });
-
-    socketService.onUserTyping((data) => {
-      if (data.user_type !== usuario?.tipo || data.user_id !== usuario?.id) {
+      setTimeout(scrollToBottom, 50);
+    };
+    const onTyping = (data) => {
+      // Solo mostrar "escribiendo" si es el otro usuario
+      if (data.user_type !== usuario?.tipo || parseInt(data.user_id) !== usuario?.id) {
         setIsTyping(true);
       }
-    });
+    };
+    const onStopTyping = () => setIsTyping(false);
 
-    socketService.onUserStopTyping(() => { setIsTyping(false); });
+    socketService.onNewMessage(onNewMessage);
+    socketService.onUserTyping(onTyping);
+    socketService.onUserStopTyping(onStopTyping);
 
     return () => {
       socketService.off('new_message');
       socketService.off('user_typing');
       socketService.off('user_stop_typing');
     };
-  }, [usuario]);
+  }, [usuario]); // eslint-disable-line
 
   useEffect(() => {
     if (conversacionActual) setSolicitudActual(conversacionActual);
   }, [conversacionActual]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { verificarPuedeDejarResena(); }, [conversacionActual, usuario]);
+  useEffect(() => { verificarPuedeDejarResena(); }, [conversacionActual, usuario]); // eslint-disable-line
+
+  // ── Funciones de carga ───────────────────────────────────────────────────
 
   const cargarConversaciones = async () => {
     try {
       const response = await mensajeService.obtenerConversaciones();
-      const conversacionesMapeadas = (response.data || []).map(conv => ({
+      const mapeadas = (response.data || []).map(conv => ({
         ...conv,
         estado: conv.estado_solicitud || conv.estado
       }));
-      setConversaciones(conversacionesMapeadas);
+      setConversaciones(mapeadas);
+      return mapeadas;
     } catch (error) {
       console.error('Error al cargar conversaciones:', error);
+      return [];
     }
   };
 
-  const cargarMensajes = async (solicitudId) => {
+  // Carga mensajes y conversaciones en paralelo para evitar race condition
+  // en el header "con quién estás chateando"
+  const cargarMensajesYConversacion = async (solicitudId) => {
     try {
-      const response = await mensajeService.obtenerMensajes(solicitudId);
-      setMensajes(response.data || []);
+      const [responseMensajes, convsMapeadas] = await Promise.all([
+        mensajeService.obtenerMensajes(solicitudId),
+        cargarConversaciones()
+      ]);
+
+      setMensajes(responseMensajes.data || []);
+      setTimeout(scrollToBottom, 50);
 
       await mensajeService.marcarComoLeidos(solicitudId);
       socketService.markAsRead(parseInt(solicitudId));
 
-      const conv = conversaciones.find(c => c.id_solicitud === parseInt(solicitudId));
+      const conv = convsMapeadas.find(c => c.id_solicitud === parseInt(solicitudId));
       if (conv) {
         setConversacionActual({ ...conv, estado: conv.estado_solicitud || conv.estado });
       }
@@ -183,95 +207,91 @@ const Chat = () => {
     }
   };
 
+  const cargarMensajes = (solicitudId) => cargarMensajesYConversacion(solicitudId);
+
+  // ── Handlers de acciones ─────────────────────────────────────────────────
+
   const handleEnviarMensaje = async (e) => {
     e.preventDefault();
     if (!nuevoMensaje.trim()) return;
-    try {
-      socketService.sendMessage(parseInt(id_solicitud), nuevoMensaje.trim());
-      setNuevoMensaje('');
-      socketService.stopTyping(parseInt(id_solicitud));
-    } catch (error) {
-      console.error('Error al enviar mensaje:', error);
-    }
+    socketService.sendMessage(parseInt(id_solicitud), nuevoMensaje.trim());
+    setNuevoMensaje('');
+    socketService.stopTyping(parseInt(id_solicitud));
   };
 
   const handleAbrirModal = () => {
-    const conversacionActualizada = conversaciones.find(
-      c => c.id_solicitud === parseInt(id_solicitud)
-    );
-
-    if (conversacionActualizada) {
-      setSolicitudActual({
-        ...conversacionActualizada,
-        estado: conversacionActualizada.estado_solicitud || conversacionActualizada.estado
-      });
-      setModalOpen(true);
-    } else if (conversacionActual) {
-      setSolicitudActual({
-        ...conversacionActual,
-        estado: conversacionActual.estado_solicitud || conversacionActual.estado
-      });
+    const conv = conversaciones.find(c => c.id_solicitud === parseInt(id_solicitud))
+      || conversacionActual;
+    if (conv) {
+      setSolicitudActual({ ...conv, estado: conv.estado_solicitud || conv.estado });
       setModalOpen(true);
     }
   };
 
-  const handleAprobarSolicitud = async (id_solicitud) => {
+  const handleAprobarSolicitud = async (id_sol) => {
     try {
-      await solicitudService.aprobar(id_solicitud);
-      socketService.sendMessage(parseInt(id_solicitud), 'He aprobado tu propuesta. ¡Nos vemos pronto!');
+      await solicitudService.aprobar(id_sol);
+      socketService.sendMessage(parseInt(id_sol), 'He aprobado tu propuesta. ¡Nos vemos pronto!');
       mostrarNotif('¡Solicitud aprobada!', 'La propuesta fue aceptada exitosamente.');
       setConversacionActual(prev => prev ? ({ ...prev, estado: 'Aceptada' }) : null);
       setSolicitudActual(prev => prev ? ({ ...prev, estado: 'Aceptada' }) : null);
       await cargarConversaciones();
-      await cargarMensajes(id_solicitud);
+      await cargarMensajes(id_sol);
     } catch (error) {
       console.error('Error al aprobar solicitud:', error);
       mostrarNotif('Error al aprobar', 'Por favor intenta de nuevo.', 'error');
     }
   };
 
-  const handleRechazarSolicitud = async (id_solicitud) => {
+  const handleRechazarSolicitud = async (id_sol) => {
     try {
-      await solicitudService.rechazar(id_solicitud);
-      socketService.sendMessage(parseInt(id_solicitud), 'Lamentablemente he decidido no continuar con esta solicitud. Gracias por tu tiempo.');
+      await solicitudService.rechazar(id_sol);
+      socketService.sendMessage(parseInt(id_sol), 'Lamentablemente he decidido no continuar con esta solicitud. Gracias por tu tiempo.');
       mostrarNotif('Solicitud rechazada', 'La solicitud fue rechazada correctamente.');
       setConversacionActual(prev => prev ? ({ ...prev, estado: 'Rechazada' }) : null);
       setSolicitudActual(prev => prev ? ({ ...prev, estado: 'Rechazada' }) : null);
       await cargarConversaciones();
-      await cargarMensajes(id_solicitud);
+      await cargarMensajes(id_sol);
     } catch (error) {
       console.error('Error al rechazar solicitud:', error);
       mostrarNotif('Error al rechazar', 'Por favor intenta de nuevo.', 'error');
     }
   };
 
-  const handleEnviarPropuesta = async (id_solicitud, propuesta) => {
+  const handleEnviarPropuesta = async (id_sol, propuesta) => {
     try {
-      await solicitudService.marcarComoRespondida(id_solicitud, propuesta);
+      await solicitudService.marcarComoRespondida(id_sol, propuesta);
 
       const formatearFechaSinDesfase = (fechaString) => {
         if (!fechaString) return '';
         const [year, month, day] = fechaString.split('-').map(Number);
-        const fecha = new Date(year, month - 1, day);
-        return fecha.toLocaleDateString('es-MX', {
+        return new Date(year, month - 1, day).toLocaleDateString('es-MX', {
           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
       };
 
-      // Info de promocion si la solicitud tiene una asociada
       const tienePromo = solicitudActual?.id_promocion && solicitudActual?.promocion_titulo;
       const promoVigente = tienePromo && solicitudActual?.promocion_activa;
       const lineaPromo = tienePromo
-        ? `\n\n🏷️ **Promoción referenciada:** ${solicitudActual.promocion_titulo} (${solicitudActual.porcentaje_descuento}% OFF — $${parseFloat(solicitudActual.precio_promocional).toLocaleString('es-MX')}) ${promoVigente ? '✅ Vigente' : '⚠️ Vencida'}`
+        ? `\n\n🏷️ **Promoción:** ${solicitudActual.promocion_titulo} (${solicitudActual.porcentaje_descuento}% OFF — $${parseFloat(solicitudActual.precio_promocional).toLocaleString('es-MX')}) ${promoVigente ? '✅ Vigente' : '⚠️ Vencida'}`
         : '';
-      const mensajePropuesta = `**Mi Propuesta**\n\n**Precio Total:** $${parseFloat(propuesta.precio).toLocaleString('es-MX')}\n\n**Descripción:**\n${propuesta.descripcion}\n\n${propuesta.fecha_servicio ? `**Fecha:** ${formatearFechaSinDesfase(propuesta.fecha_servicio)}` : ''}\n${propuesta.hora_servicio ? `**Hora:** ${propuesta.hora_servicio}` : ''}\n\n${propuesta.notas_adicionales ? `**Notas:**\n${propuesta.notas_adicionales}` : ''}${lineaPromo}\n\n¿Te parece bien esta propuesta? ¡Espero tu respuesta!`;
 
-      socketService.sendMessage(parseInt(id_solicitud), mensajePropuesta);
+      const mensajePropuesta =
+        `**Mi Propuesta**\n\n` +
+        `**Precio Total:** $${parseFloat(propuesta.precio).toLocaleString('es-MX')}\n\n` +
+        `**Descripción:**\n${propuesta.descripcion}\n\n` +
+        (propuesta.fecha_servicio ? `**Fecha:** ${formatearFechaSinDesfase(propuesta.fecha_servicio)}\n` : '') +
+        (propuesta.hora_servicio ? `**Hora:** ${propuesta.hora_servicio}\n` : '') +
+        (propuesta.notas_adicionales ? `\n**Notas:**\n${propuesta.notas_adicionales}` : '') +
+        lineaPromo +
+        `\n\n¿Te parece bien esta propuesta? ¡Espero tu respuesta!`;
+
+      socketService.sendMessage(parseInt(id_sol), mensajePropuesta);
       mostrarNotif('¡Propuesta enviada!', 'El cliente recibirá tu propuesta en breve.');
       setConversacionActual(prev => prev ? ({ ...prev, estado: 'Respondida' }) : null);
       setSolicitudActual(prev => prev ? ({ ...prev, estado: 'Respondida' }) : null);
       await cargarConversaciones();
-      await cargarMensajes(id_solicitud);
+      await cargarMensajes(id_sol);
     } catch (error) {
       console.error('Error al enviar propuesta:', error);
       mostrarNotif('Error al enviar propuesta', 'Por favor intenta de nuevo.', 'error');
@@ -283,7 +303,6 @@ const Chat = () => {
       setPuedeDejarResena(false);
       return;
     }
-
     const estadoValido = conversacionActual.estado === 'Aceptada' ||
                          conversacionActual.estado_solicitud === 'Aceptada';
     const fechaEvento = conversacionActual.fecha_evento;
@@ -293,13 +312,11 @@ const Chat = () => {
       try {
         const response = await resenaService.obtenerPorProveedor(conversacionActual.id_proveedor);
         const resenas = response.data || response;
-        const yaDejoResena = resenas.some(resena =>
-          resena.id_cliente === usuario.id &&
-          resena.id_solicitud === conversacionActual.id_solicitud
+        const yaDejoResena = resenas.some(r =>
+          r.id_cliente === usuario.id && r.id_solicitud === conversacionActual.id_solicitud
         );
         setPuedeDejarResena(!yaDejoResena);
-      } catch (error) {
-        console.error('Error al verificar si puede reseñar:', error);
+      } catch {
         setPuedeDejarResena(false);
       }
     } else {
@@ -311,16 +328,10 @@ const Chat = () => {
     try {
       const response = await resenaService.crear(datosResena);
       const resenaData = response.data || response;
-
-      socketService.sendMessage(
-        parseInt(id_solicitud),
-        'He dejado una reseña sobre mi experiencia con el servicio.'
-      );
-
+      socketService.sendMessage(parseInt(id_solicitud), 'He dejado una reseña sobre mi experiencia con el servicio.');
       const detalle = resenaData.calificacion !== undefined && resenaData.sentimiento
         ? `Calificación: ${resenaData.calificacion}/5 · Sentimiento: ${resenaData.sentimiento}`
         : '';
-
       mostrarNotif('¡Reseña publicada!', detalle);
       setModalResenaOpen(false);
       setPuedeDejarResena(false);
@@ -332,45 +343,46 @@ const Chat = () => {
 
   const handleTyping = (e) => {
     setNuevoMensaje(e.target.value);
-
-    if (!typingTimeoutRef.current) {
-      socketService.typing(parseInt(id_solicitud));
-    }
-
+    if (!typingTimeoutRef.current) socketService.typing(parseInt(id_solicitud));
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
     typingTimeoutRef.current = setTimeout(() => {
       socketService.stopTyping(parseInt(id_solicitud));
       typingTimeoutRef.current = null;
     }, 1000);
   };
 
+  // ── Helpers de UI ────────────────────────────────────────────────────────
+
   const formatearHora = (fecha) => {
-    const date = new Date(fecha);
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    const d = new Date(fecha);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
   const obtenerNombreContacto = () => {
     if (!conversacionActual) return '';
     return usuario?.tipo === 'cliente'
-      ? conversacionActual.nombre_proveedor || 'Proveedor'
-      : conversacionActual.nombre_cliente || 'Cliente';
+      ? (conversacionActual.nombre_proveedor || 'Proveedor')
+      : (conversacionActual.nombre_cliente   || 'Cliente');
   };
 
+  // FIX: comparar tipo y id numéricamente para determinar si el mensaje es propio
   const esPropio = (mensaje) =>
-    mensaje.tipo_remitente === usuario?.tipo && mensaje.id_remitente === usuario?.id;
+    mensaje.tipo_remitente === usuario?.tipo &&
+    parseInt(mensaje.id_remitente) === usuario?.id;
 
-  const esUltimoDelGrupo = (index) => {
+  const esUltimoDelGrupo = useMemo(() => (index) => {
     if (index === mensajes.length - 1) return true;
     return mensajes[index].id_remitente !== mensajes[index + 1].id_remitente ||
            mensajes[index].tipo_remitente !== mensajes[index + 1].tipo_remitente;
-  };
+  }, [mensajes]);
 
-  const esPrimeroDelGrupo = (index) => {
+  const esPrimeroDelGrupo = useMemo(() => (index) => {
     if (index === 0) return true;
     return mensajes[index].id_remitente !== mensajes[index - 1].id_remitente ||
            mensajes[index].tipo_remitente !== mensajes[index - 1].tipo_remitente;
-  };
+  }, [mensajes]);
+
+  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <Layout>
@@ -396,7 +408,7 @@ const Chat = () => {
                 </div>
               </div>
 
-              <div className="chat-messages">
+              <div className="chat-messages" ref={chatMessagesRef}>
                 {mensajes.map((mensaje, index) => (
                   <div
                     key={mensaje.id_mensaje}
@@ -410,7 +422,7 @@ const Chat = () => {
                       </div>
                     )}
                     {!esPropio(mensaje) && !esUltimoDelGrupo(index) && (
-                      <div className="mensaje-avatar-placeholder"></div>
+                      <div className="mensaje-avatar-placeholder" />
                     )}
                     <div className="mensaje-contenido">
                       <div className="mensaje-texto">{mensaje.contenido}</div>
@@ -427,11 +439,10 @@ const Chat = () => {
                       </div>
                     )}
                     {esPropio(mensaje) && !esUltimoDelGrupo(index) && (
-                      <div className="mensaje-avatar-placeholder"></div>
+                      <div className="mensaje-avatar-placeholder" />
                     )}
                   </div>
                 ))}
-                <div ref={messagesEndRef} />
               </div>
 
               <div className="chat-input-container">
@@ -445,7 +456,6 @@ const Chat = () => {
                     Dejar Reseña
                   </button>
                 )}
-
                 <form onSubmit={handleEnviarMensaje} className="chat-input-form">
                   <input
                     type="text"
@@ -500,7 +510,6 @@ const Chat = () => {
         onEnviar={handleEnviarResena}
       />
 
-      {/* Modal de notificación personalizado */}
       <Notificacion notif={notif} onClose={cerrarNotif} />
     </Layout>
   );

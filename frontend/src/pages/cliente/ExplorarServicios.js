@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { clienteService } from "../../services/clienteService";
 import api from "../../services/api";
@@ -111,6 +111,7 @@ const ExplorarServicios = () => {
   useEffect(() => {
     cargarTiposEventos();
     buscarConFiltros(filtros);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

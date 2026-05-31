@@ -2,6 +2,7 @@ const Solicitud = require('../models/Solicitud');
 const Mensaje = require('../models/Mensaje');
 const Calendario = require('../models/Calendario');
 const pool = require('../config/database'); // FIX: necesario para guardar notificación en BD
+const emailService = require('../services/emailService');
 
 // Importar socket de forma segura
 let emitNotification;
@@ -482,9 +483,59 @@ const aceptarSolicitud = async (req, res) => {
       // No fallar la aceptación si el calendario falla
     }
 
+    // ✅ ENVIAR CORREOS DE CONFIRMACIÓN AL CLIENTE Y AL PROVEEDOR
+    try {
+      // Formatear fecha robustamente: soporta Date object, string ISO y string fecha simple
+      const formatearFecha = (fechaRaw) => {
+        if (!fechaRaw) return 'No especificada';
+        try {
+          // Si es objeto Date de PostgreSQL o string ISO, extraer solo la parte de fecha
+          const iso = fechaRaw instanceof Date
+            ? fechaRaw.toISOString()
+            : String(fechaRaw);
+          // Tomar solo YYYY-MM-DD ignorando hora y zona horaria
+          const soloFecha = iso.substring(0, 10); // "2026-06-07"
+          const [anio, mes, dia] = soloFecha.split('-').map(Number);
+          // Construir con new Date(y, m-1, d) para evitar desfase de zona horaria
+          const fecha = new Date(anio, mes - 1, dia);
+          return fecha.toLocaleDateString('es-MX', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+          });
+        } catch {
+          return String(fechaRaw);
+        }
+      };
+
+      const notasProveedor = [
+        solicitudExistente.detalles_servicio,
+        solicitudExistente.mensaje_respuesta
+      ].filter(Boolean).join(' — ') || '';
+
+      await emailService.enviarConfirmacionAcuerdo({
+        cliente: {
+          nombre_completo: solicitudExistente.cliente_nombre || 'Cliente',
+          correo: solicitudExistente.cliente_correo
+        },
+        proveedor: {
+          nombre_negocio: solicitudExistente.nombre_negocio || 'Proveedor',
+          correo: solicitudExistente.proveedor_correo
+        },
+        detalles: {
+          servicio: solicitudExistente.tipo_evento || 'Evento',
+          fecha: formatearFecha(solicitudExistente.fecha_evento),
+          precio: parseFloat(solicitudExistente.precio_propuesto) || 0,
+          descripcion: notasProveedor || solicitudExistente.descripcion_solicitud || ''
+        }
+      });
+      console.log('✅ Correos de confirmación enviados a cliente y proveedor');
+    } catch (errorEmail) {
+      console.error('❌ Error al enviar correos de confirmación:', errorEmail);
+      // No fallar la aceptación si el correo falla
+    }
+
     res.json({
       success: true,
-      message: 'Propuesta aceptada. Se enviará confirmación por correo a ambas partes.',
+      message: 'Propuesta aceptada. Se envió confirmación por correo a ambas partes.',
       data: solicitudActualizada
     });
 

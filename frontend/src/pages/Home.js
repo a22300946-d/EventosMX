@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import {
@@ -38,6 +38,32 @@ function Home() {
     cargarCiudades();
   }, []);
 
+  const verificarPreferenciasYCargarProveedores = useCallback(async () => {
+    try {
+      setCargandoProveedores(true);
+
+      const prefResponse = await api.get("/recomendaciones/preferencias");
+      const tienePrefs = prefResponse.data.data !== null;
+
+      setTienePreferencias(tienePrefs);
+
+      if (tienePrefs) {
+        await cargarRecomendaciones();
+        setMostrandoRecomendaciones(true);
+      } else {
+        await cargarProveedoresDestacados();
+        setMostrandoRecomendaciones(false);
+      }
+    } catch (error) {
+      console.error("Error al verificar preferencias:", error);
+      await cargarProveedoresDestacados();
+      setMostrandoRecomendaciones(false);
+    } finally {
+      setCargandoProveedores(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (user && user.rol === "cliente") {
       cargarFavoritos();
@@ -45,7 +71,7 @@ function Home() {
     } else {
       cargarProveedoresDestacados();
     }
-  }, [user]);
+  }, [user, verificarPreferenciasYCargarProveedores]);
 
   useEffect(() => {
     setPaginaActual(1);
@@ -78,31 +104,6 @@ function Home() {
   };
 
   // ── Carga de datos ────────────────────────────────────────────
-
-  const verificarPreferenciasYCargarProveedores = async () => {
-    try {
-      setCargandoProveedores(true);
-
-      const prefResponse = await api.get("/recomendaciones/preferencias");
-      const tienePrefs = prefResponse.data.data !== null;
-
-      setTienePreferencias(tienePrefs);
-
-      if (tienePrefs) {
-        await cargarRecomendaciones();
-        setMostrandoRecomendaciones(true);
-      } else {
-        await cargarProveedoresDestacados();
-        setMostrandoRecomendaciones(false);
-      }
-    } catch (error) {
-      console.error("Error al verificar preferencias:", error);
-      await cargarProveedoresDestacados();
-      setMostrandoRecomendaciones(false);
-    } finally {
-      setCargandoProveedores(false);
-    }
-  };
 
   const cargarRecomendaciones = async () => {
     try {
