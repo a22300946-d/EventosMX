@@ -7,7 +7,7 @@ const crearPromocion = async (req, res) => {
     const id_proveedor = req.usuario.id;
     const { 
       titulo, descripcion, precio_original, precio_promocional,
-      fecha_inicio, fecha_fin 
+      fecha_inicio, fecha_fin, condiciones
     } = req.body;
 
     // Validar campos requeridos
@@ -53,7 +53,8 @@ const crearPromocion = async (req, res) => {
         precio_promocional,
         porcentaje_descuento,
         fecha_inicio,
-        fecha_fin
+        fecha_fin,
+        condiciones: condiciones || null
       });
     } catch (error) {
       if (error.message.startsWith('LIMITE_EXCEDIDO')) {
@@ -210,7 +211,7 @@ const actualizarPromocion = async (req, res) => {
     const { id } = req.params;
     const { 
       titulo, descripcion, precio_original, precio_promocional,
-      fecha_inicio, fecha_fin, activo 
+      fecha_inicio, fecha_fin, activo, condiciones
     } = req.body;
 
     // Si se actualizan los precios, recalcular el porcentaje
@@ -235,7 +236,8 @@ const actualizarPromocion = async (req, res) => {
       porcentaje_descuento,
       fecha_inicio,
       fecha_fin,
-      activo
+      activo,
+      condiciones: condiciones !== undefined ? condiciones : undefined
     });
 
     if (!promocionActualizada) {

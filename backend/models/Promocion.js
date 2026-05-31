@@ -7,7 +7,8 @@ class Promocion {
   static async crear(datos) {
     const { 
       id_proveedor, titulo, descripcion, precio_original, 
-      precio_promocional, porcentaje_descuento, fecha_inicio, fecha_fin 
+      precio_promocional, porcentaje_descuento, fecha_inicio, fecha_fin,
+      condiciones = null
     } = datos;
     
     // Verificar límite de promociones activas
@@ -15,18 +16,24 @@ class Promocion {
     if (promocionesActivas >= LIMITES.MAX_PROMOCIONES_ACTIVAS) {
       throw new Error(`LIMITE_EXCEDIDO:${LIMITES.MAX_PROMOCIONES_ACTIVAS}`);
     }
+
+    // Serializar condiciones si es objeto
+    const condicionesJSON = condiciones
+      ? JSON.stringify(condiciones)
+      : null;
     
     const query = `
       INSERT INTO Promocion 
       (id_proveedor, titulo, descripcion, precio_original, precio_promocional, 
-       porcentaje_descuento, fecha_inicio, fecha_fin)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       porcentaje_descuento, fecha_inicio, fecha_fin, condiciones)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `;
     
     const valores = [
       id_proveedor, titulo, descripcion, precio_original, 
-      precio_promocional, porcentaje_descuento, fecha_inicio, fecha_fin
+      precio_promocional, porcentaje_descuento, fecha_inicio, fecha_fin,
+      condicionesJSON
     ];
     
     const resultado = await pool.query(query, valores);
@@ -129,8 +136,14 @@ class Promocion {
   static async actualizar(id_promocion, id_proveedor, datos) {
     const { 
       titulo, descripcion, precio_original, precio_promocional,
-      porcentaje_descuento, fecha_inicio, fecha_fin, activo 
+      porcentaje_descuento, fecha_inicio, fecha_fin, activo,
+      condiciones
     } = datos;
+
+    // Serializar condiciones si viene como objeto
+    const condicionesJSON = condiciones !== undefined
+      ? (condiciones ? JSON.stringify(condiciones) : null)
+      : undefined; // undefined → COALESCE lo ignora y mantiene el valor actual
     
     const query = `
       UPDATE Promocion 
@@ -141,14 +154,16 @@ class Promocion {
           porcentaje_descuento = COALESCE($5, porcentaje_descuento),
           fecha_inicio = COALESCE($6, fecha_inicio),
           fecha_fin = COALESCE($7, fecha_fin),
-          activo = COALESCE($8, activo)
-      WHERE id_promocion = $9 AND id_proveedor = $10
+          activo = COALESCE($8, activo),
+          condiciones = COALESCE($9::jsonb, condiciones)
+      WHERE id_promocion = $10 AND id_proveedor = $11
       RETURNING *
     `;
     
     const valores = [
       titulo, descripcion, precio_original, precio_promocional,
       porcentaje_descuento, fecha_inicio, fecha_fin, activo,
+      condicionesJSON !== undefined ? condicionesJSON : null,
       id_promocion, id_proveedor
     ];
     

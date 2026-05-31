@@ -1,5 +1,7 @@
 .chat-container {
   display: flex;
+  flex: 1;
+  width: 100%;
   height: calc(100vh - 80px);
   background-color: #f5f7fa;
 }
@@ -71,6 +73,12 @@
   margin-bottom: 8px;
 }
 
+/* Cuando el mensaje tiene tarjeta: usar el ancho máximo completo */
+.mensaje:has(.msg-card),
+.mensaje-con-tarjeta {
+  width: 70%;
+}
+
 /* Mensajes agrupados - casi sin espacio (0px) */
 .mensaje-agrupado {
   margin-bottom: 0px;
@@ -126,6 +134,18 @@
   padding: 8px 12px;
   border-radius: 18px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Cuando el mensaje contiene una tarjeta especial (solicitud/propuesta),
+   forzar el ancho completo del .mensaje para que la tarjeta se expanda */
+.mensaje-contenido-tarjeta {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  /* Forzar que ocupe todo el ancho disponible del padre .mensaje */
+  width: 100%;
+  min-width: 0;
 }
 
 .mensaje-propio .mensaje-contenido {
@@ -299,6 +319,10 @@
 
   .mensaje {
     max-width: 85%;
+  }
+  .mensaje:has(.msg-card),
+  .mensaje-con-tarjeta {
+    width: 85%;
   }
 
   .chat-input-container {

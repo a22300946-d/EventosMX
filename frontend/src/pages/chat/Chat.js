@@ -9,6 +9,7 @@ import ConversacionesList from './ConversacionesList';
 import ModalSolicitud from './ModalSolicitud';
 import ModalResena from './ModalResena';
 import './Chat.css';
+import MensajeChat from './MensajeChat';
 import { FiPaperclip, FiSend, FiX, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 
@@ -414,6 +415,11 @@ const Chat = () => {
                     key={mensaje.id_mensaje}
                     className={`mensaje ${esPropio(mensaje) ? 'mensaje-propio' : 'mensaje-otro'} ${
                       !esPrimeroDelGrupo(index) ? 'mensaje-agrupado' : ''
+                    } ${
+                      (mensaje.contenido?.includes('📋 Nueva solicitud') ||
+                       mensaje.contenido?.includes('**Mi Propuesta**') ||
+                       mensaje.contenido?.includes('**Precio Total:**'))
+                        ? 'mensaje-con-tarjeta' : ''
                     }`}
                   >
                     {!esPropio(mensaje) && esUltimoDelGrupo(index) && (
@@ -424,8 +430,15 @@ const Chat = () => {
                     {!esPropio(mensaje) && !esUltimoDelGrupo(index) && (
                       <div className="mensaje-avatar-placeholder" />
                     )}
-                    <div className="mensaje-contenido">
-                      <div className="mensaje-texto">{mensaje.contenido}</div>
+                    <div className={
+                      `mensaje-contenido${
+                        (mensaje.contenido?.includes('📋 Nueva solicitud') ||
+                         mensaje.contenido?.includes('**Mi Propuesta**') ||
+                         mensaje.contenido?.includes('**Precio Total:**'))
+                          ? ' mensaje-contenido-tarjeta' : ''
+                      }`
+                    }>
+                      <MensajeChat mensaje={mensaje} esPropio={esPropio(mensaje)} />
                       <div className="mensaje-hora">
                         {formatearHora(mensaje.fecha_envio)}
                         {esPropio(mensaje) && mensaje.leido && (

@@ -1,4 +1,4 @@
-  .promociones-container {
+.promociones-container {
     padding: 2rem;
     max-width: 1400px;
     margin: 0 auto;
@@ -425,3 +425,75 @@
   .promo-fecha-label .form-input {
     margin-bottom: 1.25rem;
   }
+/* ── Condiciones de la promoción ─────────────────────────────────────── */
+.promocion-condiciones {
+  margin: 10px 0 8px;
+  font-size: 0.82rem;
+  color: #555;
+  background: #f0f7f9;
+  border-left: 3px solid #1a4d5c;
+  padding: 6px 10px;
+  border-radius: 0 6px 6px 0;
+}
+.condiciones-label { font-weight: 700; margin-right: 4px; }
+.promocion-acciones { display: flex; gap: 8px; margin-top: 10px; }
+
+/* Modal más ancho para el formulario con condiciones */
+.modal-content-grande {
+  max-width: 620px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Fila de dos columnas */
+.promo-row { display: flex; gap: 14px; }
+.promo-campo { flex: 1; }
+
+/* Sección condiciones */
+.condiciones-seccion {
+  margin-top: 18px;
+  border: 1px dashed #b0c8d0;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f8fbfc;
+}
+.condiciones-titulo {
+  font-size: 0.95rem;
+  color: #1a4d5c;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.condiciones-hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #888;
+}
+.condicion-label { font-size: 0.85rem; color: #333; margin-bottom: 8px; }
+.condicion-servicios { margin-top: 12px; }
+.servicios-condicion-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.servicio-condicion-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.servicio-condicion-item:hover { background: #e4f0f4; }
+.servicio-condicion-precio {
+  margin-left: auto;
+  color: #1a4d5c;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
