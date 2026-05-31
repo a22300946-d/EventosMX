@@ -153,6 +153,39 @@ const resolverSolicitudProveedor = async (req, res) => {
     if (!resultado) {
       return res.status(404).json({ success: false, message: 'Proveedor no encontrado' });
     }
+
+    // Si el proveedor fue aprobado, enviar notificación de bienvenida
+    if (decision === 'aprobado') {
+      try {
+        const titulo = '¡Bienvenido a EventosMX!';
+        const mensaje = `¡Felicidades, ${resultado.nombre_negocio}! Un administrador ha revisado y aprobado tu perfil. Tus servicios ahora son visibles para todos los usuarios de la plataforma. ¡Mucho éxito!`;
+
+        const insertQuery = `
+          INSERT INTO notificacion (destinatario, titulo, mensaje, fecha_envio)
+          VALUES ($1, $2, $3, NOW())
+          RETURNING *
+        `;
+        const notifResult = await pool.query(insertQuery, ['proveedor_' + id, titulo, mensaje]);
+        const notif = notifResult.rows[0];
+
+        const { getIO } = require('../config/socket');
+        const io = getIO();
+        if (io) {
+          const eventData = {
+            id_notificacion: notif.id_notificacion,
+            titulo: notif.titulo,
+            mensaje: notif.mensaje,
+            fecha_envio: notif.fecha_envio,
+            destinatario: notif.destinatario,
+            id_proveedor_destino: parseInt(id),
+          };
+          io.emit('notificacion_bienvenida_proveedor', eventData);
+        }
+      } catch (notifError) {
+        console.error('Error al enviar notificación de bienvenida (no crítico):', notifError);
+      }
+    }
+
     const accion = decision === 'aprobado' ? 'aprobado' : 'rechazado';
     res.json({ success: true, message: `Proveedor ${accion} correctamente`, data: resultado });
   } catch (error) {
@@ -431,10 +464,36 @@ const obtenerNotificaciones = async (req, res) => {
     const params = [];
 
     if (rol === 'cliente') {
-      whereClause = `WHERE destinatario IN ('todos', 'clientes', 'clientes_sin_contratacion')`;
+      // Obtener fecha_registro del cliente para filtrar notificaciones posteriores
+      const idCliente = req.usuario?.id;
+      let fechaRegistro = null;
+      if (idCliente) {
+        const resFecha = await pool.query(
+          'SELECT fecha_registro FROM cliente WHERE id_cliente = $1',
+          [idCliente]
+        );
+        fechaRegistro = resFecha.rows[0]?.fecha_registro || null;
+      }
+      if (fechaRegistro) {
+        whereClause = `WHERE destinatario IN ('todos', 'clientes', 'clientes_sin_contratacion') AND fecha_envio >= $1`;
+        params.push(fechaRegistro);
+      } else {
+        whereClause = `WHERE destinatario IN ('todos', 'clientes', 'clientes_sin_contratacion')`;
+      }
     } else if (rol === 'proveedor') {
       const idProveedor = req.usuario?.id;
+      let fechaRegistro = null;
       if (idProveedor) {
+        const resFecha = await pool.query(
+          'SELECT fecha_registro FROM proveedor WHERE id_proveedor = $1',
+          [idProveedor]
+        );
+        fechaRegistro = resFecha.rows[0]?.fecha_registro || null;
+      }
+      if (idProveedor && fechaRegistro) {
+        whereClause = `WHERE destinatario IN ('todos', 'proveedores', 'proveedores_pendientes', 'proveedores_sin_servicio', 'proveedor_${idProveedor}') AND fecha_envio >= $1`;
+        params.push(fechaRegistro);
+      } else if (idProveedor) {
         whereClause = `WHERE destinatario IN ('todos', 'proveedores', 'proveedores_pendientes', 'proveedores_sin_servicio', 'proveedor_${idProveedor}')`;
       } else {
         whereClause = `WHERE destinatario IN ('todos', 'proveedores', 'proveedores_pendientes', 'proveedores_sin_servicio')`;

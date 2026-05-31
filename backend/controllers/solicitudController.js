@@ -368,12 +368,12 @@ const responderSolicitud = async (req, res) => {
       body: req.body
     });
 
-    // Validar campos requeridos
-    if (!mensaje_respuesta || !precio_propuesto) {
+    // Validar campos requeridos: descripción del servicio y precio son obligatorios; notas es opcional
+    if (!detalles_servicio || !precio_propuesto) {
       console.log('❌ Validación falló - Campos faltantes');
       return res.status(400).json({
         success: false,
-        message: 'Mensaje de respuesta y precio propuesto son obligatorios'
+        message: 'La descripción del servicio y el precio propuesto son obligatorios'
       });
     }
 

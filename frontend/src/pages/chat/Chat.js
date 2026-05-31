@@ -198,6 +198,8 @@ const Chat = () => {
 
       await mensajeService.marcarComoLeidos(solicitudId);
       socketService.markAsRead(parseInt(solicitudId));
+      // Actualizar el badge del navbar
+      if (typeof window.__refetchChatCount === 'function') window.__refetchChatCount();
 
       const conv = convsMapeadas.find(c => c.id_solicitud === parseInt(solicitudId));
       if (conv) {
