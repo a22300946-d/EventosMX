@@ -132,15 +132,52 @@ class EmailService {
   }
 
   // ── Confirmación simultánea al aceptar propuesta ────────────────────────
+  // detalles: { servicio, fecha, hora?, descripcion?, servicios[]?, promociones[]?, precio, notas? }
   async enviarConfirmacionAcuerdo({ cliente, proveedor, detalles }) {
-    const tabla = tablaDetalles([
-      ['Tipo de servicio / evento', detalles.servicio],
-      ['Fecha del evento',          detalles.fecha],
-      ['Precio acordado',           `$${Number(detalles.precio).toLocaleString('es-MX')}`],
-      ...(detalles.descripcion
-        ? [['Detalles adicionales', detalles.descripcion]]
-        : []),
+
+    // Construir filas de la tabla según los campos disponibles
+    const filas = [];
+
+    filas.push(['Tipo de servicio / evento', detalles.servicio || '—']);
+    filas.push(['Fecha del evento',           detalles.fecha   || '—']);
+
+    if (detalles.hora) {
+      filas.push(['Hora acordada', detalles.hora]);
+    }
+
+    if (detalles.descripcion) {
+      filas.push(['Descripción del servicio', detalles.descripcion]);
+    }
+
+    // Servicios seleccionados (array de strings o objetos con nombre_servicio)
+    if (detalles.servicios && detalles.servicios.length > 0) {
+      const listaServicios = detalles.servicios
+        .map(s => typeof s === 'string' ? s : (s.nombre_servicio || s.nombre || ''))
+        .filter(Boolean)
+        .map(s => `<li style="margin:2px 0;">${s}</li>`)
+        .join('');
+      filas.push(['Servicios seleccionados', `<ul style="margin:0;padding-left:18px;">${listaServicios}</ul>`]);
+    }
+
+    // Promociones aplicadas (array de strings o objetos con titulo)
+    if (detalles.promociones && detalles.promociones.length > 0) {
+      const listaPromos = detalles.promociones
+        .map(p => typeof p === 'string' ? p : (p.titulo || ''))
+        .filter(Boolean)
+        .map(p => `<li style="margin:2px 0;">🏷️ ${p}</li>`)
+        .join('');
+      filas.push(['Promociones aplicadas', `<ul style="margin:0;padding-left:18px;">${listaPromos}</ul>`]);
+    }
+
+    filas.push(['Precio total acordado',
+      `<strong style="color:#1a4d5c;font-size:1.1em;">$${Number(detalles.precio || 0).toLocaleString('es-MX')}</strong>`
     ]);
+
+    if (detalles.notas) {
+      filas.push(['Notas del proveedor', detalles.notas]);
+    }
+
+    const tabla = tablaDetalles(filas);
 
     const mailCliente = transporter.sendMail({
       from: `"EventosMX" <${process.env.EMAIL_USER}>`,
@@ -150,7 +187,7 @@ class EmailService {
         <h2>¡Hola ${cliente.nombre_completo}!</h2>
         <p>
           Tu acuerdo con <strong>${proveedor.nombre_negocio}</strong> ha sido
-          confirmado. Aquí tienes el resumen:
+          confirmado exitosamente. Aquí tienes el resumen completo:
         </p>
         ${tabla}
         <p style="margin-top:20px;">
@@ -168,18 +205,18 @@ class EmailService {
         <h2>¡Hola ${proveedor.nombre_negocio}!</h2>
         <p>
           <strong>${cliente.nombre_completo}</strong> ha aceptado tu propuesta.
-          Resumen del acuerdo:
+          Aquí tienes el resumen del acuerdo:
         </p>
         ${tabla}
         <p style="margin-top:20px;">
           Recuerda contactar al cliente para coordinar los detalles finales.
-          ¡Felicidades por tu nuevo cliente!
+          ¡Felicidades por tu nuevo acuerdo!
         </p>
       `),
     });
 
     await Promise.all([mailCliente, mailProveedor]);
-    console.log(`✅ Correos de confirmación enviados → cliente: ${cliente.correo} | proveedor: ${proveedor.correo}`);
+    console.log(`✅ Correos de confirmación enviados → cliente: \${cliente.correo} | proveedor: \${proveedor.correo}`);
     return { success: true };
   }
 

@@ -1,0 +1,221 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MensajeChat.css  —  Tarjetas visuales para mensajes especiales del chat
+   Sistema de colores del app: azul oscuro #1a4d5c · azul medio #4a90e2
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Base de tarjeta ──────────────────────────────────────────────────── */
+.msg-card {
+  border-radius: 14px;
+  overflow: hidden;
+  /* No max-width aquí — el .mensaje del chat ya controla el ancho máximo (70%) */
+  width: 100%;
+  min-width: 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ── Solicitud de cotización ─── color: teal suave del app ─────────────── */
+.msg-card-solicitud .msg-card-header {
+  background: #1a4d5c;
+  color: #fff;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.msg-card-solicitud .msg-card-body {
+  background: #f0f8fb;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msg-card-solicitud .msg-card-footer {
+  background: #e1f3f8;
+  border-top: 1px solid #c4e4ef;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #1a4d5c;
+  font-style: italic;
+}
+
+/* ── Propuesta del proveedor ─── azul profundo ──────────────────────── */
+.msg-card-propuesta .msg-card-header {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: #fff;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.msg-card-propuesta .msg-card-body {
+  background: #f4f8ff;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.msg-card-propuesta .msg-card-footer {
+  background: #e8f0fb;
+  border-top: 1px solid #c8d9f0;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #357abd;
+  font-style: italic;
+}
+
+/* ── Precio destacado (solo propuesta) ──────────────────────────────── */
+.msg-card-precio-bloque {
+  background: #fff;
+  border: 1.5px solid #4a90e2;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.msg-card-precio-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #4a90e2;
+  font-weight: 700;
+}
+
+.msg-card-precio-valor {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a4d5c;
+  letter-spacing: -0.5px;
+}
+
+/* ── Fila de dato (emoji + label + valor) ───────────────────────────── */
+.msg-card-fila {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.msg-card-emoji {
+  font-size: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.msg-card-fila-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.msg-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+}
+
+.msg-card-valor {
+  font-size: 13px;
+  color: #222;
+  font-weight: 500;
+}
+
+/* ── Fila duo (fecha + hora en paralelo) ────────────────────────────── */
+.msg-card-fila-duo {
+  display: flex;
+  gap: 16px;
+}
+
+.msg-card-fila-duo .msg-card-fila {
+  flex: 1;
+}
+
+/* ── Descripción / notas (bloque de texto) ──────────────────────────── */
+.msg-card-descripcion {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  border-left: 3px solid #4a90e2;
+}
+
+.msg-card-solicitud .msg-card-descripcion {
+  border-left-color: #1a4d5c;
+}
+
+.msg-card-notas {
+  border-left-color: #f0a500;
+  background: #fffbf0;
+}
+
+.msg-card-descripcion-texto {
+  margin: 0;
+  font-size: 12.5px;
+  color: #333;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* ── Fila de promoción ──────────────────────────────────────────────── */
+.msg-card-fila-promo {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.msg-card-fila-promo .msg-card-label {
+  color: #b78000;
+}
+
+.msg-card-fila-promo .msg-card-valor {
+  color: #7a5200;
+}
+
+/* ── Encabezado compartido ──────────────────────────────────────────── */
+.msg-card-icon {
+  font-size: 16px;
+}
+
+.msg-card-titulo {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* ── Ajuste de burbuja cuando la tarjeta está dentro ───────────────── */
+/* Cuando la tarjeta es el contenido, el .mensaje-contenido no debe
+   aplicar su propio background/padding — se lo damos a la tarjeta */
+.mensaje-contenido:has(.msg-card) {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Fallback para navegadores sin :has() */
+.mensaje-contenido-tarjeta {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* La hora flota debajo de la tarjeta */
+.mensaje-contenido:has(.msg-card) .mensaje-hora,
+.mensaje-contenido-tarjeta .mensaje-hora {
+  padding: 2px 6px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 0 0 10px 10px;
+}

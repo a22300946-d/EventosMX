@@ -130,6 +130,33 @@ const crearSolicitud = async (req, res) => {
           message: 'La promoción no pertenece al proveedor seleccionado'
         });
       }
+      // Validar condiciones de la promoción
+      if (promocionData.condiciones) {
+        let cond;
+        try { cond = typeof promocionData.condiciones === 'string' ? JSON.parse(promocionData.condiciones) : promocionData.condiciones; } catch { cond = null; }
+        if (cond) {
+          // Validar servicios requeridos
+          if (cond.servicios_requeridos && cond.servicios_requeridos.length > 0) {
+            const serviciosCliente = servicios_solicitados || [];
+            const cumple = cond.servicios_requeridos.some(idReq => serviciosCliente.includes(idReq) || serviciosCliente.includes(String(idReq)));
+            if (!cumple) {
+              return res.status(400).json({
+                success: false,
+                message: 'La promoción requiere seleccionar al menos uno de sus servicios elegibles',
+                codigo: 'CONDICION_SERVICIO'
+              });
+            }
+          }
+          // Validar mínimo de invitados
+          if (cond.min_invitados && parseInt(numero_invitados || 0) < cond.min_invitados) {
+            return res.status(400).json({
+              success: false,
+              message: `Esta promoción aplica a partir de ${cond.min_invitados} invitados`,
+              codigo: 'CONDICION_INVITADOS'
+            });
+          }
+        }
+      }
     }
 
     // Crear la solicitud
@@ -506,10 +533,30 @@ const aceptarSolicitud = async (req, res) => {
         }
       };
 
-      const notasProveedor = [
-        solicitudExistente.detalles_servicio,
-        solicitudExistente.mensaje_respuesta
-      ].filter(Boolean).join(' — ') || '';
+      // Obtener servicios y promoción de la solicitud para el correo
+      const serviciosDelEvento = await Solicitud.obtenerServicios(solicitudExistente.id_solicitud);
+
+      // Extraer hora del mensaje de propuesta (el proveedor la incluye en el texto)
+      let horaAcordada = null;
+      if (solicitudExistente.detalles_servicio) {
+        const matchHora = solicitudExistente.detalles_servicio.match(/\b([01]?\d|2[0-3]):[0-5]\d\b/);
+        if (matchHora) horaAcordada = matchHora[0];
+      }
+
+      // Descripción del servicio (detalles_servicio del proveedor)
+      const descripcionServicio = solicitudExistente.detalles_servicio || solicitudExistente.descripcion_solicitud || '';
+
+      // Notas adicionales (mensaje_respuesta del proveedor)
+      const notas = solicitudExistente.mensaje_respuesta || '';
+
+      // Promoción aplicada (si existe y es válida)
+      const promocionesEmail = [];
+      if (solicitudExistente.promocion_titulo) {
+        promocionesEmail.push({
+          titulo: solicitudExistente.promocion_titulo +
+            (solicitudExistente.porcentaje_descuento ? ` (${solicitudExistente.porcentaje_descuento}% desc.)` : '')
+        });
+      }
 
       await emailService.enviarConfirmacionAcuerdo({
         cliente: {
@@ -521,10 +568,14 @@ const aceptarSolicitud = async (req, res) => {
           correo: solicitudExistente.proveedor_correo
         },
         detalles: {
-          servicio: solicitudExistente.tipo_evento || 'Evento',
-          fecha: formatearFecha(solicitudExistente.fecha_evento),
-          precio: parseFloat(solicitudExistente.precio_propuesto) || 0,
-          descripcion: notasProveedor || solicitudExistente.descripcion_solicitud || ''
+          servicio:     solicitudExistente.tipo_evento || 'Evento',
+          fecha:        formatearFecha(solicitudExistente.fecha_evento),
+          hora:         horaAcordada,
+          descripcion:  descripcionServicio,
+          servicios:    serviciosDelEvento,
+          promociones:  promocionesEmail,
+          precio:       parseFloat(solicitudExistente.precio_propuesto) || 0,
+          notas:        notas
         }
       });
       console.log('✅ Correos de confirmación enviados a cliente y proveedor');

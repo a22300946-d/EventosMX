@@ -196,6 +196,7 @@ function PerfilProveedor() {
   const [enviandoSolicitud, setEnviandoSolicitud] = useState(false);
   const [serviciosSeleccionados, setServiciosSeleccionados] = useState([]);
   const [promocionSeleccionada, setPromocionSeleccionada] = useState(null);
+  const [promoAdvertencia, setPromoAdvertencia] = useState(''); // condición no cumplida
   const [formularioSolicitud, setFormularioSolicitud] = useState({
     fecha_evento: "",
     numero_invitados: "",
@@ -590,6 +591,61 @@ function PerfilProveedor() {
     setFormularioSolicitud((prev) => ({ ...prev, [name]: value }));
   };
 
+  /* Re-validar condición de la promo cuando cambien servicios o invitados */
+  useEffect(() => {
+    if (!promocionSeleccionada) { setPromoAdvertencia(''); return; }
+    const promo = promociones.find(p => p.id_promocion === promocionSeleccionada);
+    setPromoAdvertencia(validarCondicionesPromo(promo));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviciosSeleccionados, formularioSolicitud.numero_invitados, promocionSeleccionada]);
+
+  /* Evalúa las condiciones de una promoción contra la selección actual del cliente.
+     Retorna un string con el motivo si NO aplica, o '' si aplica. */
+  const validarCondicionesPromo = (promo) => {
+    if (!promo || !promo.condiciones) return '';
+    let cond;
+    try {
+      cond = typeof promo.condiciones === 'string'
+        ? JSON.parse(promo.condiciones)
+        : promo.condiciones;
+    } catch { return ''; }
+
+    if (cond.min_invitados) {
+      const inv = parseInt(formularioSolicitud.numero_invitados || 0);
+      if (inv < cond.min_invitados) {
+        return `Esta promoción requiere mínimo ${cond.min_invitados} invitados.`;
+      }
+    }
+    if (cond.servicios_requeridos && cond.servicios_requeridos.length > 0) {
+      const cumple = cond.servicios_requeridos.some(id =>
+        serviciosSeleccionados.includes(id) || serviciosSeleccionados.includes(String(id))
+      );
+      if (!cumple) {
+        const nombres = cond.servicios_requeridos
+          .map(id => {
+            const s = servicios.find(sv => sv.id_servicio === id || sv.id_servicio === String(id));
+            return s ? s.nombre_servicio : `servicio #${id}`;
+          })
+          .join(' o ');
+        return `Para usar esta promoción debes seleccionar: ${nombres}.`;
+      }
+    }
+    return '';
+  };
+
+  /* Seleccionar/deseleccionar promoción con validación inmediata de condiciones */
+  const handleSeleccionarPromo = (promoId) => {
+    if (promoId === null) {
+      setPromocionSeleccionada(null);
+      setPromoAdvertencia('');
+      return;
+    }
+    const promo = promociones.find(p => p.id_promocion === promoId);
+    const aviso = validarCondicionesPromo(promo);
+    setPromocionSeleccionada(promoId);
+    setPromoAdvertencia(aviso);
+  };
+
   const handleEnviarSolicitud = async () => {
     if (!formularioSolicitud.fecha_evento || !formularioSolicitud.tipo_evento) {
       await showModal({
@@ -608,6 +664,20 @@ function PerfilProveedor() {
       });
       return;
     }
+    // Validar condiciones de la promoción seleccionada
+    if (promocionSeleccionada) {
+      const promo = promociones.find(p => p.id_promocion === promocionSeleccionada);
+      const avisoFinal = validarCondicionesPromo(promo);
+      if (avisoFinal) {
+        await showModal({
+          type: "warning",
+          title: "Promoción no aplicable",
+          message: avisoFinal + " Cambia la selección o elige 'Sin promoción'.",
+        });
+        return;
+      }
+    }
+
     if (esFechaBloqueada(formularioSolicitud.fecha_evento)) {
       await showModal({
         type: "error",
@@ -1416,6 +1486,16 @@ function PerfilProveedor() {
                   </p>
                 )}
               </div>
+              {/* Advertencia de condiciones de la promoción seleccionada */}
+              {promoAdvertencia && (
+                <div style={{
+                  background: '#fff3cd', border: '1px solid #ffc107',
+                  borderRadius: '6px', padding: '8px 12px',
+                  marginTop: '8px', fontSize: '0.85rem', color: '#856404'
+                }}>
+                  ⚠️ {promoAdvertencia}
+                </div>
+              )}
               {/* Promociones activas */}
               {promociones.filter(
                 (p) => p.activo && new Date(p.fecha_fin) >= new Date(),
@@ -1439,7 +1519,7 @@ function PerfilProveedor() {
                         name="promocion"
                         value=""
                         checked={promocionSeleccionada === null}
-                        onChange={() => setPromocionSeleccionada(null)}
+                        onChange={() => handleSeleccionarPromo(null)}
                       />
                       <span>Sin promoción</span>
                     </label>
@@ -1460,7 +1540,7 @@ function PerfilProveedor() {
                               promocionSeleccionada === promo.id_promocion
                             }
                             onChange={() =>
-                              setPromocionSeleccionada(promo.id_promocion)
+                              handleSeleccionarPromo(promo.id_promocion)
                             }
                           />
                           <div className="promo-opcion-info">
