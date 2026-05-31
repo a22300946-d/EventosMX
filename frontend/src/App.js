@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleBasedGuestRoute from "./components/RoleBasedGuestRoute";
+import ScrollToTop from "./components/ScrollToTop";
 
 import VerificarCorreo from "./pages/VerificarCorreo";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -53,6 +54,8 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        {/* FIX: sube al inicio de la página en cada cambio de ruta */}
+        <ScrollToTop />
         <Routes>
           {/* Ruta principal */}
           <Route
