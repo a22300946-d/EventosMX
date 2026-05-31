@@ -46,10 +46,6 @@ function TerminosCondiciones() {
               Pueden registrar su negocio, mostrar sus servicios, gestionar
               cotizaciones, administrar su calendario y publicar promociones.
             </p>
-            <h3 className="legal-doc-h3">1.3 Administrador</h3>
-            <p>
-              Supervisa usuarios, valida registros de negocios y modera reseñas.
-            </p>
           </section>
 
           <section className="legal-doc-seccion">

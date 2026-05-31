@@ -44,9 +44,11 @@ export const solicitudService = {
   },
 
   marcarComoRespondida: async (id_solicitud, propuesta) => {
-    // Construir el body esperado por el backend
+    // Construir el body esperado por el backend:
+    // detalles_servicio = Descripción del servicio (obligatoria, mostrada en correo como "Descripción")
+    // mensaje_respuesta = Notas del proveedor (opcional, mostrada en correo como "Notas")
     const body = {
-      mensaje_respuesta: propuesta.descripcion || 'Propuesta enviada',
+      mensaje_respuesta: propuesta.notas_adicionales || '',
       precio_propuesto: parseFloat(propuesta.precio),
       detalles_servicio: propuesta.descripcion || '',
       fecha_disponible: propuesta.fecha_servicio || null

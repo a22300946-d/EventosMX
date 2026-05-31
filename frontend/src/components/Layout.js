@@ -4,7 +4,7 @@ import {
   FaTwitter, FaFacebook, FaInstagram, FaChevronDown, FaBell,
   FaClipboardList, FaCalendarAlt, FaUser, FaUsers, FaDollarSign,
   FaStickyNote, FaClock, FaStore, FaExclamationTriangle,
-  FaCommentDots, FaStar, FaEnvelope
+  FaCommentDots, FaStar, FaEnvelope, FaInfoCircle
 } from 'react-icons/fa';
 import { MdCelebration } from 'react-icons/md';
 import { useAuth } from '../hooks/useAuth';
@@ -162,6 +162,12 @@ function Layout({ children, showNav = true }) {
   const notifAdminRef = useRef(null);
   const [notifAdminDetalle, setNotifAdminDetalle] = useState(null);
 
+  // ── Chat: mensajes no leídos ──
+  const [chatNoLeidos, setChatNoLeidos] = useState(0);
+
+  // ── Proveedor pendiente de aprobación ──
+  const [proveedorPendiente, setProveedorPendiente] = useState(false);
+
   const hideAuthButtons =
     location.pathname === '/login' ||
     location.pathname === '/login-proveedor' ||
@@ -185,6 +191,92 @@ function Layout({ children, showNav = true }) {
       socketService.connect(token);
     }
   }, [user]);
+
+  // ── Verificar si proveedor está pendiente de aprobación ──
+  useEffect(() => {
+    if (!user || user.rol !== 'proveedor') return;
+    if (user.estado_aprobacion) {
+      setProveedorPendiente(user.estado_aprobacion === 'pendiente');
+    } else {
+      api.get('/proveedor/perfil')
+        .then(res => {
+          if (res.data.success) {
+            setProveedorPendiente(res.data.data.estado_aprobacion === 'pendiente');
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
+  // ── Cargar y escuchar chats no leídos (Cliente y Proveedor) ──
+  useEffect(() => {
+    if (!user || user.rol === 'admin') return;
+
+    const miId = user?.id_usuario ?? user?.id_proveedor ?? user?.id;
+    const miTipo = user.rol; // 'cliente' | 'proveedor'
+
+    const cargarNoLeidos = () => {
+      api.get('/mensajes/no-leidos')
+        .then(res => {
+          if (res.data.success) setChatNoLeidos(res.data.data.total_no_leidos || 0);
+        })
+        .catch(() => {});
+    };
+    cargarNoLeidos();
+
+    // Nuevo mensaje → sumar 1 solo si lo envió el otro lado
+    const onNuevoMensaje = (msg) => {
+      if (msg && msg.tipo_remitente === miTipo && msg.id_remitente === miId) return;
+      setChatNoLeidos(prev => prev + 1);
+    };
+
+    // Mensajes leídos → recargar el total real del servidor
+    // Esto se dispara cuando el usuario entra a un chat y los mensajes se marcan como leídos
+    const onMensajesLeidos = () => { cargarNoLeidos(); };
+
+    socketService.addPersistentListener('new_message', onNuevoMensaje);
+    socketService.addPersistentListener('messages_read', onMensajesLeidos);
+
+    // También refrescar cuando el usuario navega de vuelta al chat
+    window.__refetchChatCount = cargarNoLeidos;
+
+    return () => {
+      socketService.removePersistentListener('new_message', onNuevoMensaje);
+      socketService.removePersistentListener('messages_read', onMensajesLeidos);
+      delete window.__refetchChatCount;
+    };
+  }, [user]);
+
+  // ── Escuchar notificación de bienvenida (proveedor aprobado) ──
+  useEffect(() => {
+    if (!user || user.rol !== 'proveedor') return;
+
+    const onBienvenida = (data) => {
+      const miId = user?.id_proveedor ?? user?.id;
+      if (data.id_proveedor_destino && data.id_proveedor_destino !== miId) return;
+      // Marcar como aprobado (quitar banner)
+      setProveedorPendiente(false);
+      // Agregar la notificación a la campana del proveedor
+      const leidas = getLeidas(userIdGral);
+      const notif = {
+        id_notificacion: data.id_notificacion || ('bienvenida_' + Date.now()),
+        titulo: data.titulo,
+        mensaje: data.mensaje,
+        fecha_envio: data.fecha_envio || new Date().toISOString(),
+        destinatario: data.destinatario,
+      };
+      setNotificacionesProveedor(prev => {
+        const nueva = [notif, ...prev];
+        setNoLeidasProveedor(nueva.filter(n => !leidas.has(n.id_notificacion || n.id)).length);
+        return nueva;
+      });
+    };
+
+    socketService.addPersistentListener('notificacion_bienvenida_proveedor', onBienvenida);
+    return () => {
+      socketService.removePersistentListener('notificacion_bienvenida_proveedor', onBienvenida);
+    };
+  }, [user, userIdGral]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -533,7 +625,12 @@ function Layout({ children, showNav = true }) {
               <div className="nav-links">
                 {!isMobile && (
                   <>
-                    <Link to="/chat">Chat</Link>
+                    <span className="nav-chat-wrapper">
+                      <Link to="/chat">Chat</Link>
+                      {chatNoLeidos > 0 && (
+                        <span className="nav-chat-badge">{chatNoLeidos > 9 ? '9+' : chatNoLeidos}</span>
+                      )}
+                    </span>
                     <Link to="/cliente/explorar">Explorar Servicios</Link>
                     <Link to="/cliente/listas">Mis eventos</Link>
                   </>
@@ -553,7 +650,10 @@ function Layout({ children, showNav = true }) {
                     <div className="nav-dropdown-menu">
                       {isMobile && (
                         <>
-                          <Link to="/chat" className="dropdown-item" onClick={() => setShowDropdown(false)}>Chat</Link>
+                          <span className="dropdown-item-chat-wrapper">
+                            <Link to="/chat" className="dropdown-item" onClick={() => setShowDropdown(false)}>Chat</Link>
+                            {chatNoLeidos > 0 && <span className="nav-chat-badge nav-chat-badge--dropdown">{chatNoLeidos > 9 ? '9+' : chatNoLeidos}</span>}
+                          </span>
                           <Link to="/cliente/explorar" className="dropdown-item" onClick={() => setShowDropdown(false)}>Explorar Servicios</Link>
                           <Link to="/cliente/listas" className="dropdown-item" onClick={() => setShowDropdown(false)}>Mis eventos</Link>
                         </>
@@ -571,7 +671,12 @@ function Layout({ children, showNav = true }) {
               <div className="nav-links">
                 {!isMobile && (
                   <>
-                    <Link to="/chat">Chat</Link>
+                    <span className="nav-chat-wrapper">
+                      <Link to="/chat">Chat</Link>
+                      {chatNoLeidos > 0 && (
+                        <span className="nav-chat-badge">{chatNoLeidos > 9 ? '9+' : chatNoLeidos}</span>
+                      )}
+                    </span>
                     <Link to="/proveedor/cuenta/solicitudes">Solicitudes</Link>
                   </>
                 )}
@@ -590,7 +695,10 @@ function Layout({ children, showNav = true }) {
                     <div className="nav-dropdown-menu">
                       {isMobile && (
                         <>
-                          <Link to="/chat" className="dropdown-item" onClick={() => setShowDropdown(false)}>Chat</Link>
+                          <span className="dropdown-item-chat-wrapper">
+                            <Link to="/chat" className="dropdown-item" onClick={() => setShowDropdown(false)}>Chat</Link>
+                            {chatNoLeidos > 0 && <span className="nav-chat-badge nav-chat-badge--dropdown">{chatNoLeidos > 9 ? '9+' : chatNoLeidos}</span>}
+                          </span>
                           <Link to="/proveedor/cuenta/solicitudes" className="dropdown-item" onClick={() => setShowDropdown(false)}>Solicitudes</Link>
                         </>
                       )}
@@ -635,7 +743,19 @@ function Layout({ children, showNav = true }) {
         </nav>
       )}
 
-      <main className="main-content">{children}</main>
+      {/* Banner de aprobación pendiente para proveedores — fuera del grid */}
+      {user && user.rol === 'proveedor' && proveedorPendiente && (
+        <div className="banner-pendiente">
+          <FaInfoCircle className="banner-pendiente__icono" />
+          <p className="banner-pendiente__texto">
+            Tu perfil está siendo revisado. Una vez que un administrador lo acepte, tus servicios comenzarán a mostrarse a todos los usuarios.
+          </p>
+        </div>
+      )}
+
+      <main className="main-content">
+        {children}
+      </main>
 
       <footer className="footer">
         <div className="footer-content">
