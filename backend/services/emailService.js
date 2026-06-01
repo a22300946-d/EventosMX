@@ -19,13 +19,17 @@
 const admin = require('../config/firebase.config');
 const nodemailer = require('nodemailer');
 
-// ── Transporte Gmail ─────────────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: parseInt(process.env.MAIL_PORT) || 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 // ── Helper: cabecera HTML común ──────────────────────────────────────────────
