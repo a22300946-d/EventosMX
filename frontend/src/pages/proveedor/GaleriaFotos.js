@@ -42,11 +42,11 @@ function GaleriaFotos() {
 
   const mostrarToast = (mensaje, tipo = 'exito') => setToast({ mensaje, tipo });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps, no-use-before-define
   useEffect(() => {
-  cargarGaleria();
-  cargarLimite();
-  }, [cargarGaleria, cargarLimite]);
+    cargarGaleria();
+    cargarLimite();
+  }, []);
 
   const cargarGaleria = async () => {
     try {
