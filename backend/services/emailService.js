@@ -1,12 +1,7 @@
 /**
  * emailService.js
  * ─────────────────────────────────────────────────────────────────────────────
- * Centraliza todo el envío de correos con Nodemailer + Gmail.
- *
- * Firebase Admin genera los links de acción. El destino (continueUrl) ya NO
- * se pasa aquí — se configura una sola vez en Firebase Console como
- * "Customize action URL", así el link del correo lleva directo al frontend
- * sin pasar por las pantallas genéricas de firebaseapp.com.
+ * Centraliza todo el envío de correos con Resend.
  *
  * Métodos:
  *  - enviarVerificacion              → registro de cuenta
@@ -17,21 +12,10 @@
  */
 
 const admin = require('../config/firebase.config');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
-  family: 4  // ← fuerza IPv4
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM = 'EventosMX <noreply@eventos-mx.com>';
 
 // ── Helper: cabecera HTML común ──────────────────────────────────────────────
 const headerHTML = `
@@ -74,19 +58,24 @@ function layout(contenido) {
   `;
 }
 
+// ── Helper: enviar con Resend ────────────────────────────────────────────────
+async function enviar({ to, subject, html }) {
+  const { error } = await resend.emails.send({ from: FROM, to, subject, html });
+  if (error) throw new Error(`Resend error: ${error.message}`);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 class EmailService {
 
   // ── Verificación de correo ──────────────────────────────────────────────
-  // El Action URL configurado en Firebase Console determina el destino.
-  // Firebase añade ?mode=verifyEmail&oobCode=...&apiKey=... automáticamente.
   async enviarVerificacion({ email, nombre }) {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-    const link = await admin.auth().generateEmailVerificationLink(email, { url: `${backendUrl}/api/auth/accion` });
+    const link = await admin.auth().generateEmailVerificationLink(email, {
+      url: `${backendUrl}/api/auth/accion`
+    });
 
-    await transporter.sendMail({
-      from: `"EventosMX" <${process.env.EMAIL_USER}>`,
+    await enviar({
       to: email,
       subject: '✅ Verifica tu correo - EventosMX',
       html: layout(`
@@ -108,14 +97,13 @@ class EmailService {
   }
 
   // ── Recuperación de contraseña ──────────────────────────────────────────
-  // El Action URL configurado en Firebase Console determina el destino.
-  // Firebase añade ?mode=resetPassword&oobCode=...&apiKey=... automáticamente.
   async enviarRecuperacion({ email }) {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-    const link = await admin.auth().generatePasswordResetLink(email, { url: `${backendUrl}/api/auth/accion` });
+    const link = await admin.auth().generatePasswordResetLink(email, {
+      url: `${backendUrl}/api/auth/accion`
+    });
 
-    await transporter.sendMail({
-      from: `"EventosMX" <${process.env.EMAIL_USER}>`,
+    await enviar({
       to: email,
       subject: '🔑 Recupera tu contraseña - EventosMX',
       html: layout(`
@@ -137,24 +125,15 @@ class EmailService {
   }
 
   // ── Confirmación simultánea al aceptar propuesta ────────────────────────
-  // detalles: { servicio, fecha, hora?, descripcion?, servicios[]?, promociones[]?, precio, notas? }
   async enviarConfirmacionAcuerdo({ cliente, proveedor, detalles }) {
-
-    // Construir filas de la tabla según los campos disponibles
     const filas = [];
 
     filas.push(['Tipo de servicio / evento', detalles.servicio || '—']);
-    filas.push(['Fecha del evento',           detalles.fecha   || '—']);
+    filas.push(['Fecha del evento', detalles.fecha || '—']);
 
-    if (detalles.hora) {
-      filas.push(['Hora acordada', detalles.hora]);
-    }
+    if (detalles.hora) filas.push(['Hora acordada', detalles.hora]);
+    if (detalles.descripcion) filas.push(['Descripción del servicio', detalles.descripcion]);
 
-    if (detalles.descripcion) {
-      filas.push(['Descripción del servicio', detalles.descripcion]);
-    }
-
-    // Servicios seleccionados (array de strings o objetos con nombre_servicio)
     if (detalles.servicios && detalles.servicios.length > 0) {
       const listaServicios = detalles.servicios
         .map(s => typeof s === 'string' ? s : (s.nombre_servicio || s.nombre || ''))
@@ -164,7 +143,6 @@ class EmailService {
       filas.push(['Servicios seleccionados', `<ul style="margin:0;padding-left:18px;">${listaServicios}</ul>`]);
     }
 
-    // Promociones aplicadas (array de strings o objetos con titulo)
     if (detalles.promociones && detalles.promociones.length > 0) {
       const listaPromos = detalles.promociones
         .map(p => typeof p === 'string' ? p : (p.titulo || ''))
@@ -178,75 +156,51 @@ class EmailService {
       `<strong style="color:#1a4d5c;font-size:1.1em;">$${Number(detalles.precio || 0).toLocaleString('es-MX')}</strong>`
     ]);
 
-    if (detalles.notas) {
-      filas.push(['Notas del proveedor', detalles.notas]);
-    }
+    if (detalles.notas) filas.push(['Notas del proveedor', detalles.notas]);
 
     const tabla = tablaDetalles(filas);
 
-    const mailCliente = transporter.sendMail({
-      from: `"EventosMX" <${process.env.EMAIL_USER}>`,
-      to: cliente.correo,
-      subject: '🎉 ¡Acuerdo confirmado! - EventosMX',
-      html: layout(`
-        <h2>¡Hola ${cliente.nombre_completo}!</h2>
-        <p>
-          Tu acuerdo con <strong>${proveedor.nombre_negocio}</strong> ha sido
-          confirmado exitosamente. Aquí tienes el resumen completo:
-        </p>
-        ${tabla}
-        <p style="margin-top:20px;">
-          El proveedor se pondrá en contacto contigo próximamente para coordinar
-          los últimos detalles. ¡Gracias por usar EventosMX!
-        </p>
-      `),
-    });
+    await Promise.all([
+      enviar({
+        to: cliente.correo,
+        subject: '🎉 ¡Acuerdo confirmado! - EventosMX',
+        html: layout(`
+          <h2>¡Hola ${cliente.nombre_completo}!</h2>
+          <p>Tu acuerdo con <strong>${proveedor.nombre_negocio}</strong> ha sido confirmado exitosamente. Aquí tienes el resumen completo:</p>
+          ${tabla}
+          <p style="margin-top:20px;">El proveedor se pondrá en contacto contigo próximamente para coordinar los últimos detalles. ¡Gracias por usar EventosMX!</p>
+        `),
+      }),
+      enviar({
+        to: proveedor.correo,
+        subject: '🎊 ¡Nuevo acuerdo confirmado! - EventosMX',
+        html: layout(`
+          <h2>¡Hola ${proveedor.nombre_negocio}!</h2>
+          <p><strong>${cliente.nombre_completo}</strong> ha aceptado tu propuesta. Aquí tienes el resumen del acuerdo:</p>
+          ${tabla}
+          <p style="margin-top:20px;">Recuerda contactar al cliente para coordinar los detalles finales. ¡Felicidades por tu nuevo acuerdo!</p>
+        `),
+      }),
+    ]);
 
-    const mailProveedor = transporter.sendMail({
-      from: `"EventosMX" <${process.env.EMAIL_USER}>`,
-      to: proveedor.correo,
-      subject: '🎊 ¡Nuevo acuerdo confirmado! - EventosMX',
-      html: layout(`
-        <h2>¡Hola ${proveedor.nombre_negocio}!</h2>
-        <p>
-          <strong>${cliente.nombre_completo}</strong> ha aceptado tu propuesta.
-          Aquí tienes el resumen del acuerdo:
-        </p>
-        ${tabla}
-        <p style="margin-top:20px;">
-          Recuerda contactar al cliente para coordinar los detalles finales.
-          ¡Felicidades por tu nuevo acuerdo!
-        </p>
-      `),
-    });
-
-    await Promise.all([mailCliente, mailProveedor]);
-    console.log(`✅ Correos de confirmación enviados → cliente: \${cliente.correo} | proveedor: \${proveedor.correo}`);
+    console.log(`✅ Correos de confirmación enviados → cliente: ${cliente.correo} | proveedor: ${proveedor.correo}`);
     return { success: true };
   }
 
   // ── Recordatorio automático al PROVEEDOR (1er umbral) ──────────────────
   async enviarRecordatorioProveedor({ proveedor, cliente, solicitud }) {
-    await transporter.sendMail({
-      from: `"EventosMX" <${process.env.EMAIL_USER}>`,
+    await enviar({
       to: proveedor.correo,
       subject: '⏰ Tienes una solicitud pendiente de respuesta - EventosMX',
       html: layout(`
         <h2>¡Hola ${proveedor.nombre_negocio}!</h2>
-        <p>
-          Tienes una solicitud de <strong>${cliente.nombre_completo}</strong>
-          que lleva <strong>${solicitud.horas_espera} horas</strong> esperando
-          tu respuesta.
-        </p>
+        <p>Tienes una solicitud de <strong>${cliente.nombre_completo}</strong> que lleva <strong>${solicitud.horas_espera} horas</strong> esperando tu respuesta.</p>
         ${tablaDetalles([
-          ['Solicitud #',     solicitud.id],
-          ['Tipo de evento',  solicitud.tipo_evento],
-          ['Fecha del evento',solicitud.fecha_evento],
+          ['Solicitud #', solicitud.id],
+          ['Tipo de evento', solicitud.tipo_evento],
+          ['Fecha del evento', solicitud.fecha_evento],
         ])}
-        <p style="margin-top:20px;">
-          Responde cuanto antes para no perder este cliente. Ingresa a tu panel
-          en EventosMX para enviar tu propuesta.
-        </p>
+        <p style="margin-top:20px;">Responde cuanto antes para no perder este cliente. Ingresa a tu panel en EventosMX para enviar tu propuesta.</p>
         <div style="text-align:center;margin:25px 0;">
           <a href="${process.env.FRONTEND_URL}/proveedor/solicitudes"
              style="background:#1a4d5c;color:white;padding:12px 28px;
@@ -263,25 +217,18 @@ class EmailService {
 
   // ── Notificación al CLIENTE de falta de respuesta (2do umbral) ─────────
   async enviarNotificacionSinRespuesta({ cliente, proveedor, solicitud }) {
-    await transporter.sendMail({
-      from: `"EventosMX" <${process.env.EMAIL_USER}>`,
+    await enviar({
       to: cliente.correo,
       subject: '📭 El proveedor aún no ha respondido tu solicitud - EventosMX',
       html: layout(`
         <h2>¡Hola ${cliente.nombre_completo}!</h2>
-        <p>
-          Tu solicitud enviada a <strong>${proveedor.nombre_negocio}</strong>
-          lleva <strong>${solicitud.horas_espera} horas</strong> sin respuesta.
-        </p>
+        <p>Tu solicitud enviada a <strong>${proveedor.nombre_negocio}</strong> lleva <strong>${solicitud.horas_espera} horas</strong> sin respuesta.</p>
         ${tablaDetalles([
-          ['Solicitud #',     solicitud.id],
-          ['Tipo de evento',  solicitud.tipo_evento],
-          ['Fecha del evento',solicitud.fecha_evento],
+          ['Solicitud #', solicitud.id],
+          ['Tipo de evento', solicitud.tipo_evento],
+          ['Fecha del evento', solicitud.fecha_evento],
         ])}
-        <p style="margin-top:20px;">
-          Puedes cancelar esta solicitud y buscar otro proveedor disponible
-          en la plataforma.
-        </p>
+        <p style="margin-top:20px;">Puedes cancelar esta solicitud y buscar otro proveedor disponible en la plataforma.</p>
         <div style="text-align:center;margin:25px 0;">
           <a href="${process.env.FRONTEND_URL}/cliente/solicitudes"
              style="background:#c0392b;color:white;padding:12px 28px;
@@ -289,10 +236,7 @@ class EmailService {
             Ver mis solicitudes
           </a>
         </div>
-        <p style="font-size:13px;color:#555;">
-          Si prefieres esperar, no necesitas hacer nada. Te seguiremos
-          notificando si hay cambios.
-        </p>
+        <p style="font-size:13px;color:#555;">Si prefieres esperar, no necesitas hacer nada. Te seguiremos notificando si hay cambios.</p>
       `),
     });
 
