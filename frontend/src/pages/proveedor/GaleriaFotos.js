@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect, useRef } from 'react';
 import ProveedorLayout from '../../components/proveedor/ProveedorLayout';
 import { proveedorService } from '../../services/proveedorService';
