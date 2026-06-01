@@ -4,13 +4,30 @@ const Cliente = require('../models/Cliente');
 const { generarToken } = require('../utils/jwt');
 const bcrypt = require('bcrypt');
 const { eliminarImagen, extraerPublicId } = require('../config/cloudinary');
+const pool = require('../config/database');
 
-// Registro de cliente
+// ── Leer configuración de bloqueo desde configuracion_timer ──────────────────
+async function obtenerConfigBloqueo() {
+  try {
+    const { rows } = await pool.query(
+      `SELECT clave, valor FROM configuracion_timer
+       WHERE clave IN ('max_intentos_login', 'tiempo_bloqueo_cliente')`
+    );
+    const cfg = { max_intentos_login: 5, tiempo_bloqueo_cliente: 10 };
+    for (const row of rows) {
+      cfg[row.clave] = parseInt(row.valor, 10);
+    }
+    return cfg;
+  } catch {
+    return { max_intentos_login: 5, tiempo_bloqueo_cliente: 10 };
+  }
+}
+
+// ── Registro de cliente ──────────────────────────────────────────────────────
 const registrarCliente = async (req, res) => {
   try {
     const { nombre_completo, correo, contrasena, telefono, ciudad } = req.body;
 
-    // Validar campos requeridos
     if (!nombre_completo || !correo || !contrasena) {
       return res.status(400).json({
         success: false,
@@ -18,7 +35,6 @@ const registrarCliente = async (req, res) => {
       });
     }
 
-    // Verificar si el correo ya existe
     const clienteExistente = await Cliente.buscarPorCorreo(correo);
     if (clienteExistente) {
       return res.status(400).json({
@@ -27,7 +43,6 @@ const registrarCliente = async (req, res) => {
       });
     }
 
-    // Crear cliente en BD y en Firebase en paralelo para reducir tiempo de espera
     const [nuevoCliente, firebaseUser] = await Promise.all([
       Cliente.crear({ nombre_completo, correo, contrasena, telefono, ciudad }),
       admin.auth().createUser({
@@ -38,11 +53,9 @@ const registrarCliente = async (req, res) => {
       })
     ]);
 
-    // Enviar verificación sin bloquear la respuesta — el usuario ya está creado
     emailService.enviarVerificacion({ email: correo, nombre: nombre_completo })
       .catch(err => console.error('Error al enviar verificación (no crítico):', err));
 
-    // Generar token
     const token = generarToken({
       id: nuevoCliente.id_cliente,
       correo: nuevoCliente.correo,
@@ -52,10 +65,7 @@ const registrarCliente = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Cliente registrado exitosamente',
-      data: {
-        cliente: nuevoCliente,
-        token
-      }
+      data: { cliente: nuevoCliente, token }
     });
 
   } catch (error) {
@@ -68,12 +78,11 @@ const registrarCliente = async (req, res) => {
   }
 };
 
-// Login de cliente
+// ── Login de cliente ─────────────────────────────────────────────────────────
 const loginCliente = async (req, res) => {
   try {
     const { correo, contrasena } = req.body;
 
-    // Validar campos
     if (!correo || !contrasena) {
       return res.status(400).json({
         success: false,
@@ -81,7 +90,6 @@ const loginCliente = async (req, res) => {
       });
     }
 
-    // Buscar cliente
     const cliente = await Cliente.buscarPorCorreo(correo);
     if (!cliente) {
       return res.status(401).json({
@@ -90,35 +98,88 @@ const loginCliente = async (req, res) => {
       });
     }
 
-    // Verificar si la cuenta está bloqueada
+    // ── Bloqueo permanente ───────────────────────────────────────────────────
     if (cliente.estado_cuenta === 'bloqueado') {
       return res.status(403).json({
         success: false,
-        message: 'Cuenta bloqueada. Contacta al administrador.'
+        message: 'Tu cuenta ha sido bloqueada permanentemente por demasiados intentos fallidos. Contacta al administrador para desbloquearla.',
+        tipo_bloqueo: 'permanente'
       });
     }
 
-    // Verificar contraseña y estado Firebase en paralelo para reducir latencia
+    // ── Bloqueo temporal activo ──────────────────────────────────────────────
+    if (cliente.fecha_bloqueo) {
+      const cfg = await obtenerConfigBloqueo();
+      const expira = new Date(cliente.fecha_bloqueo);
+      expira.setMinutes(expira.getMinutes() + cfg.tiempo_bloqueo_cliente);
+      const ahora = new Date();
+
+      if (ahora < expira) {
+        const minutosRestantes = Math.ceil((expira - ahora) / 60000);
+        return res.status(429).json({
+          success: false,
+          message: `Cuenta bloqueada temporalmente. Intenta de nuevo en ${minutosRestantes} minuto${minutosRestantes !== 1 ? 's' : ''}.`,
+          tipo_bloqueo: 'temporal',
+          expira_en: expira.toISOString(),
+          minutos_restantes: minutosRestantes
+        });
+      }
+
+      // El bloqueo temporal ya expiró — limpiar fecha_bloqueo e intentos
+      await Cliente.resetearIntentosFallidos(cliente.id_cliente);
+      // Refrescar datos del cliente para continuar el login correctamente
+      cliente.intentos_fallidos = 0;
+      cliente.fecha_bloqueo = null;
+    }
+
+    // ── Verificar contraseña y estado Firebase en paralelo ───────────────────
     const [contrasenaValida, firebaseUser] = await Promise.all([
       Cliente.verificarContrasena(contrasena, cliente.contrasena),
       admin.auth().getUserByEmail(correo).catch(err => {
         console.error('Error al verificar Firebase (no crítico):', err);
-        return null; // Si Firebase falla, no bloqueamos el login
+        return null;
       })
     ]);
 
     if (!contrasenaValida) {
-      // Incrementar intentos fallidos sin bloquear la respuesta
-      Cliente.incrementarIntentosFallidos(cliente.id_cliente)
-        .catch(err => console.error('Error al incrementar intentos:', err));
+      const cfg = await obtenerConfigBloqueo();
+      const resultado = await Cliente.registrarIntentoFallido(
+        cliente.id_cliente,
+        cfg.max_intentos_login
+      );
 
+      // Bloqueo permanente recién activado
+      if (resultado.estado_cuenta === 'bloqueado') {
+        return res.status(403).json({
+          success: false,
+          message: 'Tu cuenta ha sido bloqueada permanentemente por demasiados intentos fallidos. Contacta al administrador para desbloquearla.',
+          tipo_bloqueo: 'permanente'
+        });
+      }
+
+      // Bloqueo temporal recién activado (fecha_bloqueo fue seteada)
+      if (resultado.fecha_bloqueo) {
+        const expira = new Date(resultado.fecha_bloqueo);
+        expira.setMinutes(expira.getMinutes() + cfg.tiempo_bloqueo_cliente);
+        return res.status(429).json({
+          success: false,
+          message: `Demasiados intentos fallidos. Cuenta bloqueada temporalmente durante ${cfg.tiempo_bloqueo_cliente} minutos.`,
+          tipo_bloqueo: 'temporal',
+          expira_en: expira.toISOString(),
+          minutos_restantes: cfg.tiempo_bloqueo_cliente
+        });
+      }
+
+      // Intento fallido sin bloqueo aún
+      const intentosRestantes = cfg.max_intentos_login - resultado.intentos_fallidos;
       return res.status(401).json({
         success: false,
-        message: 'Credenciales incorrectas'
+        message: `Credenciales incorrectas. Te quedan ${intentosRestantes} intento${intentosRestantes !== 1 ? 's' : ''} antes de un bloqueo temporal.`,
+        intentos_restantes: intentosRestantes
       });
     }
 
-    // Verificar email en Firebase (solo si obtuvimos respuesta)
+    // ── Verificar email en Firebase ──────────────────────────────────────────
     if (firebaseUser && !firebaseUser.emailVerified) {
       return res.status(403).json({
         success: false,
@@ -127,27 +188,22 @@ const loginCliente = async (req, res) => {
       });
     }
 
-    // Resetear intentos fallidos sin bloquear la respuesta
+    // ── Login exitoso: resetear intentos ─────────────────────────────────────
     Cliente.resetearIntentosFallidos(cliente.id_cliente)
       .catch(err => console.error('Error al resetear intentos:', err));
 
-    // Generar token
     const token = generarToken({
       id: cliente.id_cliente,
       correo: cliente.correo,
       rol: 'cliente'
     });
 
-    // No enviar la contraseña en la respuesta
     delete cliente.contrasena;
 
     res.json({
       success: true,
       message: 'Inicio de sesión exitoso',
-      data: {
-        cliente,
-        token
-      }
+      data: { cliente, token }
     });
 
   } catch (error) {
@@ -160,7 +216,7 @@ const loginCliente = async (req, res) => {
   }
 };
 
-// Obtener perfil del cliente autenticado
+// ── Obtener perfil del cliente autenticado ───────────────────────────────────
 const obtenerPerfil = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
@@ -174,10 +230,7 @@ const obtenerPerfil = async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: cliente
-    });
+    res.json({ success: true, data: cliente });
 
   } catch (error) {
     console.error('Error en obtenerPerfil:', error);
@@ -189,7 +242,7 @@ const obtenerPerfil = async (req, res) => {
   }
 };
 
-// Actualizar perfil del cliente
+// ── Actualizar perfil del cliente ────────────────────────────────────────────
 const actualizarPerfil = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
@@ -233,7 +286,7 @@ const actualizarPerfil = async (req, res) => {
   }
 };
 
-// Actualizar foto de perfil
+// ── Actualizar foto de perfil ────────────────────────────────────────────────
 const actualizarFotoPerfil = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
@@ -247,13 +300,11 @@ const actualizarFotoPerfil = async (req, res) => {
 
     const nueva_foto = req.file.path;
 
-    // Obtener foto anterior y actualizar en paralelo
     const [clienteActual, clienteActualizado] = await Promise.all([
       Cliente.buscarPorId(id_cliente),
       Cliente.actualizarFotoPerfil(id_cliente, nueva_foto)
     ]);
 
-    // Eliminar foto anterior de Cloudinary sin bloquear la respuesta
     if (clienteActual?.foto_perfil?.includes('cloudinary')) {
       const publicId = extraerPublicId(clienteActual.foto_perfil);
       if (publicId) {
@@ -287,6 +338,7 @@ const actualizarFotoPerfil = async (req, res) => {
   }
 };
 
+// ── Solicitar recuperación de contraseña ─────────────────────────────────────
 const solicitarRecuperacion = async (req, res) => {
   const { correo } = req.body;
   if (!correo) return res.status(400).json({ success: false, message: 'Correo requerido' });
@@ -301,6 +353,7 @@ const solicitarRecuperacion = async (req, res) => {
   res.json({ success: true, message: 'Si el correo existe, recibirás el enlace' });
 };
 
+// ── Eliminar foto de perfil ──────────────────────────────────────────────────
 const eliminarFotoPerfil = async (req, res) => {
   try {
     const id_cliente = req.usuario.id;
@@ -314,7 +367,6 @@ const eliminarFotoPerfil = async (req, res) => {
       });
     }
 
-    // Eliminar de Cloudinary y BD en paralelo
     const promesas = [Cliente.actualizarFotoPerfil(id_cliente, null)];
 
     if (clienteActual.foto_perfil.includes('cloudinary')) {

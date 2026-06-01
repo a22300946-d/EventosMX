@@ -46,7 +46,6 @@ class Cliente {
     const valores = [];
     let contador = 1;
 
-    // Construir dinámicamente la query solo con los campos proporcionados
     if (datos.nombre_completo !== undefined) {
       campos.push(`nombre_completo = $${contador}`);
       valores.push(datos.nombre_completo);
@@ -75,7 +74,6 @@ class Cliente {
       throw new Error('No hay campos para actualizar');
     }
 
-    // Agregar el ID al final
     valores.push(id_cliente);
 
     const query = `
@@ -89,7 +87,7 @@ class Cliente {
     return resultado.rows[0];
   }
 
-  // ⭐ NUEVO: Actualizar solo la foto de perfil
+  // Actualizar solo la foto de perfil
   static async actualizarFotoPerfil(id_cliente, foto_perfil) {
     const query = `
       UPDATE cliente
@@ -108,7 +106,6 @@ class Cliente {
     
     const valores = [foto_perfil, id_cliente];
     const resultado = await pool.query(query, valores);
-    
     return resultado.rows[0];
   }
 
@@ -117,25 +114,97 @@ class Cliente {
     return await bcrypt.compare(contrasenaPlana, contrasenaHash);
   }
 
-  // Incrementar intentos fallidos
-  static async incrementarIntentosFallidos(id_cliente) {
-    const query = `
-      UPDATE Cliente 
-      SET intentos_fallidos = intentos_fallidos + 1,
-          estado_cuenta = CASE 
-            WHEN intentos_fallidos >= 4 THEN 'bloqueado'
-            ELSE estado_cuenta
-          END
-      WHERE id_cliente = $1
-      RETURNING intentos_fallidos, estado_cuenta
-    `;
-    const resultado = await pool.query(query, [id_cliente]);
-    return resultado.rows[0];
+  /**
+   * Registrar un intento fallido de login.
+   *
+   * Lógica de dos fases:
+   *   Fase 1 – bloqueo temporal:
+   *     Al llegar a max_intentos la cuenta se bloquea temporalmente:
+   *     se guarda fecha_bloqueo, se incrementa contador_bloqueos y se
+   *     resetean intentos_fallidos a 0. estado_cuenta permanece 'activo'.
+   *
+   *   Fase 2 – bloqueo permanente:
+   *     Si el usuario ya cumplió al menos un bloqueo temporal (contador_bloqueos >= 1)
+   *     y vuelve a agotar sus intentos, la cuenta pasa a 'bloqueado' de forma
+   *     definitiva; solo el administrador puede reactivarla.
+   *
+   * Retorna el registro actualizado con todos los campos de bloqueo.
+   */
+  static async registrarIntentoFallido(id_cliente, maxIntentos) {
+    // Usamos una transacción para leer-y-escribir de forma atómica
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Leer estado actual
+      const { rows } = await client.query(
+        `SELECT intentos_fallidos, contador_bloqueos, estado_cuenta
+         FROM Cliente WHERE id_cliente = $1 FOR UPDATE`,
+        [id_cliente]
+      );
+      const row = rows[0];
+      const nuevosIntentos = row.intentos_fallidos + 1;
+      const yaBloqueoAntes = row.contador_bloqueos >= 1;
+
+      let updateQuery;
+      let updateValues;
+
+      if (nuevosIntentos >= maxIntentos) {
+        if (yaBloqueoAntes) {
+          // ── Fase 2: bloqueo permanente ───────────────────────────────────
+          updateQuery = `
+            UPDATE Cliente
+            SET intentos_fallidos  = $1,
+                estado_cuenta      = 'bloqueado',
+                fecha_bloqueo      = NULL,
+                contador_bloqueos  = contador_bloqueos + 1
+            WHERE id_cliente = $2
+            RETURNING intentos_fallidos, estado_cuenta, fecha_bloqueo, contador_bloqueos
+          `;
+          updateValues = [nuevosIntentos, id_cliente];
+        } else {
+          // ── Fase 1: bloqueo temporal ─────────────────────────────────────
+          updateQuery = `
+            UPDATE Cliente
+            SET intentos_fallidos  = 0,
+                estado_cuenta      = 'activo',
+                fecha_bloqueo      = NOW(),
+                contador_bloqueos  = contador_bloqueos + 1
+            WHERE id_cliente = $1
+            RETURNING intentos_fallidos, estado_cuenta, fecha_bloqueo, contador_bloqueos
+          `;
+          updateValues = [id_cliente];
+        }
+      } else {
+        // ── Intento fallido sin llegar al límite ─────────────────────────
+        updateQuery = `
+          UPDATE Cliente
+          SET intentos_fallidos = $1
+          WHERE id_cliente = $2
+          RETURNING intentos_fallidos, estado_cuenta, fecha_bloqueo, contador_bloqueos
+        `;
+        updateValues = [nuevosIntentos, id_cliente];
+      }
+
+      const resultado = await client.query(updateQuery, updateValues);
+      await client.query('COMMIT');
+      return resultado.rows[0];
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
-  // Resetear intentos fallidos
+  // Resetear intentos fallidos y fecha_bloqueo tras login exitoso
   static async resetearIntentosFallidos(id_cliente) {
-    const query = 'UPDATE Cliente SET intentos_fallidos = 0 WHERE id_cliente = $1';
+    const query = `
+      UPDATE Cliente
+      SET intentos_fallidos = 0,
+          fecha_bloqueo     = NULL
+      WHERE id_cliente = $1
+    `;
     await pool.query(query, [id_cliente]);
   }
 }
