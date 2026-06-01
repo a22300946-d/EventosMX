@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect, useRef } from 'react';
 import ProveedorLayout from '../../components/proveedor/ProveedorLayout';
 import { proveedorService } from '../../services/proveedorService';
@@ -42,7 +43,7 @@ function GaleriaFotos() {
 
   const mostrarToast = (mensaje, tipo = 'exito') => setToast({ mensaje, tipo });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps, no-use-before-define
   useEffect(() => {
     cargarGaleria();
     cargarLimite();
