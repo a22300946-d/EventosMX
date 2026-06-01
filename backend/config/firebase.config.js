@@ -1,9 +1,14 @@
 const admin = require('firebase-admin');
 require('dotenv').config();
 
-const privateKey = process.env.FIREBASE_PRIVATE_KEY
-  ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-  : undefined;
+const rawKey = process.env.FIREBASE_PRIVATE_KEY;
+
+// LOG TEMPORAL - borrar después de confirmar
+console.log('🔑 FIREBASE_PRIVATE_KEY primeros 60 chars:', rawKey?.substring(0, 60));
+console.log('🔑 Contiene \\\\n literal:', rawKey?.includes('\\n'));
+console.log('🔑 Contiene salto real:', rawKey?.includes('\n'));
+
+const privateKey = rawKey?.replace(/\\n/g, '\n');
 
 admin.initializeApp({
   credential: admin.credential.cert({
@@ -14,5 +19,4 @@ admin.initializeApp({
 });
 
 console.log('✅ Firebase Admin inicializado');
-
 module.exports = admin;
