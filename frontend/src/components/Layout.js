@@ -791,8 +791,8 @@ function Layout({ children, showNav = true }) {
           <>
             <div className="modal-contacto-body">
               <p className="modal-descripcion">Para comunicarte con el administrador, envíanos un correo a:</p>
-              <a className="modal-email-link" href="https://mail.google.com/mail/?view=cm&fs=1&to=admin@eventosmx.com" target="_blank" rel="noopener noreferrer">
-                admin@eventosmx.com
+              <a className="modal-email-link" href="https://mail.google.com/mail/?view=cm&fs=1&to=equipo.eventosmx@gmail.com" target="_blank" rel="noopener noreferrer">
+                equipo.eventosmx@gmail.com
               </a>
               <p className="modal-nota">Nos pondremos en contacto contigo a la brevedad posible.</p>
             </div>
