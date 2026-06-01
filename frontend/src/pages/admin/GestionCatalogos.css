@@ -18,6 +18,14 @@
   margin-bottom: 1.75rem;
   border-bottom: 2px solid #dee2e6;
   padding-bottom: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+}
+
+.gc-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .gc-tab {
@@ -34,6 +42,8 @@
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
   border-radius: 6px 6px 0 0;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: color 0.18s, border-color 0.18s, background 0.18s;
 }
 
@@ -69,6 +79,7 @@
   font-size: 1.8rem;
   line-height: 1;
   margin-top: 0.1rem;
+  flex-shrink: 0;
 }
 
 .gc-panel-titulo {
@@ -108,7 +119,7 @@
 /* ── Formulario agregar ── */
 .gc-form-agregar {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 0.75rem;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
@@ -117,17 +128,17 @@
 .gc-form-campos {
   display: flex;
   gap: 0.5rem;
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .gc-input {
-  flex: 1;
+  flex: 1 1 140px;
   min-width: 0;
   border: 1px solid #ced4da;
   border-radius: 8px;
-  padding: 0.6rem 0.9rem;
+  padding: 0 0.9rem;
   font-size: 0.9rem;
   color: #212529;
   outline: none;
@@ -146,7 +157,7 @@
   color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 0.6rem 1.25rem;
+  padding: 0 1.25rem;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -154,6 +165,9 @@
   transition: background 0.18s, opacity 0.18s;
   height: 38px;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .gc-btn-agregar:hover:not(.gc-btn-disabled) {
@@ -194,6 +208,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   background: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 8px;
@@ -209,17 +224,23 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .gc-item-emoji {
   font-size: 1.2rem;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .gc-item-nombre {
   font-size: 0.9rem;
   color: #212529;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gc-btn-eliminar {
@@ -233,6 +254,9 @@
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .gc-btn-eliminar:hover {
@@ -240,6 +264,35 @@
   color: #fff;
 }
 
+/* ── Responsive ── */
+@media (max-width: 520px) {
+  .gc-container {
+    padding: 1rem;
+  }
+
+  .gc-titulo {
+    font-size: 1.5rem;
+  }
+
+  .gc-form-agregar {
+    flex-direction: column;
+  }
+
+  .gc-form-campos {
+    width: 100%;
+    flex: unset;
+  }
+
+  .gc-btn-agregar {
+    width: 100%;
+    justify-content: center;
+    height: 40px;
+  }
+
+  .gc-panel {
+    padding: 1rem;
+  }
+}
 
 
 /* ════════════════════════════════════════════════
@@ -247,7 +300,7 @@
 ════════════════════════════════════════════════ */
 .ep-wrapper {
   position: relative;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
 }
 
 /* ── Botón trigger ── */
@@ -265,7 +318,9 @@
   color: #495057;
   white-space: nowrap;
   transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
-  min-width: 175px;
+  min-width: 140px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .ep-trigger:hover {
@@ -339,6 +394,13 @@
   width: 312px;
   box-sizing: border-box;
   animation: ep-aparecer 0.15s ease;
+}
+
+@media (max-width: 400px) {
+  .ep-dropdown {
+    width: calc(100vw - 2rem);
+    left: 0;
+  }
 }
 
 @keyframes ep-aparecer {

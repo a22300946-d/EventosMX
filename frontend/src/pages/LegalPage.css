@@ -21,7 +21,7 @@
   font-size: 44px;
   margin-bottom: 0.75rem;
   line-height: 1;
-   color: #c5dde8;
+  color: #c5dde8;
 }
 
 .legal-hero-titulo {
@@ -56,6 +56,8 @@
   padding-bottom: 2rem;
   border-bottom: 2px solid #c5dde8;
   margin: 0 0 2.5rem 0;
+  text-align: justify;
+  hyphens: auto;
 }
 
 /* ── Sección del documento ──────────────────────────────────────────────── */
@@ -100,6 +102,8 @@
   font-size: 0.95rem;
   line-height: 1.8;
   margin: 0 0 0.85rem 0;
+  text-align: justify;
+  hyphens: auto;
 }
 
 .legal-doc-seccion p:last-child {
@@ -118,6 +122,8 @@
   font-size: 0.95rem;
   line-height: 1.8;
   margin-bottom: 0.3rem;
+  text-align: justify;
+  hyphens: auto;
 }
 
 .legal-doc-lista li strong {
