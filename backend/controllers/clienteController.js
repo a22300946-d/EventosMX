@@ -23,7 +23,6 @@ async function obtenerConfigBloqueo() {
   }
 }
 
-// ── Registro de cliente ──────────────────────────────────────────────────────
 const registrarCliente = async (req, res) => {
   try {
     const { nombre_completo, correo, contrasena, telefono, ciudad } = req.body;
@@ -43,15 +42,22 @@ const registrarCliente = async (req, res) => {
       });
     }
 
-    const [nuevoCliente, firebaseUser] = await Promise.all([
-      Cliente.crear({ nombre_completo, correo, contrasena, telefono, ciudad }),
-      admin.auth().createUser({
-        email: correo,
-        password: contrasena,
-        displayName: nombre_completo,
-        emailVerified: false
-      })
-    ]);
+    // 1) Primero Firebase — si falla, no se toca la BD
+    const firebaseUser = await admin.auth().createUser({
+      email: correo,
+      password: contrasena,
+      displayName: nombre_completo,
+      emailVerified: false
+    });
+
+    // 2) Luego BD — si falla, hacemos rollback en Firebase
+    let nuevoCliente;
+    try {
+      nuevoCliente = await Cliente.crear({ nombre_completo, correo, contrasena, telefono, ciudad });
+    } catch (dbError) {
+      await admin.auth().deleteUser(firebaseUser.uid).catch(() => {});
+      throw dbError;
+    }
 
     emailService.enviarVerificacion({ email: correo, nombre: nombre_completo })
       .catch(err => console.error('Error al enviar verificación (no crítico):', err));

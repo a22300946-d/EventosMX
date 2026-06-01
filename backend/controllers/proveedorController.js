@@ -5,15 +5,13 @@ const { generarToken } = require('../utils/jwt');
 const bcrypt = require('bcrypt');
 const { eliminarImagen, extraerPublicId } = require('../config/cloudinary');
 
-// Registro de proveedor
 const registrarProveedor = async (req, res) => {
   try {
-    const { 
-      nombre_negocio, correo, contrasena, telefono, 
-      ciudad, tipo_servicio, descripcion 
+    const {
+      nombre_negocio, correo, contrasena, telefono,
+      ciudad, tipo_servicio, descripcion
     } = req.body;
 
-    // Validar campos requeridos
     if (!nombre_negocio || !correo || !contrasena || !tipo_servicio) {
       return res.status(400).json({
         success: false,
@@ -21,7 +19,6 @@ const registrarProveedor = async (req, res) => {
       });
     }
 
-    // Verificar si el correo ya existe
     const proveedorExistente = await Proveedor.buscarPorCorreo(correo);
     if (proveedorExistente) {
       return res.status(400).json({
@@ -30,21 +27,26 @@ const registrarProveedor = async (req, res) => {
       });
     }
 
-    // Crear proveedor en BD y en Firebase en paralelo para reducir tiempo de espera
-    const [nuevoProveedor, firebaseUser] = await Promise.all([
-      Proveedor.crear({
+    // 1) Primero Firebase — si falla, no se toca la BD
+    const firebaseUser = await admin.auth().createUser({
+      email: correo,
+      password: contrasena,
+      displayName: nombre_negocio,
+      emailVerified: false
+    });
+
+    // 2) Luego BD — si falla, hacemos rollback en Firebase
+    let nuevoProveedor;
+    try {
+      nuevoProveedor = await Proveedor.crear({
         nombre_negocio, correo, contrasena, telefono,
         ciudad, tipo_servicio, descripcion
-      }),
-      admin.auth().createUser({
-        email: correo,
-        password: contrasena,
-        displayName: nombre_negocio,
-        emailVerified: false
-      })
-    ]);
+      });
+    } catch (dbError) {
+      await admin.auth().deleteUser(firebaseUser.uid).catch(() => {});
+      throw dbError;
+    }
 
-    // Enviar verificación y notificación de socket sin bloquear la respuesta
     emailService.enviarVerificacion({ email: correo, nombre: nombre_negocio })
       .catch(err => console.error('Error al enviar verificación (no crítico):', err));
 
@@ -67,7 +69,6 @@ const registrarProveedor = async (req, res) => {
       console.error('Error al emitir socket de nuevo proveedor:', socketError);
     }
 
-    // Generar token
     const token = generarToken({
       id: nuevoProveedor.id_proveedor,
       correo: nuevoProveedor.correo,
@@ -77,10 +78,7 @@ const registrarProveedor = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Proveedor registrado exitosamente. Pendiente de aprobación.',
-      data: {
-        proveedor: nuevoProveedor,
-        token
-      }
+      data: { proveedor: nuevoProveedor, token }
     });
 
   } catch (error) {
