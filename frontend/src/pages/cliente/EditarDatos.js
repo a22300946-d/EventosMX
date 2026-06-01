@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import api from "../../services/api";
 import ClienteLayout from "../../components/cliente/ClienteLayout";
 import { clienteService } from "../../services/clienteService";
-import { useAuth } from "../../hooks/useAuth";
 import { ModalConfirm, ModalAlert, useModal } from "../../components/modales";
 import "./EditarDatos.css";
 

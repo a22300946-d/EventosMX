@@ -44,9 +44,9 @@ function GaleriaFotos() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    cargarGaleria();
-    cargarLimite();
-  }, []);
+  cargarGaleria();
+  cargarLimite();
+  }, [cargarGaleria, cargarLimite]);
 
   const cargarGaleria = async () => {
     try {

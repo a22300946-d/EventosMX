@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import api from "../../services/api";
 import ProveedorLayout from "../../components/proveedor/ProveedorLayout";
 import { proveedorService } from "../../services/proveedorService";
-import { useAuth } from "../../hooks/useAuth";
 import { ModalConfirm, ModalAlert, useModal } from "../../components/modales";
 import "./MiInformacion.css";
 
