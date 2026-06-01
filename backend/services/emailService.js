@@ -21,15 +21,16 @@ const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: parseInt(process.env.MAIL_PORT) || 587,
+  port: 587,
   secure: false,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
   },
   tls: {
     rejectUnauthorized: false
-  }
+  },
+  family: 4  // ← fuerza IPv4
 });
 
 // ── Helper: cabecera HTML común ──────────────────────────────────────────────
