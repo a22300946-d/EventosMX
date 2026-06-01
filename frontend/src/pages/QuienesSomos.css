@@ -36,6 +36,8 @@
   font-size: 1.15rem;
   line-height: 1.75;
   margin: 0;
+  text-align: justify;
+  hyphens: auto;
 }
 
 /* ── Secciones generales ────────────────────────────────────────────────── */
@@ -85,13 +87,15 @@
   color: #555;
   font-size: 1rem;
   line-height: 1.8;
-  text-align: center;
+  text-align: justify;
+  hyphens: auto;
   max-width: 700px;
   margin: 0 auto 1.2rem auto;
 }
 
 .qs-parrafo-izq {
-  text-align: left;
+  text-align: justify;
+  hyphens: auto;
   max-width: 100%;
   margin: 0 0 1rem 0;
 }
@@ -120,6 +124,7 @@
   font-size: 120px;
   line-height: 1;
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.15));
+  color: #1a4d5c;
 }
 
 /* ── Pasos (cómo funciona) ──────────────────────────────────────────────── */
@@ -158,6 +163,8 @@
   font-size: 0.9rem;
   line-height: 1.65;
   margin: 0;
+  text-align: justify;
+  hyphens: auto;
 }
 
 /* ── Audiencia (para quién es) ──────────────────────────────────────────── */
@@ -199,6 +206,11 @@
 .qs-audiencia-icono {
   font-size: 48px;
   line-height: 1;
+  color: #1a4d5c;
+}
+
+.qs-audiencia-card--destacado .qs-audiencia-icono {
+  color: #c5dde8;
 }
 
 .qs-audiencia-card h3 {
@@ -214,6 +226,8 @@
   line-height: 1.7;
   margin: 0;
   flex: 1;
+  text-align: justify;
+  hyphens: auto;
 }
 
 .qs-audiencia-btn {
@@ -270,6 +284,7 @@
   font-size: 36px;
   margin-bottom: 0.75rem;
   line-height: 1;
+  color: #c5dde8;
 }
 
 .qs-valor-titulo {
@@ -284,6 +299,8 @@
   font-size: 0.875rem;
   line-height: 1.65;
   margin: 0;
+  text-align: justify;
+  hyphens: auto;
 }
 
 /* ── CTA final ──────────────────────────────────────────────────────────── */
@@ -386,30 +403,8 @@
   }
 }
 
-.qs-imagen-decorativa {
-  font-size: 120px;
-  line-height: 1;
-  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.15));
-  color: #1a4d5c; /* era negro implícito */
-}
-
 .qs-paso-icono {
   font-size: 2rem;
   margin-bottom: 0.5rem;
-  color: #c5dde8; /* celeste claro, igual que qs-paso-titulo */
-}
-.qs-audiencia-icono {
-  font-size: 48px;
-  line-height: 1;
-  color: #1a4d5c; /* teal principal */
-}
-
-.qs-audiencia-card--destacado .qs-audiencia-icono {
-  color: #c5dde8; /* celeste claro sobre fondo teal oscuro */
-}
-.qs-valor-icono {
-  font-size: 36px;
-  margin-bottom: 0.75rem;
-  line-height: 1;
-  color: #c5dde8; /* celeste claro, combina con qs-valor-titulo */
+  color: #c5dde8;
 }
