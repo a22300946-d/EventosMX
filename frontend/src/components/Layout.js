@@ -769,9 +769,9 @@ function Layout({ children, showNav = true }) {
           <div className="footer-bottom">
             <div className="footer-brand">EventosMX</div>
             <div className="footer-social">
-              <button aria-label="Twitter" className="footer-social-btn"><FaTwitter /></button>
-              <button aria-label="Facebook" className="footer-social-btn"><FaFacebook /></button>
-              <button aria-label="Instagram" className="footer-social-btn"><FaInstagram /></button>
+              <a href="https://x.com/eventos_mxx?s=11" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="footer-social-btn"><FaTwitter /></a>
+              <a href="https://www.facebook.com/share/1CxuU6t4kN/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="footer-social-btn"><FaFacebook /></a>
+              <a href="https://www.instagram.com/mex.eventos?igsh=MTA0ZnlqZWpuNXdkZg==" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="footer-social-btn"><FaInstagram /></a>
             </div>
           </div>
           <div className="footer-copyright">2026. Todos los derechos reservados</div>
