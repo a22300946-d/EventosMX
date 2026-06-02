@@ -71,9 +71,16 @@ class EmailService {
   // ── Verificación de correo ──────────────────────────────────────────────
   async enviarVerificacion({ email, nombre }) {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-    const link = await admin.auth().generateEmailVerificationLink(email, {
+
+    const firebaseLink = await admin.auth().generateEmailVerificationLink(email, {
       url: `${backendUrl}/api/auth/accion`
     });
+
+    // Extraer params de Firebase y construir link con el dominio correcto
+    const parsedUrl = new URL(firebaseLink);
+    const oobCode = parsedUrl.searchParams.get('oobCode');
+    const apiKey  = parsedUrl.searchParams.get('apiKey');
+    const link    = `${backendUrl}/api/auth/accion?mode=verifyEmail&oobCode=${oobCode}&apiKey=${apiKey}`;
 
     await enviar({
       to: email,
@@ -83,7 +90,7 @@ class EmailService {
         <p>Gracias por registrarte. Haz clic en el botón para verificar tu cuenta:</p>
         <div style="text-align:center;margin:30px 0;">
           <a href="${link}"
-             style="background:#1a4d5c;color:white;padding:15px 30px;
+            style="background:#1a4d5c;color:white;padding:15px 30px;
                     text-decoration:none;border-radius:5px;font-size:16px;">
             Verificar mi correo
           </a>
@@ -99,9 +106,16 @@ class EmailService {
   // ── Recuperación de contraseña ──────────────────────────────────────────
   async enviarRecuperacion({ email }) {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-    const link = await admin.auth().generatePasswordResetLink(email, {
+
+    const firebaseLink = await admin.auth().generatePasswordResetLink(email, {
       url: `${backendUrl}/api/auth/accion`
     });
+
+    // Extraer params de Firebase y construir link con el dominio correcto
+    const parsedUrl = new URL(firebaseLink);
+    const oobCode = parsedUrl.searchParams.get('oobCode');
+    const apiKey  = parsedUrl.searchParams.get('apiKey');
+    const link    = `${backendUrl}/api/auth/accion?mode=resetPassword&oobCode=${oobCode}&apiKey=${apiKey}`;
 
     await enviar({
       to: email,
@@ -111,7 +125,7 @@ class EmailService {
         <p>Haz clic en el botón para crear una nueva contraseña:</p>
         <div style="text-align:center;margin:30px 0;">
           <a href="${link}"
-             style="background:#1a4d5c;color:white;padding:15px 30px;
+            style="background:#1a4d5c;color:white;padding:15px 30px;
                     text-decoration:none;border-radius:5px;font-size:16px;">
             Recuperar contraseña
           </a>
