@@ -309,7 +309,12 @@ const Chat = () => {
     const estadoValido = conversacionActual.estado === 'Aceptada' ||
                          conversacionActual.estado_solicitud === 'Aceptada';
     const fechaEvento = conversacionActual.fecha_evento;
-    const eventoYaPaso = fechaEvento && new Date(fechaEvento) < new Date();
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fechaEventoDate = fechaEvento
+      ? new Date(String(fechaEvento).split('T')[0])
+      : null;
+    const eventoYaPaso = fechaEventoDate && fechaEventoDate < hoy;
 
     if (estadoValido && eventoYaPaso && conversacionActual.id_proveedor) {
       try {
